@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """
 سيف تداول — نموذج التقييم الاستثماري المتوسط
-Scoring Engine v1.1
-105 نقطة خام (تُعاير إلى 100) = 5 محاور × أوزان مختلفة
+Scoring Engine v1.2 — criteria v2.1
+90 نقطة خام (تُعاير إلى 100) = 5 محاور: مالية 30 + اتجاه 25 + زخم 11 + مخاطر 17 + تقييم 7
+
+criteria v2.1 (مواصفة docs/urgent-fixes-spec.md — 2026-08-03):
+  - استبعاد ثابت من المقام لأربعة مكونات (rsTasi12m 4ن، Z-Score 3ن، P/E 5ن، EV/EBITDA 3ن)
+    — الأولان لا يولدهما سكربت (بند 12 مؤجل)، والأخيران مجمدان بلا كاتب حي (بند 24).
+    إعادة أي منها = وسم نسخة معايير جديد، لا تعديل صامت.
+  - حالة unrated (بند 18): اجتاز فحص المالية بلا SMA200W صالح → classCode='unrated'.
+  - إشارة توقيت MACD من dailyTechnical.macdD/macdSignalD (EMA9 حقيقية) بدل technical{} (تقريب ×0.8).
+  - العتبات (80/65/50/35، <50، ≥65) بلا أي تغيير رقمي.
 
 v1.1: قواعد متخصصة للبنوك (ROA + Cost-to-Income من Yahoo Finance)
       التأمين والقطاعات الأخرى = قواعد عامة (بدون تغيير)
@@ -257,14 +265,16 @@ def score_weekly_trend(stock):
 
 
 def score_relative_strength(stock, sector_medians):
-    """المحور 3: الزخم النسبي (15 نقطة)"""
+    """المحور 3: الزخم النسبي (11 نقطة)
+    criteria v2.1: أُخرج مكوّن RS-TASI 12M (كان 4 ن) من المقام استبعاداً ثابتاً —
+    rsTasi12m لا يولده أي سكربت (بند 12 مؤجل). إعادته = وسم نسخة معايير جديد."""
     rs = stock.get('relativeStrength', {})
     if not rs:
-        return 0, 15, ["لا توجد بيانات"]
-    
+        return 0, 11, ["لا توجد بيانات"]
+
     score = 0
     details = []
-    
+
     # RS vs TASI 6M (4 pts)
     rs6m = rs.get('rsTasi6m', rs.get('rs6m'))
     if rs6m is not None:
@@ -275,18 +285,7 @@ def score_relative_strength(stock, sector_medians):
         else: pts = 0
         score += pts
         details.append(f"RS-TASI 6M: {rs6m:+.1f}% → {pts}/4")
-    
-    # RS vs TASI 12M (4 pts) — not available in current data, use return12m as proxy
-    rs12m = rs.get('rsTasi12m', rs.get('rs12m'))
-    if rs12m is not None:
-        if rs12m > 10: pts = 4
-        elif rs12m > 3: pts = 3
-        elif rs12m > -3: pts = 2
-        elif rs12m > -10: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"RS-TASI 12M: {rs12m:+.1f}% → {pts}/4")
-    
+
     # RS vs Sector 6M (4 pts)
     sec = stock.get('sector')
     ret6m = rs.get('return6m', rs.get('ret6m'))
@@ -311,17 +310,19 @@ def score_relative_strength(stock, sector_medians):
         else: pts = 0
         score += pts
         details.append(f"RS-TASI 3M: {rs3m:+.1f}% → {pts}/3")
-    
-    return score, 15, details
+
+    return score, 11, details
 
 
-def score_risk(stock, sma200w_zscores=None):
-    """المحور 4: المخاطر (20 نقطة)
-    ATR% (4) + 52W Distance (4) + Volume (4) + SMA200W Z-Score (3) + Net Debt/EBITDA (5)
+def score_risk(stock):
+    """المحور 4: المخاطر (17 نقطة)
+    ATR% (4) + 52W Distance (4) + Volume (4) + Net Debt/EBITDA (5)
+    criteria v2.1: أُخرج مكوّن SMA200W Z-Score (كان 3 ن) من المقام استبعاداً ثابتاً —
+    sma200w-zscores.json لا يولده أي سكربت (بند 12 مؤجل). إعادته = وسم نسخة معايير جديد.
     """
     de = stock.get('dailyExtra', {})
     if not de:
-        return 0, 20, ["لا توجد بيانات"]
+        return 0, 17, ["لا توجد بيانات"]
     
     price = stock.get('currentPrice', 0)
     score = 0
@@ -360,26 +361,6 @@ def score_risk(stock, sma200w_zscores=None):
         else: pts = 1
         score += pts
         details.append(f"Vol20/50: {ratio:.2f} → {pts}/4")
-    
-    # SMA200W Extension Z-Score (3 pts) — بُعد السعر عن المتوسط (علمي)
-    sym = stock.get('symbol', '')
-    if sma200w_zscores and sym in sma200w_zscores:
-        zdata = sma200w_zscores[sym]
-        z = zdata['z']
-        dev = zdata['dev']
-        # Z-Score: how many SDs from the stock's own historical mean deviation
-        # |Z| < 1: normal range → 3 pts
-        # |Z| 1-2: moderately extended → 2 pts  
-        # |Z| 2-3: significantly extended → 1 pt
-        # |Z| > 3: extremely extended → 0 pts
-        abs_z = abs(z)
-        if abs_z < 1: pts = 3
-        elif abs_z < 2: pts = 2
-        elif abs_z < 3: pts = 1
-        else: pts = 0
-        score += pts
-        direction = "فوق" if dev > 0 else "تحت"
-        details.append(f"SMA200W Z={z:+.1f} ({direction} بـ{abs(dev):.0f}%) → {pts}/3")
     
     # Net Debt/EBITDA (5 pts) — ملاءة مالية
     dh = stock.get('debtHealth', {})
@@ -420,33 +401,25 @@ def score_risk(stock, sma200w_zscores=None):
             score += pts
             details.append(f"فوائض نقدية → {pts}/5")
     
-    return score, 20, details
+    return score, 17, details
 
 
 def score_valuation(stock, sector_medians):
-    """المحور 5: التقييم / القيمة الحقيقية (15 نقطة)"""
+    """المحور 5: التقييم / القيمة الحقيقية (7 نقاط)
+    criteria v2.1: أُخرج مكوّنا P/E مقابل القطاع (كان 5 ن) وEV/EBITDA (كان 3 ن) من المقام
+    استبعاداً ثابتاً — مجمدان بلا كاتب حي منذ ~03-07 (بند 24). يبقى P/B (حي بحارس اتساق —
+    ولكل الأسهم بما فيها ساقطو الحارس، توحيداً للمقام) وعائد التوزيعات (حي).
+    زال معهما استثناء «الغائب = 1/3 حياد» — قاعدة «الغياب = صفر والمقام ثابت» تعم بلا استثناء.
+    إعادة أي منهما = وسم نسخة معايير جديد."""
     val = stock.get('valuation', {})
     sec = stock.get('sector')
     if not val:
-        return 0, 15, ["لا توجد بيانات تقييم"]
-    
+        return 0, 7, ["لا توجد بيانات تقييم"]
+
     sm = sector_medians.get(sec, {}) if sec else {}
     score = 0
     details = []
-    
-    # P/E vs Sector (5 pts)
-    pe = val.get('pe')
-    pe_med = sm.get('peMedian')
-    if pe and pe > 0 and pe_med and pe_med > 0:
-        ratio = pe / pe_med
-        if ratio < 0.7: pts = 5
-        elif ratio < 0.9: pts = 4
-        elif ratio < 1.1: pts = 3
-        elif ratio < 1.5: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"P/E {pe:.1f} vs قطاع {pe_med:.1f} ({ratio:.2f}x) → {pts}/5")
-    
+
     # P/B vs Sector (4 pts)
     pb = val.get('pb')
     pb_med = sm.get('pbMedian')
@@ -470,22 +443,8 @@ def score_valuation(stock, sector_medians):
         else: pts = 0
         score += pts
         details.append(f"Yield {dy_pct:.1f}% → {pts}/3")
-    
-    # EV/EBITDA (3 pts)
-    ev = val.get('evEbitda')
-    if ev and ev > 0:
-        if ev < 8: pts = 3
-        elif ev < 12: pts = 2
-        elif ev < 18: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"EV/EBITDA {ev:.1f} → {pts}/3")
-    else:
-        # No EV/EBITDA → neutral
-        score += 1
-        details.append(f"EV/EBITDA غير متوفر → 1/3")
-    
-    return score, 15, details
+
+    return score, 7, details
 
 
 
@@ -533,9 +492,12 @@ def build_top_drivers(s, sector_medians):
     return out
 
 def timing_signal(stock):
-    """الطبقة 3: توقيت الدخول"""
+    """الطبقة 3: توقيت الدخول
+    criteria v2.1: إشارة MACD تُقرأ من dailyTechnical.macdD/macdSignalD (خط إشارة EMA9
+    حقيقي من fetch-daily-extra.sh) بدل technical{} القديمة (إشارتها تقريب ×0.8).
+    غياب الحقلين = الإشارة غير متاحة (لا تدخل العدد ولا المتاح) — لا صفر مفروض."""
     de = stock.get('dailyExtra', {})
-    tech = stock.get('technical', {})
+    dt = stock.get('dailyTechnical', {})
     price = stock.get('currentPrice', 0)
     
     positives = 0
@@ -562,9 +524,9 @@ def timing_signal(stock):
         else:
             details.append(f"⚠️ RSI-D {rsi}")
     
-    # MACD Daily
-    macd = tech.get('macd')
-    signal = tech.get('macdSignal')
+    # MACD Daily — من dailyTechnical (criteria v2.1)
+    macd = dt.get('macdD')
+    signal = dt.get('macdSignalD')
     if macd is not None and signal is not None:
         total += 1
         if macd > signal:
@@ -651,19 +613,15 @@ def classify(total_score, timing_label):
 
 
 def run_scoring():
-    with open('/srv/ideas/stocks-data.json') as f:
+    # (criteria v2.1) مسار البيانات يقبل معاملاً اختيارياً للتحقق في المختبر — الافتراضي الإنتاجي كما هو
+    data_path = sys.argv[1] if len(sys.argv) > 1 else '/srv/ideas/stocks-data.json'
+    with open(data_path) as f:
         data = json.load(f)
-    
-    # Load SMA200W Z-scores
-    import os
-    zscores_path = '/srv/ideas/sma200w-zscores.json'
-    sma200w_zscores = {}
-    if os.path.exists(zscores_path):
-        with open(zscores_path) as f:
-            sma200w_zscores = json.load(f)
-    
+
+    # (criteria v2.1) أُزيل تحميل sma200w-zscores.json — المكوّن خارج المقام استبعاداً ثابتاً
+
     sector_medians = data.get('sectorMedians', {})
-    stats = {'strong_buy': 0, 'buy': 0, 'buy_wait': 0, 'conditional_buy': 0, 'hold': 0, 'sell': 0, 'strong_sell': 0, 'filtered': 0}
+    stats = {'strong_buy': 0, 'buy': 0, 'buy_wait': 0, 'conditional_buy': 0, 'hold': 0, 'sell': 0, 'strong_sell': 0, 'filtered': 0, 'unrated': 0}
     
     for s in data['stocks']:
         # Filter
@@ -695,7 +653,7 @@ def run_scoring():
         fin_score, fin_max, fin_detail = score_financial_health(s)
         trend_score, trend_max, trend_detail = score_weekly_trend(s)
         rs_score, rs_max, rs_detail = score_relative_strength(s, sector_medians)
-        risk_score, risk_max, risk_detail = score_risk(s, sma200w_zscores)
+        risk_score, risk_max, risk_detail = score_risk(s)
         val_score, val_max, val_detail = score_valuation(s, sector_medians)
         
         raw_total = fin_score + trend_score + rs_score + risk_score + val_score
@@ -708,7 +666,15 @@ def run_scoring():
         
         # Classification
         class_text, class_icon, class_code = classify(total, timing_label)
-        
+
+        # (criteria v2.1 — بند 18) حالة unrated: اجتاز فحص البيانات المالية لكن بلا SMA200W صالح
+        # — لم يُختبر بالفلتر الإقصائي الأول، فلا يُمنح تصنيف نجاح ولا رفض.
+        # النقاط والتوقيت وdetails تُحسب وتبقى كاملة (شرط بند 18: لا مساس بنقاط أي سهم)،
+        # ويُستبدل التصنيف فقط. لا يجتمع مع filtered (فحص المالية أولاً في investment_filter).
+        is_unrated = not (s.get('weeklyTechnical') or {}).get('sma200w')
+        if is_unrated:
+            class_text, class_icon, class_code = 'غير مُقيَّم', '⏸', 'unrated'
+
         # Preserve existing fields not computed here (confidence, interpretation, etc.)
         old_sc = s.get('investmentScore', {})
         
@@ -730,6 +696,7 @@ def run_scoring():
             'sector': s.get('sector', ''),
             'industry': s.get('industry', ''),
             'filtered': False,
+            'unrated': is_unrated,  # (criteria v2.1) بولياني حصراً — عقد الواجهة sc.unrated === true
             'filterReason': filter_reason,
             # Preserve fields from previous scoring runs
             'confidence': old_sc.get('confidence', ''),
@@ -759,7 +726,7 @@ def run_scoring():
         
         stats[class_code] = stats.get(class_code, 0) + 1
     
-    with open('/srv/ideas/stocks-data.json', 'w') as f:
+    with open(data_path, 'w') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     
     print("=" * 50)
@@ -772,6 +739,7 @@ def run_scoring():
     print(f"⏳ انتظار: {stats.get('hold', 0)}")
     print(f"🔻 بيع: {stats.get('sell', 0)}")
     print(f"🔻🔻 بيع قوي: {stats.get('strong_sell', 0)}")
+    print(f"⏸ غير مُقيَّم (unrated): {stats.get('unrated', 0)}")
     print(f"⛔ لم يعدّ الفلتر: {stats.get('filtered', 0)}")
     print()
     

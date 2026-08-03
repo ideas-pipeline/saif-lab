@@ -98,13 +98,19 @@ for k in ("pb", "dividendYield", "pe", "evEbitda"):
 if noin > 40:
     warn("أسهم بلا مدخلات تقييم: %d (فوق المعتاد ~24)" % noin)
 
-# ── 4) الفلتر الصامت
+# ── 4) حالة unrated (criteria v2.1 — كان: الفلتر الصامت)
+# المرجع عند التفعيل: 42±2 (بند 18، ACTION-PLAN:291). خارج النطاق = إنذار.
+unrated = [s for s in S
+           if (s.get("investmentScore") or {}).get("unrated") is True]
 silent = [s for s in S
           if (s.get("investmentScore") or {}).get("filtered") is False
+          and (s.get("investmentScore") or {}).get("unrated") is not True
           and not (s.get("weeklyTechnical") or {}).get("sma200w")]
-print("\n[4] عبروا الفلتر بلا SMA200W صالح: %d" % len(silent))
-if len(silent) > 45:
-    warn("الفلتر الصامت ارتفع إلى %d" % len(silent))
+print("\n[4] unrated: %d | عبروا الفلتر بلا SMA200W دون وسم unrated: %d" % (len(unrated), len(silent)))
+if not (40 <= len(unrated) <= 44):
+    warn("عدد unrated خارج نطاق 42±2: %d" % len(unrated))
+if silent:
+    warn("أسهم عبرت الفلتر بلا SMA200W ودون وسم unrated: %d — ثغرة بند 18 عادت" % len(silent))
 
 # ── 5) انحراف مرشحي الشراء
 buy = [s for s in S if (s.get("investmentScore") or {}).get("filtered") is False

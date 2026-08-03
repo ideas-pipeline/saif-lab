@@ -51,6 +51,11 @@ for s in data.get("stocks", []):
     snapshot[s["symbol"]] = (cur, total)
     if cur is None or total is None:
         continue
+    # (criteria v2.1 — حارس بند 18): سهم unrated لا يدخل قائمة المراقبة بأي عينة —
+    # لم يختبره الفلتر فليس توصية نظام، ودخوله الظل (نقاط>=65) يلوث تقرير طبقة التوقيت.
+    # المفتوحون القائمون لأسهم صارت unrated يبقون ويدارون بقواعد الإغلاق القائمة (لا إغلاق رجعي).
+    if inv.get("unrated") is True or code == "unrated":
+        continue
     if code in ("strong_buy", "buy"):
         sample, category = "applied", code
     elif total >= 65:
@@ -74,6 +79,7 @@ for s in data.get("stocks", []):
         "timingAtEntry": inv.get("timing", ""),
         "regimeAtEntry": regime,
         "aboveSmaAtEntry": bool(cur >= sma_w) if (cur is not None and sma_w) else None,
+        "scoreScaleAtEntry": "raw90",  # (criteria v2.1) وسم السلم — القائم قبل الحد raw105، ولا مقارنة عددية عبر سلمين
         "status": "open",
     }
     stocks_cfg.append(entry)

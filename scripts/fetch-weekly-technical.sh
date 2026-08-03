@@ -49,16 +49,31 @@ def calc_rsi(prices, period=14):
     return round(100 - (100 / (1 + rs)), 1)
 
 def calc_macd(prices, fast=12, slow=26, signal=9):
-    if len(prices) < slow:
+    # criteria v2.1 (2026-08-03): خط MACD يُبنى كسلسلة كاملة وخط الإشارة EMA9 حقيقية عليها
+    # — يحل محل تقريب signal = macd × 0.8 القديم (كان موسوماً approximation).
+    # الاصطلاح مطابق حرفياً لتنفيذ fetch-daily-extra.sh المجرب: بذرة SMA ثم k=2/(period+1).
+    # تاريخ غير كافٍ لخط الإشارة → macdSignalW=None (مكوّن MACD في المحور 0/5 والمقام ثابت،
+    # وشرط الانعكاس في الفلتر يفشل — الأكثر تحفظاً).
+    if len(prices) < slow + signal:
         return None, None, None
-    ema_fast = calc_ema(prices, fast)
-    ema_slow = calc_ema(prices, slow)
-    if ema_fast is None or ema_slow is None:
+    k_f, k_s = 2 / (fast + 1), 2 / (slow + 1)
+    ema_f = sum(prices[:fast]) / fast
+    ema_s = sum(prices[:slow]) / slow
+    macd_line = []
+    for i, p in enumerate(prices):
+        if i >= fast:
+            ema_f = p * k_f + ema_f * (1 - k_f)
+        if i >= slow:
+            ema_s = p * k_s + ema_s * (1 - k_s)
+            macd_line.append(ema_f - ema_s)
+    if len(macd_line) < signal:
         return None, None, None
-    macd_line = round(ema_fast - ema_slow, 3)
-    signal_line = round(macd_line * 0.8, 3)
-    histogram = round(macd_line - signal_line, 3)
-    return macd_line, signal_line, histogram
+    k_sig = 2 / (signal + 1)
+    sig = sum(macd_line[:signal]) / signal
+    for m in macd_line[signal:]:
+        sig = m * k_sig + sig * (1 - k_sig)
+    macd = macd_line[-1]
+    return round(macd, 3), round(sig, 3), round(macd - sig, 3)
 
 def calc_sma_slope(prices, period=200):
     if len(prices) < period + 4:

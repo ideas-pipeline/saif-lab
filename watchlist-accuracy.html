@@ -288,7 +288,8 @@
   <div class="header">
     <div class="header-left">
       <h1>📊 Watchlist Accuracy</h1>
-<p style="font-size:0.85em;color:#888;margin-top:4px">أساس القياس v2 منذ 2026-07-21: دخول بإغلاق سهمك (معدّل للتقسيمات عند المصدر) + التوزيعات الفعلية بتاريخ الأحقية = عائد كلي دقيق (الاحتياطي adjclose يدمجها ضمنياً)، والمقارنة بمؤشر TASI السعري مع خصم انحياز تقريبي 3-4% سنوياً عند الحكم (وثيقة المعايير 2026-07-14)</p>
+<p style="font-size:0.85em;color:#888;margin-top:4px">أساس القياس v2 منذ 2026-07-21: دخول بإغلاق سهمك (معدّل للتقسيمات عند المصدر) + التوزيعات الفعلية بتاريخ الأحقية = عائد كلي دقيق (الاحتياطي adjclose يدمجها ضمنياً)</p>
+<p style="font-size:0.85em;color:#7aa2c9;margin-top:4px"><b>measurement v3 منذ 2026-08-03:</b> الحكم بالعائد الزائد الصافي مقابل TASI السعري للفترة المطابقة لكل توصية — نجاح = (العائد − عائد تاسي − خصم انحياز 3.5% سنوياً تناسبياً بالمدة) &gt; 0. الخصم يصحح انحياز عوائد شبه كلية مقابل مؤشر سعري (وثيقة المعايير §4). المسار اليدوي legacy مفصول أسفل الصفحة وخارج كل الإحصاءات</p>
       <p>دقة التوصيات — متابعة الأداء الفعلي للتوصيات</p>
     </div>
     <span class="badge-date" id="entry-date-badge">دخول: 11 مارس 2025</span>
@@ -298,6 +299,9 @@
   <div class="stats-grid" id="stats-grid">
     <!-- populated by JS -->
   </div>
+
+  <!-- ── measurement v3: التجزئة الوجوبية (بالفئة وبالنظام — ملحق المعايير 14-07) ── -->
+  <div id="segment-grid" style="margin:14px 0"></div>
 
   <!-- ── Filters ── -->
   <div class="filters">
@@ -321,6 +325,9 @@
           <th>سعر الدخول</th>
           <th>السعر الحالي</th>
           <th>العائد %</th>
+          <th>تاسي %</th>
+          <th>زائد خام</th>
+          <th>زائد صافٍ</th>
           <th>الحالة</th>
         </tr>
       </thead>
@@ -331,9 +338,15 @@
   <!-- ── Mobile Cards ── -->
   <div class="mobile-cards" id="mobile-cards"></div>
 
+  <!-- ── measurement v3: المسار اليدوي legacy — جدول مستقل خارج عينة الحكم ── -->
+  <div id="legacy-section"></div>
+
   <!-- ── Footer ── -->
   <div class="footer">
     <span>بيانات للأغراض التعليمية فقط — لا تُعدّ نصيحة استثمارية</span>
+    <span id="v3-disclosure" style="display:block;font-size:0.85em;color:#888;margin-top:4px">
+      measurement v3 — مفعّل 2026-08-03. الأرقام لا تشمل تكاليف تداول (~0.31% للصفقة المكتملة: ~15.5 نقطة أساس لكل اتجاه) ولا فروق التنفيذ عن إغلاق يوم الإشارة. خصم الانحياز: 3.5% سنوياً تناسبياً بالمدة (منتصف نطاق وثيقة المعايير 3-4%)
+    </span>
     <span>
       <span class="dot">●</span>
       تاريخ الدخول: 2026-03-26 19:55
@@ -366,6 +379,9 @@ const WATCHLIST = [
     entryPrice:    22.32,      // sahmk-close | يدوي أصلي: 21.64
     entrySource:   "sahmk-close",
     divsSince:     2.94,
+    tasiRet:       -8.7,
+    periodDays:    507,
+    regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
     currentPrice:  20.13,           // ✅ confirmed 2026-08-02
@@ -378,6 +394,9 @@ const WATCHLIST = [
     entryPrice:    23.2,      // sahmk-close | يدوي أصلي: 32.0
     entrySource:   "sahmk-close",
     divsSince:     2.0,
+    tasiRet:       -8.7,
+    periodDays:    507,
+    regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
     currentPrice:  30.26,           // ✅ confirmed 2026-08-02
@@ -390,6 +409,9 @@ const WATCHLIST = [
     entryPrice:    65.0,      // sahmk-close | يدوي أصلي: 25.8
     entrySource:   "sahmk-close",
     divsSince:     0.5,
+    tasiRet:       -8.7,
+    periodDays:    507,
+    regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
     currentPrice:  23.13,           // ✅ confirmed 2026-08-02
@@ -402,6 +424,9 @@ const WATCHLIST = [
     entryPrice:    50.5,      // manual-fallback | يدوي أصلي: 50.5
     entrySource:   "manual-fallback",
     divsSince:     0,
+    tasiRet:       -8.7,
+    periodDays:    507,
+    regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
     currentPrice:  49.9,           // ✅ confirmed 2026-08-02
@@ -414,6 +439,9 @@ const WATCHLIST = [
     entryPrice:    149.9,      // sahmk-close | يدوي أصلي: 145.0
     entrySource:   "sahmk-close",
     divsSince:     3.5,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  119.1,           // ✅ confirmed 2026-08-02
@@ -426,6 +454,9 @@ const WATCHLIST = [
     entryPrice:    36.82,      // sahmk-close | يدوي أصلي: 37.3
     entrySource:   "sahmk-close",
     divsSince:     2.0,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  33.82,           // ✅ confirmed 2026-08-02
@@ -438,6 +469,9 @@ const WATCHLIST = [
     entryPrice:    70.93,      // sahmk-close | يدوي أصلي: 106.6
     entrySource:   "sahmk-close",
     divsSince:     1.75,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  64.5,           // ✅ confirmed 2026-08-02
@@ -450,6 +484,9 @@ const WATCHLIST = [
     entryPrice:    42.46,      // sahmk-close | يدوي أصلي: 41.82
     entrySource:   "sahmk-close",
     divsSince:     2.3,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  39.2,           // ✅ confirmed 2026-08-02
@@ -462,6 +499,9 @@ const WATCHLIST = [
     entryPrice:    14.12,      // sahmk-close | يدوي أصلي: 14.12
     entrySource:   "sahmk-close",
     divsSince:     0.47,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  16.5,           // ✅ confirmed 2026-08-02
@@ -474,6 +514,9 @@ const WATCHLIST = [
     entryPrice:    16.68,      // sahmk-close | يدوي أصلي: 16.7
     entrySource:   "sahmk-close",
     divsSince:     0.25,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  14.54,           // ✅ confirmed 2026-08-02
@@ -486,6 +529,9 @@ const WATCHLIST = [
     entryPrice:    24.9,      // sahmk-close | يدوي أصلي: 24.47
     entrySource:   "sahmk-close",
     divsSince:     0.5,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  26.98,           // ✅ confirmed 2026-08-02
@@ -498,6 +544,9 @@ const WATCHLIST = [
     entryPrice:    58.4,      // sahmk-close | يدوي أصلي: 56.35
     entrySource:   "sahmk-close",
     divsSince:     0.5,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  67.5,           // ✅ confirmed 2026-08-02
@@ -510,6 +559,9 @@ const WATCHLIST = [
     entryPrice:    135.9,      // sahmk-close | يدوي أصلي: 138.2
     entrySource:   "sahmk-close",
     divsSince:     0.25,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  117.4,           // ✅ confirmed 2026-08-02
@@ -522,6 +574,9 @@ const WATCHLIST = [
     entryPrice:    31.94,      // sahmk-close | يدوي أصلي: 31.68
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  38.0,           // ✅ confirmed 2026-08-02
@@ -534,6 +589,9 @@ const WATCHLIST = [
     entryPrice:    18.56,      // sahmk-close | يدوي أصلي: 18.54
     entrySource:   "sahmk-close",
     divsSince:     0.32,
+    tasiRet:       -4.99,
+    periodDays:    122,
+    regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
     currentPrice:  14.9,           // ✅ confirmed 2026-08-02
@@ -546,6 +604,9 @@ const WATCHLIST = [
     entryPrice:    20.57,      // sahmk-close | يدوي أصلي: 20.57
     entrySource:   "sahmk-close",
     divsSince:     0.64,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -559,6 +620,9 @@ const WATCHLIST = [
     entryPrice:    13.41,      // sahmk-close | يدوي أصلي: 13.41
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -572,6 +636,9 @@ const WATCHLIST = [
     entryPrice:    19.41,      // sahmk-close | يدوي أصلي: 19.41
     entrySource:   "sahmk-close",
     divsSince:     0.57,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -585,6 +652,9 @@ const WATCHLIST = [
     entryPrice:    24.0,      // sahmk-close | يدوي أصلي: 24.0
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -598,6 +668,9 @@ const WATCHLIST = [
     entryPrice:    14.79,      // sahmk-close | يدوي أصلي: 14.79
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -611,6 +684,9 @@ const WATCHLIST = [
     entryPrice:    223.4,      // sahmk-close | يدوي أصلي: 223.4
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "strong_buy",
@@ -624,6 +700,9 @@ const WATCHLIST = [
     entryPrice:    5.42,      // sahmk-close | يدوي أصلي: 5.42
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -637,6 +716,9 @@ const WATCHLIST = [
     entryPrice:    109.4,      // sahmk-close | يدوي أصلي: 109.4
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -650,6 +732,9 @@ const WATCHLIST = [
     entryPrice:    6.32,      // sahmk-close | يدوي أصلي: 6.32
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -663,6 +748,9 @@ const WATCHLIST = [
     entryPrice:    124.4,      // sahmk-close | يدوي أصلي: 124.4
     entrySource:   "sahmk-close",
     divsSince:     3.5,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -676,6 +764,9 @@ const WATCHLIST = [
     entryPrice:    26.66,      // sahmk-close | يدوي أصلي: 26.66
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -689,6 +780,9 @@ const WATCHLIST = [
     entryPrice:    35.76,      // sahmk-close | يدوي أصلي: 35.76
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -702,6 +796,9 @@ const WATCHLIST = [
     entryPrice:    6.95,      // sahmk-close | يدوي أصلي: 6.95
     entrySource:   "sahmk-close",
     divsSince:     0.17,
+    tasiRet:       0.93,
+    periodDays:    8,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-07-23",
     closePrice:    6.63,
@@ -719,6 +816,9 @@ const WATCHLIST = [
     entryPrice:    26.64,      // sahmk-close | يدوي أصلي: 26.64
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -732,6 +832,9 @@ const WATCHLIST = [
     entryPrice:    8.45,      // sahmk-close | يدوي أصلي: 8.45
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -745,6 +848,9 @@ const WATCHLIST = [
     entryPrice:    4.08,      // sahmk-close | يدوي أصلي: 4.08
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -758,6 +864,9 @@ const WATCHLIST = [
     entryPrice:    33.22,      // sahmk-close | يدوي أصلي: 33.22
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -771,6 +880,9 @@ const WATCHLIST = [
     entryPrice:    14.1,      // sahmk-close | يدوي أصلي: 14.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-08-02",
     closePrice:    13.2,
@@ -788,6 +900,9 @@ const WATCHLIST = [
     entryPrice:    45.06,      // sahmk-close | يدوي أصلي: 45.06
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-08-02",
     closePrice:    43.26,
@@ -805,6 +920,9 @@ const WATCHLIST = [
     entryPrice:    26.58,      // sahmk-close | يدوي أصلي: 26.58
     entrySource:   "sahmk-close",
     divsSince:     0.6,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -818,6 +936,9 @@ const WATCHLIST = [
     entryPrice:    3.66,      // sahmk-close | يدوي أصلي: 3.66
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.11,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-07-19",
     closePrice:    3.64,
@@ -835,6 +956,9 @@ const WATCHLIST = [
     entryPrice:    32.68,      // sahmk-close | يدوي أصلي: 32.68
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -848,6 +972,9 @@ const WATCHLIST = [
     entryPrice:    85.3,      // sahmk-close | يدوي أصلي: 85.3
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -861,6 +988,9 @@ const WATCHLIST = [
     entryPrice:    16.85,      // sahmk-close | يدوي أصلي: 16.85
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -874,6 +1004,9 @@ const WATCHLIST = [
     entryPrice:    18.1,      // sahmk-close | يدوي أصلي: 18.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -887,6 +1020,9 @@ const WATCHLIST = [
     entryPrice:    17.62,      // sahmk-close | يدوي أصلي: 17.62
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -900,6 +1036,9 @@ const WATCHLIST = [
     entryPrice:    43.3,      // sahmk-close | يدوي أصلي: 43.3
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy_wait",
@@ -913,6 +1052,9 @@ const WATCHLIST = [
     entryPrice:    135.4,      // sahmk-close | يدوي أصلي: 135.4
     entrySource:   "sahmk-close",
     divsSince:     2.0,
+    tasiRet:       -1.07,
+    periodDays:    15,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-07-30",
     closePrice:    122.6,
@@ -930,6 +1072,9 @@ const WATCHLIST = [
     entryPrice:    31.24,      // sahmk-close | يدوي أصلي: 31.24
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.01,
+    periodDays:    18,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-15",
     track:         "auto",
     category:      "buy",
@@ -943,6 +1088,9 @@ const WATCHLIST = [
     entryPrice:    5.51,      // sahmk-close | يدوي أصلي: 5.51
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.13,
+    periodDays:    17,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-16",
     track:         "auto",
     category:      "buy_wait",
@@ -956,6 +1104,9 @@ const WATCHLIST = [
     entryPrice:    13.4,      // sahmk-close | يدوي أصلي: 13.4
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.1,
+    periodDays:    14,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-19",
     track:         "auto",
     category:      "buy_wait",
@@ -969,6 +1120,9 @@ const WATCHLIST = [
     entryPrice:    108.1,      // sahmk-close | يدوي أصلي: 108.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.1,
+    periodDays:    14,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-19",
     track:         "auto",
     category:      "buy",
@@ -982,6 +1136,9 @@ const WATCHLIST = [
     entryPrice:    23.33,      // sahmk-close | يدوي أصلي: 23.33
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.1,
+    periodDays:    14,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-08-02",
     closePrice:    22.03,
@@ -999,6 +1156,9 @@ const WATCHLIST = [
     entryPrice:    17.87,      // sahmk-close | يدوي أصلي: 17.87
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.81,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-07-23",
     closePrice:    17.28,
@@ -1016,6 +1176,9 @@ const WATCHLIST = [
     entryPrice:    17.65,      // sahmk-close | يدوي أصلي: 17.65
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.58,
+    periodDays:    3,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-07-23",
     closePrice:    17.28,
@@ -1033,6 +1196,9 @@ const WATCHLIST = [
     entryPrice:    6.23,      // sahmk-close | يدوي أصلي: 6.23
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.07,
+    periodDays:    12,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-21",
     track:         "auto",
     category:      "buy_wait",
@@ -1046,6 +1212,9 @@ const WATCHLIST = [
     entryPrice:    15.93,      // sahmk-close | يدوي أصلي: 15.93
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.07,
+    periodDays:    12,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-21",
     track:         "auto",
     category:      "buy_wait",
@@ -1059,6 +1228,9 @@ const WATCHLIST = [
     entryPrice:    34.0,      // sahmk-close | يدوي أصلي: 34.0
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.07,
+    periodDays:    12,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-21",
     track:         "auto",
     category:      "buy_wait",
@@ -1072,6 +1244,9 @@ const WATCHLIST = [
     entryPrice:    198.9,      // sahmk-close | يدوي أصلي: 198.9
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.65,
+    periodDays:    11,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-22",
     track:         "auto",
     category:      "buy_wait",
@@ -1085,6 +1260,9 @@ const WATCHLIST = [
     entryPrice:    33.28,      // sahmk-close | يدوي أصلي: 33.28
     entrySource:   "sahmk-close",
     divsSince:     1.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy",
@@ -1098,6 +1276,9 @@ const WATCHLIST = [
     entryPrice:    21.32,      // sahmk-close | يدوي أصلي: 21.32
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy",
@@ -1111,6 +1292,9 @@ const WATCHLIST = [
     entryPrice:    39.92,      // sahmk-close | يدوي أصلي: 39.92
     entrySource:   "sahmk-close",
     divsSince:     1.15,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy",
@@ -1124,6 +1308,9 @@ const WATCHLIST = [
     entryPrice:    132.5,      // sahmk-close | يدوي أصلي: 132.5
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy",
@@ -1137,6 +1324,9 @@ const WATCHLIST = [
     entryPrice:    45.1,      // sahmk-close | يدوي أصلي: 45.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy_wait",
@@ -1150,6 +1340,9 @@ const WATCHLIST = [
     entryPrice:    64.8,      // sahmk-close | يدوي أصلي: 64.8
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy",
@@ -1163,6 +1356,9 @@ const WATCHLIST = [
     entryPrice:    13.56,      // sahmk-close | يدوي أصلي: 13.56
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-08-02",
     closePrice:    13.2,
@@ -1180,6 +1376,9 @@ const WATCHLIST = [
     entryPrice:    17.1,      // sahmk-close | يدوي أصلي: 17.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy",
@@ -1193,6 +1392,9 @@ const WATCHLIST = [
     entryPrice:    16.05,      // sahmk-close | يدوي أصلي: 16.05
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy_wait",
@@ -1206,6 +1408,9 @@ const WATCHLIST = [
     entryPrice:    12.56,      // sahmk-close | يدوي أصلي: 12.56
     entrySource:   "sahmk-close",
     divsSince:     0.07,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy_wait",
@@ -1219,6 +1424,9 @@ const WATCHLIST = [
     entryPrice:    63.9,      // sahmk-close | يدوي أصلي: 63.9
     entrySource:   "sahmk-close",
     divsSince:     1.4,
+    tasiRet:       -0.57,
+    periodDays:    7,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-26",
     track:         "auto",
     category:      "buy",
@@ -1232,6 +1440,9 @@ const WATCHLIST = [
     entryPrice:    15.21,      // sahmk-close | يدوي أصلي: 15.21
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -1.65,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-07-30",
     closePrice:    14.0,
@@ -1249,6 +1460,9 @@ const WATCHLIST = [
     entryPrice:    15.34,      // sahmk-close | يدوي أصلي: 15.34
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.59,
+    periodDays:    6,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-27",
     track:         "auto",
     category:      "buy",
@@ -1262,6 +1476,9 @@ const WATCHLIST = [
     entryPrice:    46.08,      // sahmk-close | يدوي أصلي: 46.08
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.59,
+    periodDays:    6,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-27",
     track:         "auto",
     category:      "buy",
@@ -1275,6 +1492,9 @@ const WATCHLIST = [
     entryPrice:    22.11,      // sahmk-close | يدوي أصلي: 22.11
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.59,
+    periodDays:    6,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-08-02",
     closePrice:    22.03,
@@ -1292,6 +1512,9 @@ const WATCHLIST = [
     entryPrice:    2.1,      // sahmk-close | يدوي أصلي: 2.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       -0.59,
+    periodDays:    6,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-27",
     track:         "auto",
     category:      "buy_wait",
@@ -1305,6 +1528,9 @@ const WATCHLIST = [
     entryPrice:    19.46,      // sahmk-close | يدوي أصلي: 19.46
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       0.26,
+    periodDays:    5,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-28",
     track:         "auto",
     category:      "buy_wait",
@@ -1318,6 +1544,9 @@ const WATCHLIST = [
     entryPrice:    33.38,      // sahmk-close | يدوي أصلي: 33.38
     entrySource:   "sahmk-close",
     divsSince:     1.0,
+    tasiRet:       0.26,
+    periodDays:    5,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-28",
     track:         "auto",
     category:      "buy_wait",
@@ -1331,6 +1560,9 @@ const WATCHLIST = [
     entryPrice:    25.7,      // sahmk-close | يدوي أصلي: 25.7
     entrySource:   "sahmk-close",
     divsSince:     0.6,
+    tasiRet:       0.26,
+    periodDays:    5,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-28",
     track:         "auto",
     category:      "buy_wait",
@@ -1344,6 +1576,9 @@ const WATCHLIST = [
     entryPrice:    19.68,      // sahmk-close | يدوي أصلي: 19.68
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       1.53,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-29",
     track:         "auto",
     category:      "buy_wait",
@@ -1357,6 +1592,9 @@ const WATCHLIST = [
     entryPrice:    38.1,      // sahmk-close | يدوي أصلي: 38.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       1.53,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-29",
     track:         "auto",
     category:      "buy_wait",
@@ -1370,6 +1608,9 @@ const WATCHLIST = [
     entryPrice:    44.98,      // sahmk-close | يدوي أصلي: 44.98
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       1.53,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-29",
     track:         "auto",
     category:      "buy_wait",
@@ -1383,6 +1624,9 @@ const WATCHLIST = [
     entryPrice:    30.04,      // sahmk-close | يدوي أصلي: 30.04
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       1.53,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-29",
     track:         "auto",
     category:      "buy_wait",
@@ -1396,6 +1640,9 @@ const WATCHLIST = [
     entryPrice:    44.76,      // sahmk-close | يدوي أصلي: 44.76
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       1.53,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     status:        "closed",
     closeDate:     "2026-08-02",
     closePrice:    43.26,
@@ -1413,6 +1660,9 @@ const WATCHLIST = [
     entryPrice:    61.75,      // sahmk-close | يدوي أصلي: 61.75
     entrySource:   "sahmk-close",
     divsSince:     1.4,
+    tasiRet:       1.53,
+    periodDays:    4,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-29",
     track:         "auto",
     category:      "buy_wait",
@@ -1426,6 +1676,9 @@ const WATCHLIST = [
     entryPrice:    31.1,      // sahmk-close | يدوي أصلي: 31.1
     entrySource:   "sahmk-close",
     divsSince:     0.0,
+    tasiRet:       1.1,
+    periodDays:    3,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-07-30",
     track:         "auto",
     category:      "buy_wait",
@@ -1439,6 +1692,9 @@ const WATCHLIST = [
     entryPrice:    6.22,      // same-day-close | يدوي أصلي: 6.22
     entrySource:   "same-day-close",
     divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-08-02",
     track:         "auto",
     category:      "buy_wait",
@@ -1452,6 +1708,9 @@ const WATCHLIST = [
     entryPrice:    15.43,      // same-day-close | يدوي أصلي: 15.43
     entrySource:   "same-day-close",
     divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-08-02",
     track:         "auto",
     category:      "buy",
@@ -1465,6 +1724,9 @@ const WATCHLIST = [
     entryPrice:    43.8,      // same-day-close | يدوي أصلي: 43.8
     entrySource:   "same-day-close",
     divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
     entryDate:     "2026-08-02",
     track:         "auto",
     category:      "buy",
@@ -1483,12 +1745,25 @@ function calcReturn(entry, current, type, divs) {
   // raw = العائد الفعلي للسعر (موجب = ارتفع، سالب = انخفض)
 }
 
-/** هل التوصية ناجحة؟ حسب نوعها */
-function isSuccess(ret, type) {
-  if (ret === null) return null;
-  if (type === "buy")  return ret >= 0;  // BUY: نجاح = السعر ارتفع
-  if (type === "sell") return ret <= 0;  // SELL: نجاح = السعر انخفض
-  return false;
+/* measurement v3 (2026-08-03): الحكم بالعائد الزائد الصافي مقابل تاسي — يحل محل ret>=0 نهائياً.
+   discount = 3.5 × (أيام الفترة ÷ 365) نقطة مئوية (منتصف نطاق وثيقة المعايير 3-4%، تناسبي بالمدة).
+   excessNet = (ret − tasiRet) − discount. النجاح والإصابة كلاهما على excessNet.
+   sell (كلها legacy) لا تُحاكم في v3 — عرض اطلاعي فقط. */
+const DISCOUNT_ANNUAL_PCT = 3.5;
+
+function calcExcess(ret, tasiRet, periodDays) {
+  if (ret === null || tasiRet === null || tasiRet === undefined) return { gross: null, discount: null, net: null };
+  const gross = ret - tasiRet;
+  if (periodDays === null || periodDays === undefined) return { gross, discount: null, net: null };
+  const discount = DISCOUNT_ANNUAL_PCT * periodDays / 365;
+  return { gross, discount, net: gross - discount };
+}
+
+/** هل التوصية ناجحة؟ v3: excessNet > 0 (توصيات الشراء المطبقة حصراً) */
+function isSuccess(excessNet, type) {
+  if (type !== "buy") return null;           // sell لا تُحاكم في v3 (قرار منهجي 4 في المواصفة)
+  if (excessNet === null) return null;
+  return excessNet > 0;
 }
 
 function fmt(n, dec = 2) {
@@ -1508,6 +1783,7 @@ function returnClass(ret, success) {
 }
 
 function statusBadge(success, r) {
+  if (r && r.legacy)    return `<span class="status-badge status-pending">📒 خارج الحكم (يدوي)</span>`;
   if (r && r.status === "closed") {
     const why = r.closeReason === "score_below_50" ? "نقاط<50" : (r.closeReason === "sma200w_weekly_break" ? "كسر SMA200W" : r.closeReason);
     if (r.shadow) return `<span class="status-badge status-pending">👁 ظل — أُغلق (${why})</span>`;
@@ -1541,35 +1817,43 @@ function isEarly(item) {
 const rows = WATCHLIST.map(item => {
   const px = item.status === "closed" ? item.closePrice : item.currentPrice;
   const ret = calcReturn(item.entryPrice, px, item.type, item.divsSince);
-  const shadow = item.category === "buy_wait";  // الظل يُسجل ولا يُحاكم (وثيقة المعايير)
+  const shadow = item.category === "buy_wait";     // الظل يُسجل ولا يُحاكم (وثيقة المعايير §2)
+  const legacy = item.track === "legacy";          // المسار اليدوي — خارج عينة الحكم كلياً (§2)
   const early = isEarly(item);
-  const success = (shadow || early) ? null : isSuccess(ret, item.type);
-  return { ...item, ret, shadow, early, success };
+  const ex = calcExcess(ret, item.tasiRet, item.periodDays);   // v3
+  const success = (shadow || early || legacy) ? null : isSuccess(ex.net, item.type);
+  return { ...item, ret, shadow, legacy, early, success,
+           excessGross: ex.gross, discount: ex.discount, excessNet: ex.net };
 });
+const autoRows   = rows.filter(r => !r.legacy);   // عينة النظام (المطبقة + الظل)
+const legacyRows = rows.filter(r => r.legacy);    // المسار اليدوي — جدول مستقل
 
 /* ══════════════════════════════════════════════════════
    STATS
    ══════════════════════════════════════════════════════ */
-function renderStats(data) {
-  const total   = data.length;
-  const pending = data.filter(r => r.success === null).length;
-  const done    = data.filter(r => r.success !== null);  // يستبعد المبكرة والظل من الحكم
+function renderStats() {
+  // measurement v3: الإحصاءات الرئيسية من track=auto فقط ومن المطبقة المحكومة فقط
+  // (يستبعد legacy كلياً والظل والمبكرة من الحكم) — ثابتة لا تتأثر بفلاتر العرض
+  const total   = autoRows.length;
+  const done    = autoRows.filter(r => r.success !== null);
   const success = done.filter(r => r.success).length;
   const fail    = done.length - success;
   const accuracy = done.length ? Math.round((success / done.length) * 100) : null;
 
-  const rets = done.map(r => r.ret);
+  const nets = done.map(r => r.excessNet).filter(v => v !== null);
+  const avgNet = nets.length ? nets.reduce((a,b) => a+b, 0) / nets.length : null;
+  const rets = done.map(r => r.ret).filter(v => v !== null);
   const avgRet = rets.length ? rets.reduce((a,b) => a+b, 0) / rets.length : null;
 
   const g = document.getElementById("stats-grid");
   g.innerHTML = `
     <div class="stat-card accent">
       <div class="stat-value">${total}</div>
-      <div class="stat-label">إجمالي التوصيات</div>
+      <div class="stat-label">توصيات النظام (آلي)</div>
     </div>
     <div class="stat-card green">
       <div class="stat-value">${accuracy !== null ? accuracy + "%" : "—"}</div>
-      <div class="stat-label">نسبة الدقة</div>
+      <div class="stat-label">نسبة الإصابة (زائد صافٍ &gt; 0)</div>
     </div>
     <div class="stat-card green">
       <div class="stat-value">${success}</div>
@@ -1579,11 +1863,73 @@ function renderStats(data) {
       <div class="stat-value">${fail}</div>
       <div class="stat-label">فشل ❌</div>
     </div>
-    <div class="stat-card ${avgRet === null ? "accent" : success >= fail ? "green" : "red"}">
+    <div class="stat-card ${avgNet === null ? "accent" : avgNet >= 0 ? "green" : "red"}">
+      <div class="stat-value">${avgNet !== null ? (avgNet >= 0 ? "+" : "") + fmt(avgNet) + "%" : "—"}</div>
+      <div class="stat-label">متوسط العائد الزائد الصافي</div>
+    </div>
+    <div class="stat-card accent">
       <div class="stat-value">${avgRet !== null ? (avgRet >= 0 ? "+" : "") + fmt(avgRet) + "%" : "—"}</div>
-      <div class="stat-label">متوسط العائد</div>
+      <div class="stat-label">متوسط العائد المطلق (ثانوي)</div>
     </div>
   `;
+}
+
+/* measurement v3: التجزئة الوجوبية — بالفئة (مقابل عتبات §6) وبالنظام عند الدخول (ملحق 14-07) */
+function segCard(title, rows2, threshNote) {
+  const done = rows2.filter(r => r.success !== null);
+  const hit  = done.filter(r => r.success).length;
+  const nets = done.map(r => r.excessNet).filter(v => v !== null);
+  const avgNet = nets.length ? nets.reduce((a,b) => a+b, 0) / nets.length : null;
+  return `<div style="display:inline-block;background:#1a2332;border:1px solid #2a3442;border-radius:8px;padding:8px 14px;margin:3px;font-size:0.85em">
+    <b>${title}</b> — مدخلات: ${rows2.length} | محكومة: ${done.length} | إصابة: ${done.length ? Math.round(hit/done.length*100) + "%" : "—"} | متوسط زائد صافٍ: ${avgNet !== null ? (avgNet >= 0 ? "+" : "") + fmt(avgNet) + "%" : "—"}${threshNote ? `<span style="color:#888"> | ${threshNote}</span>` : ""}
+  </div>`;
+}
+
+function renderSegments() {
+  const el = document.getElementById("segment-grid");
+  if (!el) return;
+  const applied = autoRows.filter(r => !r.shadow);
+  let html = `<div style="font-size:0.8em;color:#f0b429;margin-bottom:4px">⚠️ استرشادي — لا حكم قبل 40-50 توصية مغلقة (وثيقة المعايير §7)</div>`;
+  html += segCard("⭐⭐⭐ شراء قوي", applied.filter(r => r.category === "strong_buy"), "عتبة الحكم: زائد ≥ +5% وإصابة ≥ 55%");
+  html += segCard("⭐⭐ شراء", applied.filter(r => r.category === "buy"), "عتبة الحكم: زائد ≥ +2% وإصابة ≥ 50%");
+  html += segCard("👁 الظل (buy_wait)", autoRows.filter(r => r.shadow), "يُسجَّل ولا يُحاكم");
+  html += "<br>";
+  const regimes = [["🟢 دخول في نظام صاعد", "صاعد"], ["🟡 دخول في نظام حذر", "حذر"], ["🔴 دخول في نظام هابط", "هابط"]];
+  regimes.forEach(([t, rg]) => {
+    const grp = applied.filter(r => (r.regimeAtEntry || "") === rg);
+    if (grp.length) html += segCard(t, grp, "");
+  });
+  const unk = applied.filter(r => !r.regimeAtEntry);
+  if (unk.length) html += segCard("بلا وسم نظام", unk, "");
+  el.innerHTML = html;
+}
+
+/* measurement v3: جدول المسار اليدوي legacy — مفصول، بلا أي إحصاء نجاح */
+function renderLegacy() {
+  const el = document.getElementById("legacy-section");
+  if (!el) return;
+  if (!legacyRows.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div style="margin-top:22px;padding-top:10px;border-top:1px dashed #2a3442">
+      <h3 style="font-size:1em;color:#94a3b8">📒 المسار اليدوي — يقيس المحفظة لا النظام، خارج عينة الحكم (${legacyRows.length} مدخلاً)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>الرمز</th><th>الشركة</th><th>النوع</th><th>سعر الدخول</th><th>السعر الحالي</th><th>العائد %</th><th>تاسي %</th><th>زائد خام</th></tr></thead>
+          <tbody>${legacyRows.map(r => `
+            <tr>
+              <td class="symbol">${r.symbol}</td>
+              <td><div class="company-name">${r.name}</div><div class="sector">${r.sector}</div></td>
+              <td>${r.type === "buy" ? "📈 شراء" : "📉 بيع"}</td>
+              <td class="price">${fmt(r.entryPrice)}</td>
+              <td class="price">${r.currentPrice !== null ? fmt(r.currentPrice) : "—"}</td>
+              <td>${fmtReturn(r.ret)}</td>
+              <td>${r.tasiRet != null ? fmtReturn(r.tasiRet) : "—"}</td>
+              <td>${r.excessGross !== null ? fmtReturn(r.excessGross) : "—"}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1602,7 +1948,10 @@ function renderTable(data) {
       <td>${typeBadge(r.type, r.category)}</td>
       <td class="price">${fmt(r.entryPrice)}</td>
       <td class="price current-price"${r.status === "closed" ? ` title="سعر الإغلاق${r.closeDate ? " — " + r.closeDate : ""}"` : ""}>${r.status === "closed" ? fmt(r.closePrice) + " 🔒" : (r.currentPrice !== null ? fmt(r.currentPrice) : "—")}</td>
-      <td class="${returnClass(r.ret, r.success)}">${fmtReturn(r.ret)}</td>
+      <td>${fmtReturn(r.ret)}</td>
+      <td>${r.tasiRet != null ? fmtReturn(r.tasiRet) : "—"}</td>
+      <td>${r.excessGross !== null ? fmtReturn(r.excessGross) : "—"}</td>
+      <td class="${returnClass(r.excessNet, r.success)}"${r.discount !== null ? ` title="بعد خصم انحياز ${fmt(r.discount)} نقطة (3.5% سنوياً × ${r.periodDays} يوماً)"` : ""}>${r.excessNet !== null ? fmtReturn(r.excessNet) : "—"}</td>
       <td>${statusBadge(r.success, r)}</td>
     </tr>
   `).join("");
@@ -1638,7 +1987,11 @@ function renderCards(data) {
         </div>
         <div class="mc-item">
           <label>العائد %</label>
-          <span class="${returnClass(r.ret, r.success)}">${fmtReturn(r.ret)}</span>
+          <span>${fmtReturn(r.ret)}</span>
+        </div>
+        <div class="mc-item">
+          <label>زائد صافٍ (مقابل تاسي)</label>
+          <span class="${returnClass(r.excessNet, r.success)}">${r.excessNet !== null ? fmtReturn(r.excessNet) : "—"}</span>
         </div>
       </div>
     </div>
@@ -1649,15 +2002,15 @@ function renderCards(data) {
    FILTERS
    ══════════════════════════════════════════════════════ */
 function applyFilter(filter) {
-  let data = rows;
-  if (filter === "buy")     data = rows.filter(r => r.type === "buy");
-  if (filter === "sell")    data = rows.filter(r => r.type === "sell");
-  if (filter === "success") data = rows.filter(r => r.success === true);
-  if (filter === "fail")    data = rows.filter(r => r.success === false);
+  // v3: الفلاتر تعمل على عينة النظام (auto) فقط — legacy في جدوله المستقل والإحصاءات ثابتة
+  let data = autoRows;
+  if (filter === "buy")     data = autoRows.filter(r => r.type === "buy");
+  if (filter === "sell")    data = autoRows.filter(r => r.type === "sell");
+  if (filter === "success") data = autoRows.filter(r => r.success === true);
+  if (filter === "fail")    data = autoRows.filter(r => r.success === false);
 
   renderTable(data);
   renderCards(data);
-  renderStats(data);
 }
 
 document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -1685,11 +2038,13 @@ document.getElementById("footer-updated").textContent =
   "آخر تحديث: " + formatDateAr(CONFIG.updatedAt);
 
 /* ══════════════════════════════════════════════════════
-   INIT
+   INIT — v3: الجدول الرئيسي عينة النظام، legacy مفصول، الإحصاءات ثابتة
    ══════════════════════════════════════════════════════ */
-renderStats(rows);
-renderTable(rows);
-renderCards(rows);
+renderStats();
+renderSegments();
+renderTable(autoRows);
+renderCards(autoRows);
+renderLegacy();
 
 /*
   ════════════════════════════════════════
