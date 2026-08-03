@@ -1,0 +1,7 @@
+*.key
+*.pem
+*secret*
+*token*
+.env
+__pycache__/
+*.log

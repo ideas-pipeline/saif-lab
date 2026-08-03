@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سيف تداول — النموذج الاستثماري</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0f172a;color:#e2e8f0;padding:16px;max-width:1400px;margin:0 auto}
+h1{text-align:center;color:#f59e0b;margin:20px 0 8px;font-size:1.6em}
+.subtitle{text-align:center;color:#94a3b8;margin-bottom:8px;font-size:0.9em}
+.regime-banner{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 20px;border-radius:8px;margin:6px auto 10px;max-width:750px;font-size:0.9em;font-weight:600;border:1px solid;flex-wrap:wrap;text-align:center}
+.regime-red{background:#7f1d1d22;border-color:#dc2626;color:#fca5a5}
+.regime-yellow{background:#78350f22;border-color:#d97706;color:#fcd34d}
+.regime-green{background:#14532d22;border-color:#16a34a;color:#86efac}
+.data-age{text-align:center;color:#475569;font-size:0.76em;margin-bottom:6px;letter-spacing:0.01em}
+.section-title{color:#f59e0b;font-size:1.2em;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid #f59e0b33}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:24px}
+.card{background:#1e293b;border-radius:12px;padding:16px;border:1px solid #334155;position:relative;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 25px #0006}
+.card .name{font-size:1.05em;font-weight:bold;color:#f8fafc}
+.card .symbol{color:#64748b;font-size:0.8em;font-family:monospace;direction:ltr;text-align:right}
+.card .price{font-size:1.6em;font-weight:bold;margin:6px 0}
+.card .price.down{color:#ef4444}.card .price.up{color:#10b981}
+.card .sector-tag{font-size:0.7em;padding:2px 8px;border-radius:12px;background:#334155;color:#94a3b8;display:inline-block;margin-top:4px}
+
+/* Score bar */
+.score-bar{margin:10px 0 6px;position:relative;height:8px;background:#334155;border-radius:4px;overflow:hidden}
+.score-fill{height:100%;border-radius:4px;transition:width .5s}
+.score-fill.high{background:linear-gradient(90deg,#10b981,#059669)}
+.score-fill.mid{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.score-fill.low{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.score-label{display:flex;justify-content:space-between;font-size:0.8em;color:#94a3b8}
+.score-num{font-size:1.3em;font-weight:bold;margin-left:4px}
+.score-num.high{color:#10b981}.score-num.mid{color:#f59e0b}.score-num.low{color:#ef4444}
+
+/* Pillars */
+.pillars{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
+.pillar{font-size:0.65em;padding:3px 6px;border-radius:4px;background:#0f172a;color:#94a3b8}
+.pillar.g{color:#10b981;background:#10b98115}
+.pillar.y{color:#f59e0b;background:#f59e0b15}
+.pillar.r{color:#ef4444;background:#ef444415}
+
+/* Classification badge */
+.class-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.8em;font-weight:bold}
+.class-badge.strong_buy{background:#10b98140;color:#10b981;border:1px solid #10b981}
+.class-badge.buy{background:#10b98125;color:#10b981}
+.class-badge.hold{background:#f59e0b25;color:#f59e0b}
+.class-badge.sell{background:#ef444425;color:#ef4444}
+.class-badge.strong_sell{background:#ef444440;color:#ef4444;border:1px solid #ef4444}
+
+/* Timing */
+.timing{font-size:0.75em;margin-top:4px}
+.timing .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:4px}
+.timing .dot.g{background:#10b981}.timing .dot.y{background:#f59e0b}.timing .dot.r{background:#ef4444}
+
+/* أبرز الفرص */
+.count-bar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px;justify-content:center}
+.count-chip{font-size:0.78em;padding:4px 10px;border-radius:14px;background:#1e293b;border:1px solid #334155;color:#94a3b8}
+.count-chip b{color:#e2e8f0}
+.bear-note{text-align:center;color:#fca5a5;background:#7f1d1d22;border:1px solid #dc262666;border-radius:8px;padding:8px 14px;margin:6px auto;max-width:600px;font-size:0.85em}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar button{padding:6px 14px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.85em;transition:all .2s}
+.filter-bar button:hover{border-color:#f59e0b}
+.filter-bar button.active{background:#f59e0b;color:#000;border-color:#f59e0b}
+.filter-bar select{padding:6px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:8px;font-family:inherit}
+.filter-bar input[type=search]{padding:6px 10px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:8px;font-family:inherit;min-width:190px}
+.filter-bar input[type=search]:focus{outline:none;border-color:#f59e0b}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;min-height:32px;padding:4px 12px;border-radius:20px;font-size:0.8em;cursor:pointer;border:1px solid #334155;background:#1e293b;color:#94a3b8;transition:all .15s;user-select:none}
+.chip.active.strong_buy{background:#10b98140;color:#10b981;border-color:#10b981}
+.chip.active.buy{background:#10b98125;color:#10b981;border-color:#10b98188}
+.chip.active.conditional_buy{background:#3b82f625;color:#60a5fa;border-color:#3b82f6}
+.chip.active.hold{background:#f59e0b25;color:#f59e0b;border-color:#f59e0b}
+.chip.active.sell{background:#ef444425;color:#ef4444;border-color:#ef444488}
+.chip.active.strong_sell{background:#ef444440;color:#ef4444;border-color:#ef4444}
+.chip.active.filtered{background:#47556940;color:#cbd5e1;border-color:#64748b}
+.class-badge.filtered{background:#47556940;color:#94a3b8}
+.unrated-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:max(0.68em,9px);background:#47556933;color:#94a3b8;border:1px solid #64748b;white-space:nowrap}
+.unrated-badge.wrap{white-space:normal;line-height:1.6}
+.liq-gate{display:inline-block;padding:2px 8px;border-radius:12px;font-size:max(0.68em,9px);background:#78350f22;color:#fcd34d;border:1px solid #d97706;white-space:nowrap}
+.liq-gate.wrap{white-space:normal;line-height:1.6}
+
+/* شاشة استثناء الانعكاس */
+.rev-warn{text-align:center;color:#fcd34d;background:#78350f22;border:1px solid #d97706;border-radius:8px;padding:8px 14px;margin:6px auto 8px;max-width:600px;font-size:0.85em;font-weight:600}
+.rev-note{text-align:center;color:#64748b;font-size:0.76em;margin:0 auto 12px;max-width:600px}
+.rev-sig{display:inline-block;font-size:max(0.68em,9px);padding:3px 8px;border-radius:10px;background:#0f172a;color:#94a3b8;border:1px solid #334155;white-space:nowrap}
+.rev-sig.on{color:#34d399;border-color:#10b98155;background:#10b98112}
+.rev-sig.off{color:#f87171;border-color:#ef444455;background:#ef444412}
+
+/* Table */
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:0.8em}
+th{background:#334155;color:#f59e0b;padding:10px 6px;text-align:right;white-space:nowrap;position:sticky;top:0;z-index:1;cursor:pointer}
+th:hover{color:#fbbf24}
+td{padding:6px;border-bottom:1px solid #1e293b44;text-align:right}
+tr{cursor:pointer;transition:background .2s}
+tr:hover{background:#1e293b88}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:100;justify-content:center;align-items:center;padding:16px}
+.modal-overlay.active{display:flex}
+.modal{background:#1e293b;border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;border:1px solid #334155;animation:modalIn .3s ease-out}
+@keyframes modalIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #334155;position:sticky;top:0;background:#1e293b;z-index:2;border-radius:16px 16px 0 0}
+.modal-header h2{font-size:1.2em;color:#f8fafc}
+.modal-close{background:none;border:none;color:#94a3b8;font-size:1.5em;cursor:pointer;padding:4px 8px;border-radius:8px}
+.modal-close:hover{background:#334155;color:#f8fafc}
+.modal-body{padding:20px}
+.modal-section{margin-bottom:20px}
+.modal-section h3{color:#f59e0b;font-size:1em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #33415544}
+.indicator-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.indicator{background:#0f172a;border-radius:10px;padding:12px;text-align:center}
+.indicator .val{font-size:1.3em;font-weight:bold}
+.indicator .lbl{font-size:0.7em;color:#94a3b8;margin-top:4px}
+.indicator.green .val{color:#10b981}.indicator.red .val{color:#ef4444}.indicator.yellow .val{color:#f59e0b}.indicator.blue .val{color:#60a5fa}
+.indicator.stale{cursor:help}
+.indicator.stale .val{opacity:.55}
+.chart-container{background:#0f172a;border-radius:10px;padding:16px;height:200px;position:relative;overflow:hidden}
+
+/* بطاقة لماذا هذا التقييم */
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.why-pillar{background:#0f172a;border-radius:10px;padding:10px}
+.why-pillar h4{font-size:0.8em;color:#f59e0b;margin-bottom:6px;display:flex;justify-content:space-between;font-weight:600}
+.why-line{font-size:0.74em;color:#94a3b8;padding:2px 0;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #1e293b66}
+.why-line:last-child{border-bottom:none}
+.why-line b{color:#cbd5e1;white-space:nowrap}
+
+/* شريط الدعم والمقاومة (تقريبي) */
+.levels-block{margin-top:10px;padding:10px;background:#0f172a;border-radius:10px}
+.levels-head{display:flex;justify-content:space-between;align-items:center;font-size:0.75em;margin-bottom:6px}
+.levels-head .lv-title{color:#f59e0b;font-weight:600}
+.approx-tag{font-size:0.85em;padding:1px 8px;border-radius:10px;background:#47556933;color:#94a3b8;border:1px dashed #64748b}
+.levels-track{position:relative;height:48px;direction:ltr;margin:0 10px}
+.levels-line{position:absolute;top:26px;left:0;right:0;height:4px;background:#334155;border-radius:2px}
+.lv-mark{position:absolute;top:20px;width:2px;height:16px;transform:translateX(-50%)}
+.lv-mark.sup{background:#10b981}.lv-mark.res{background:#ef4444}
+.lv-mark .lv-val{position:absolute;top:17px;left:50%;transform:translateX(-50%);font-size:0.6em;white-space:nowrap}
+.lv-mark.sup .lv-val{color:#34d399}.lv-mark.res .lv-val{color:#f87171}
+.lv-price{position:absolute;top:22px;width:12px;height:12px;border-radius:50%;background:#f59e0b;border:2px solid #1e293b;transform:translateX(-50%);z-index:2}
+.lv-price .lv-val{position:absolute;bottom:13px;left:50%;transform:translateX(-50%);font-size:0.66em;color:#fbbf24;font-weight:700;white-space:nowrap}
+.levels-text{font-size:0.74em;color:#94a3b8;margin-top:4px;text-align:center}
+.levels-text b{color:#cbd5e1}
+
+/* Pillar detail bars */
+.pillar-bar{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:0.85em}
+.pillar-bar .bar-label{min-width:80px;color:#94a3b8}
+.pillar-bar .bar-track{flex:1;height:10px;background:#334155;border-radius:5px;overflow:hidden}
+.pillar-bar .bar-fill{height:100%;border-radius:5px}
+.pillar-bar .bar-val{min-width:40px;text-align:left;font-weight:bold}
+/* شرح دائم مرئي تحت الأرقام في المودال — لا tooltip: لا يعمل باللمس والمالك على الجوال.
+   ‎#94a3b8 لا ‎#64748b (تباين AA على الخلفيتين) وأرضية 10px بنمط max() المعتمد في الملف */
+.pillar-desc{font-size:max(0.7em,10px);color:#94a3b8;margin:-2px 0 10px;line-height:1.5}
+.indicator .ind-desc{font-size:max(0.68em,10px);color:#94a3b8;line-height:1.55;margin-top:4px}
+/* شرح مشترك بصيغة الزوج (52 أسبوعاً) — صف ختامي بعرض الشبكة بدل تكراره تحت بلاطتين متجاورتين */
+.indicator-grid > .ind-desc.grid-span{grid-column:1/-1;font-size:max(0.68em,10px);color:#94a3b8;line-height:1.55;text-align:center} /* توسيط لا يمين: بلاطتا الزوج هما العمودان الأوسطان على الديسكتوب، واليمين يرسو تحت ATR خارج الزوج */
+
+.class-badge.conditional_buy{background:#3b82f625;color:#60a5fa;border:1px dashed #3b82f6}
+
+/* سطر الحكم أعلى البطاقة — زاويتا اليمين شبه حادتين كي يُرسم الحد شريطاً لا قوساً منحنياً */
+.verdict{font-size:0.92em;font-weight:700;line-height:1.5;padding:7px 10px;border-radius:8px 3px 3px 8px;margin-bottom:6px;border-right:3px solid}
+.verdict.v-buy{background:#10b98118;color:#34d399;border-right-color:#10b981}
+.verdict.v-cond{background:#10b9810e;color:#8ec8ab;border-right-color:#639e81;border-right-style:dashed} /* أخضر مطفأ بين الأخضر والرمادي — الشرط لا يستحق أخضر v-buy الكامل، والمتقطع عرف «مشروط» القائم في الشارة وقناة تمييز لا تعتمد اللون */
+.verdict.v-timing{background:#f59e0b18;color:#fcd34d;border-right-color:#f59e0b}
+.verdict.v-hold{background:#47556926;color:#cbd5e1;border-right-color:#64748b}
+.verdict.v-sell{background:#ef444418;color:#f87171;border-right-color:#ef4444}
+.verdict.v-off{background:#47556926;color:#94a3b8;border-right-color:#64748b}
+.verdict-drivers{margin:0 0 8px}
+.verdict-drivers .vd-lbl{font-size:0.68em;color:#64748b}
+.interp{font-size:0.8em;color:#94a3b8;margin-top:8px;line-height:1.5;padding:8px;background:#0f172a;border-radius:8px}
+.driver{display:inline-block;font-size:0.7em;padding:2px 6px;border-radius:4px;margin:2px}
+.driver.positive{background:#10b98115;color:#10b981}
+.driver.negative{background:#ef444415;color:#f87171} /* ‎#f87171 لا ‎#ef4444: تباين AA بعد صعود الشرائح لصدارة البطاقة */
+.footer{text-align:center;color:#475569;margin-top:32px;font-size:0.8em;padding:16px}
+
+/* Mobile */
+@media(max-width:768px){
+  body{padding:10px;font-size:0.95em}
+  h1{font-size:1.3em}
+  .cards{grid-template-columns:1fr}
+  .filter-bar{gap:6px}
+  .filter-bar button{padding:5px 10px;font-size:0.8em}
+  .filter-bar input[type=search]{flex:1 1 100%;min-width:0}
+  .chip{padding:4px 10px;font-size:0.75em}
+  table{display:block;overflow-x:auto;font-size:0.72em}
+  .modal{max-width:100%;max-height:95vh;border-radius:12px}
+  .modal-body{padding:14px}
+  .indicator-grid{grid-template-columns:1fr 1fr}
+  .stats{gap:6px}
+  .stat{padding:6px 10px;min-width:65px}
+}
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:9999;background:#b91c1c;color:#fff;text-align:center;padding:10px 12px;font-weight:700;font-size:15px;letter-spacing:.2px;box-shadow:0 2px 8px rgba(0,0,0,.4)">
+  &#129514; نسخة تجريبية &mdash; ليست المنصة الحقيقية
+  <span style="display:block;font-weight:400;font-size:12px;opacity:.9;margin-top:2px">لا تُبنَ عليها قرارات استثمارية</span>
+</div>
+<h1>سيف تداول — النموذج الاستثماري</h1>
+<div class="subtitle">تقييم استثماري متوسط المدى (6-12 شهر) | 5 محاور | 100 نقطة</div>
+<div class="subtitle" style="margin-top:-4px">آخر تحديث: <span id="lastUpdate">—</span></div>
+<div id="regimeBanner" class="regime-banner" style="display:none"></div>
+<div id="dataAge" class="data-age"></div>
+<div id="decisions"></div>
+
+<div class="filter-bar" id="filterBar">
+  <input id="searchBox" type="search" placeholder="🔍 بحث بالاسم أو الرمز" oninput="setSearch(this.value)">
+  <span class="chips" id="classChips"></span>
+  <select id="sectorFilter" onchange="filterBySector(this.value)">
+    <option value="all">كل القطاعات</option>
+  </select>
+  <span class="chips" id="scoreBtns">
+    <button class="active" onclick="setMinScore(0,this)">كل النقاط</button>
+    <button onclick="setMinScore(80,this)">80+</button>
+    <button onclick="setMinScore(65,this)">65+</button>
+    <button onclick="setMinScore(50,this)">50+</button>
+  </span>
+  <span id="resultCount" style="font-size:0.75em;color:#64748b"></span>
+</div>
+
+<div class="section-title">🏆 أفضل الفرص الاستثمارية</div>
+<div class="cards" id="topCards"></div>
+
+<div class="section-title">🌱 إشارات انعكاس مبكرة <span style="font-size:0.6em;color:#64748b;font-weight:normal">تحت متوسط 200 أسبوع، عبرت الفلتر بفضل إشارات انعكاس — فئة رصد لا توصيات</span></div>
+<div id="reversals"></div>
+
+<div class="section-title">📊 الجدول الشامل</div>
+<div id="peNote" class="rev-note" style="display:none;margin:8px auto 0">❄️ مكرر الربح غير محدّث — مصدر البيانات قيد المعالجة، وكذلك مكرر القيمة الدفترية P/B للأسهم الموسومة ❄️ (أغلبها بنوك)</div>
+<table id="mainTable">
+<thead><tr>
+<th onclick="sortTable('score')">النقاط ↕</th>
+<th>التصنيف</th>
+<th>التوقيت</th>
+<th>الرمز</th>
+<th>الشركة</th>
+<th>القطاع</th>
+<th onclick="sortTable('price')">السعر ↕</th>
+<th onclick="sortTable('change')">يومي % ↕</th>
+<th onclick="sortTable('pe')">P/E ↕<span id="peStale" style="display:none;cursor:help;margin-right:3px" title="مكرر الربح غير محدّث — مصدر البيانات قيد المعالجة" onclick="event.stopPropagation();togglePeNote()">❄️</span></th>
+<th onclick="sortTable('pb')">P/B ↕</th>
+<th onclick="sortTable('roe')">ROE ↕</th>
+<th onclick="sortTable('rs6m')">RS 6M ↕</th>
+</tr></thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal-overlay" id="stockModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">—</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="footer">
+  سيف تداول V2.0 | الأوزان: مالية 30 • اتجاه 25 • زخم 15 • مخاطر 20 • تقييم 15 نقطة (مجموع 105 يُعاير إلى 100)<br>
+  التوقيت مستقل عن النقاط | شراء مشروط = السهم جيد لكن يفضّل دخول تدريجي<br>
+  ليست نصيحة استثمارية | أبوسيف
+</div>
+
+<script>
+const DATA = __STOCKS_DATA__;
+
+const SECTOR_AR = {"Financials": "المالية", "Materials": "المواد الأساسية", "Industrials": "الصناعية", "Consumer Discretionary": "السلع الاستهلاكية", "Consumer Staples": "السلع الأساسية", "Healthcare": "الرعاية الصحية", "Real Estate": "العقارية", "Energy": "الطاقة", "Technology": "التقنية", "Communication Services": "الاتصالات", "Utilities": "المرافق", "Unknown": "غير مصنف"};
+
+const stocks = DATA.stocks;
+const CLASS_LABELS = {strong_buy:'⭐ شراء قوي', buy:'✅ شراء', conditional_buy:'☑️ شراء مشروط', hold:'⏳ انتظار', sell:'❌ بيع', strong_sell:'⛔ بيع قوي', filtered:'🚫 لم يعدّ الفلتر'};
+let activeClasses = new Set(); // فارغة = الكل
+let currentSector = 'all';
+let minScore = 0;
+let searchQ = '';
+let sortKey = 'score';
+let sortAsc = false;
+let rowRefs = []; // {el, s} — الصفوف تُبنى مرة واحدة ثم تُخفى/تُرتب دون إعادة بناء
+
+// classCode هو المرجع الوحيد للتصنيف (قرار المالك) — classification للمفلتر يقول "انتظار" زوراً
+const classCodeOf = (s) => (s.investmentScore && (s.investmentScore.filtered ? 'filtered' : s.investmentScore.classCode)) || '';
+const classLabelOf = (sc) => sc.filtered ? 'لم يعدّ الفلتر' : (sc.classification || '');
+
+// unrated (يصدره المحرك اعتباراً من 02-08): السهم لم يُختبر بفلتر SMA200W لقصر تاريخه الأسبوعي —
+// ليس رفضاً كـfiltered، فنقاطه وتفاصيله تبقى ظاهرة ويُستبعد من «أبرز الفرص» فقط.
+// الفحص === true حصراً: غياب الحقل يجب أن يُبقي السلوك الحالي حرفياً.
+// !sc.filtered دفاعي: لو أصدر المحرك الحقلين معاً يوماً فالأسبقية لعرض filtered — لا شارتين متناقضتين
+const isUnrated = (sc) => !!sc && sc.unrated === true && !sc.filtered;
+const UNRATED_LABEL = 'غير مُقيَّم — بيانات أسبوعية غير كافية';
+const unratedBadge = (sc, compact) => isUnrated(sc)
+  ? '<span class="unrated-badge' + (compact ? '' : ' wrap') + '" title="' + UNRATED_LABEL + '">' + (compact ? 'غير مُقيَّم' : UNRATED_LABEL) + '</span>'
+  : '';
+
+// بوابة السيولة (يصدرها المحرك اعتباراً من 05-08): عتبة قيمة تداول يومية بالريال.
+// passed === false يُستبعد من شاشتي «أبرز الفرص» و«أفضل الفرص» فقط — يبقى كاملاً في
+// الجدول وشاشة الانعكاس والمودال، والوسم يُظهر الرقم نفسه ليُقاس على حجم المركز (قرار المالك).
+// الفحص === false حصراً: غياب الحقل = السلوك الحالي حرفياً. يُقرأ من جذر السهم أو من
+// investmentScore أيهما وُجد — موضع الحقل النهائي في مخرجات المحرك غير مثبت بعد
+const liqGateOf = (s) => (s && (s.liquidityGate || (s.investmentScore && s.investmentScore.liquidityGate))) || null;
+const liqBlocked = (s) => { const lg = liqGateOf(s); return !!lg && lg.passed === false; };
+// null يجب ألا يصير «0» — Number(null) === 0 رقم مُختلَق يوحي بسيولة صفرية فعلية
+const liqNum = (v) => v != null && Number.isFinite(Number(v)) ? Number(v).toLocaleString('en') : null;
+const liqSar = (lg) => liqNum(lg.valueSar) || '—';
+const liqBadge = (s, compact) => {
+  const lg = liqGateOf(s);
+  if (!liqBlocked(s)) return '';
+  const v = liqNum(lg.valueSar);
+  const th = liqNum(lg.threshold);
+  return '<span class="liq-gate' + (compact ? '' : ' wrap') + '"' + (th ? ' title="الحد الأدنى: ' + th + ' ريال/يوم"' : '') + '>' +
+    (v ? '💧 سيولة <span dir="ltr">' + v + '</span> ريال/يوم — دون الحد' : '💧 سيولة دون الحد') + '</span>';
+};
+
+// سطر الحكم أعلى البطاقة (قرار المالك 02-08): جملة واحدة بعربية بسيطة تجيب «هل هذه فرصة شراء،
+// والسعر مناسب، والتوقيت مناسب؟» — مبنية حصراً من الحقول الحية المحسوبة يومياً
+// (filtered/unrated/classification/timing/topDrivers). interpretation وexecInterpretation
+// محظوران هنا نهائياً: أثبت الفحص أنهما نص متحجّر لم يتغيّر 28 يوماً رغم تغيّر النقاط —
+// عرضهما حكم عمره شهر بصياغة واثقة. السطر عرض لما حسبه المحرك لا أكثر: أي حقل لازم للحكم
+// غائب أو بقيمة غير معروفة = لا سطر إطلاقاً، لا حكم ناقص ولا حكم مخترع.
+// المطابقة على classification النصي (قرار المالك) بعد فحص filtered أولاً — classification
+// للمفلتر يقول «انتظار» زوراً كما هو موثق عند classCodeOf أعلاه.
+// «شراء قوي» غير موجود في بيانات اليوم لكنه تصنيف المحرك الأعلى — يُعامل شراءً احتياطاً
+const VERDICT_BUY_SET = ['شراء قوي', 'شراء', 'شراء مشروط'];
+const VERDICT_TIMING_OK = ['ممتاز', 'مقبول'];
+function verdictOf(sc) {
+  if (!sc) return null;
+  if (sc.filtered) return { text: 'مستبعَد — لم يعبر الفلتر', cls: 'v-off' };
+  // الصياغة هنا بلا «أسبوعية» عمداً (نص المالك الحرفي، عربية بسيطة) — تختلف عن UNRATED_LABEL
+  // الفني قصداً لا سهواً، فلا تُوحَّدا
+  if (isUnrated(sc)) return { text: 'غير مُقيَّم — بيانات غير كافية', cls: 'v-off' };
+  const c = sc.classification;
+  if (VERDICT_BUY_SET.includes(c)) {
+    if (VERDICT_TIMING_OK.includes(sc.timing)) {
+      // «شراء مشروط» يحتفظ بشرطه في العنوان (تصحيح المالك 02-08): السطر الأخضر الكامل
+      // كان يمحو الشرط ويمنح يقيناً لا يستحقه السهم — صيغة مخففة بلون بين الأخضر والرمادي
+      // «يفضّل دخول تدريجي» هو تعريف المحرك نفسه للمشروط (تذييل الصفحة) — لا شرط مخترع ولا وعد بتفاصيل لا يفي بها المودال
+      return c === 'شراء مشروط'
+        ? { text: 'فرصة شراء مشروطة — يفضّل دخول تدريجي', cls: 'v-cond' }
+        : { text: 'فرصة شراء — السعر مناسب والتوقيت مناسب', cls: 'v-buy' };
+    }
+    if (sc.timing === 'انتظر') return { text: 'سهم جيد — لكن التوقيت غير مناسب الآن', cls: 'v-timing' };
+    return null; // توقيت غائب أو بقيمة مجهولة — لا يُخترع حكم توقيت
+  }
+  if (c === 'انتظار') return { text: 'ليست فرصة شراء الآن', cls: 'v-hold' };
+  if (c === 'بيع' || c === 'بيع قوي') return { text: 'لا يُنصح بالشراء', cls: 'v-sell' };
+  return null; // تصنيف مجهول
+}
+// الكتلة الكاملة: السطر وتحته أقوى ثلاثة عوامل من topDrivers بنصها كما هو — بلا إعادة صياغة
+// (ltrNums عزل اتجاه للأرقام السالبة لا صياغة — نفس علة «14.4-%» الموثقة عنده).
+// topDrivers ليست شرطاً للحكم: المصفوفة الفارغة قيمة مشروعة من المحرك (3 أسهم مُقيَّمة اليوم)
+// والحكم مبني من classification/timing وحدهما — فيُعرض السطر وتُحذف العوامل فقط.
+// التسمية «أبرز العوامل:» تقطع قراءة السببية — عامل إيجابي تحت حكم سلبي ليس تعليلاً له.
+// حكم شرائي على سهم محجوب سيولةً يناقض شارة 💧 على البطاقة نفسها (الملف يعتبره غير مرشح
+// كفرصة — فلترا أبرز/أفضل الفرص) فيُحجب السطر الشرائي ولا يُخترع حكم بديل
+const verdictBlock = (s) => {
+  const sc = s && s.investmentScore;
+  const v = verdictOf(sc);
+  if (!v) return '';
+  if ((v.cls === 'v-buy' || v.cls === 'v-cond' || v.cls === 'v-timing') && liqBlocked(s)) return '';
+  const td = Array.isArray(sc.topDrivers) ? sc.topDrivers : [];
+  const drivers = td.slice(0, 3)
+    .map(d => '<span class="driver ' + d.type + '">' + ltrNums(d.text) + '</span>').join(' ');
+  return '<div class="verdict ' + v.cls + '">' + v.text + '</div>' +
+    (drivers ? '<div class="verdict-drivers"><span class="vd-lbl">أبرز العوامل:</span> ' + drivers + '</div>' : '');
+};
+
+// وسوم تجميد التقييم (المحرك بعد إصلاح valuation في 27-07): valuationParts تحدد حالة كل مكوّن
+// على حدة — pb حي لـ~192 ومجمّد لـ~32 (أغلبها بنوك) بينما pe/evEbitda مجمّدان للكل، فمؤشر
+// P/E واحد في رأس العمود يغني عن تكراره في 248 خلية. الوسم عرض فقط — الأرقام لا تُمس.
+// غياب valuationParts عن السهم = عرضه القديم حرفياً بلا وسوم.
+// الحقلان يُقرآن من جذر السهم أو من valuation أيهما وُجد — موضعهما النهائي غير مثبت بعد،
+// والفحص === 'frozen' حصراً: أي قيمة أخرى (live أو مجهولة) تُعرض عادية بلا ادعاء تجميد
+const VAL_STALE_NOTE = 'غير محدّث — مصدر البيانات قيد المعالجة';
+const valPartsOf = (s) => (s && (s.valuationParts || (s.valuation && s.valuation.valuationParts))) || null;
+const valUpdatedOf = (s) => String((s && (s.valuationUpdatedAt || (s.valuation && s.valuation.valuationUpdatedAt))) || '')
+  .replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+// المقارنة القطاعية تُحسب هنا مرة واحدة عند التحميل — حقول sectorRank/Total/Percentile/AvgScore
+// المخزَّنة مجمّدة (لا سكربت يكتبها منذ ما قبل 04-07: متوسطات صفرية وعبارات مقارنة معكوسة) فتُتجاهل نهائياً.
+// المجموعة: غير المفلترين (filtered === false) في القطاع — نقاط المستبعدين صفر وتشوّه المتوسط.
+// قطاع بمؤهَّل واحد أو بلا مؤهَّلين لا يدخل الخريطة، فتُخفى الكتلة بدل ترتيب 1/1 بلا معنى
+const sectorStats = (() => {
+  const groups = Object.create(null); // بلا prototype — رمز سهم شاذ لا يلوث الخريطة
+  stocks.forEach(s => {
+    const sc = s.investmentScore;
+    if (!sc || sc.filtered !== false) return;
+    const sec = sc.sector || s.sector;
+    if (!sec) return;
+    (groups[sec] = groups[sec] || []).push({ symbol: s.symbol, total: sc.total || 0 });
+  });
+  const bySymbol = Object.create(null);
+  Object.entries(groups).forEach(([sec, g]) => {
+    const n = g.length;
+    if (n < 2) return;
+    const avg = Math.round(g.reduce((sum, x) => sum + x.total, 0) / n * 10) / 10;
+    g.sort((a, b) => b.total - a.total);
+    let rank = 1;
+    g.forEach((x, i) => {
+      if (i > 0 && x.total < g[i - 1].total) rank = i + 1; // تعادل النقاط = نفس المرتبة
+      // percentile بدلالة المعادلة الأصلية (n-rank+1)/n: المرتبة الأولى = 100%
+      bySymbol[x.symbol] = { rank, n, percentile: Math.round((n - rank + 1) / n * 100), avg, sector: sec };
+    });
+  });
+  return bySymbol;
+})();
+
+// تطبيع عربي للبحث: همزات، تاء مربوطة، ألف مقصورة، تطويل
+const normalizeAr = (t) => String(t).toLowerCase()
+  .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ـ/g, '');
+
+// عزل الأرقام السالبة عن انعكاس RTL — "‎-14.4%" كانت تُرسم "14.4-%" فتُقرأ الخسارة ربحاً
+const ltrNums = (t) => String(t).replace(/-\d[\d.,]*x?%?/g, m => '<span dir="ltr">' + m + '</span>');
+
+function init() {
+  document.getElementById('lastUpdate').textContent = DATA.lastUpdated || DATA.analysisUpdated || '';
+
+  // بانر نظام السوق
+  const mr = DATA.marketRegime || {};
+  if (mr.regime) {
+    const cls = mr.mood==='Bearish'?'regime-red':mr.mood==='Bullish'?'regime-green':'regime-yellow';
+    const b = document.getElementById('regimeBanner');
+    b.className = 'regime-banner ' + cls;
+    const arrow = mr.change !== undefined ? (mr.change >= 0 ? '▲' : '▼') : '';
+    const chgAbs = mr.change !== undefined ? Math.abs(mr.change).toFixed(2) : '';
+    const chgPct = mr.changePct !== undefined ? '(<span dir="ltr">' + (mr.changePct >= 0 ? '+' : '') + mr.changePct + '%</span>)' : '';
+    const idxFmt = mr.indexValue ? mr.indexValue.toLocaleString('en',{maximumFractionDigits:0}) : '';
+    const smaStr = mr.pctVsSma !== undefined ? ' | <span dir="ltr">' + (mr.pctVsSma >= 0 ? '+' : '') + mr.pctVsSma + '%</span> من SMA200' : '';
+    b.innerHTML = mr.icon + ' نظام السوق: ' + mr.regime + ' — ' + mr.advice +
+      ' &nbsp;|&nbsp; TASI ' + idxFmt +
+      (arrow ? ' ' + arrow + ' ' + chgAbs + ' ' + chgPct : '') + smaStr;
+    b.style.display = 'flex';
+  }
+
+  // مؤشر عمر البيانات
+  const _priceAge = (DATA.lastUpdated || '').slice(0,10);
+  const _dailyAge = ((DATA.stocks[0] && DATA.stocks[0].dailyExtra && DATA.stocks[0].dailyExtra.updatedAt) || '').slice(0,10);
+  const _weeklyAge = (DATA.weeklyTechnicalUpdated || '').slice(0,10);
+  if (_priceAge || _dailyAge || _weeklyAge) {
+    document.getElementById('dataAge').textContent =
+      'عمر البيانات — أسعار: ' + _priceAge + '  |  يومية: ' + _dailyAge + '  |  أسبوعية: ' + _weeklyAge;
+  }
+  
+  renderDecisions();
+
+  // Sector filter — يشمل الأسهم بلا قطاع (موجودة في البيانات الحقيقية)
+  let secs = new Set(), hasNoSector = false;
+  stocks.forEach(s => {
+    const sec = s.investmentScore?.sector || s.sector;
+    if (sec) secs.add(sec); else hasNoSector = true;
+  });
+  let sel = document.getElementById('sectorFilter');
+  [...secs].sort().forEach(sec => {
+    let o = document.createElement('option');
+    o.value = sec;
+    o.textContent = SECTOR_AR[sec] || sec;
+    sel.appendChild(o);
+  });
+  if (hasNoSector) {
+    let o = document.createElement('option');
+    o.value = '__none__';
+    o.textContent = 'غير مصنف';
+    sel.appendChild(o);
+  }
+
+  // شرائح التصنيف — متعددة الاختيار
+  document.getElementById('classChips').innerHTML = Object.entries(CLASS_LABELS)
+    .map(([cc, lb]) => `<span class="chip ${cc}" onclick="toggleClass('${cc}',this)">${lb}</span>`).join('');
+
+  renderTopCards();
+  renderReversals();
+  renderTable();
+
+  // مؤشر تجميد P/E في رأس العمود وسطر الشرح فوق الجدول — يظهران فقط حين يصرّح المحرك
+  // بالتجميد عبر valuationParts. السطر ظاهر افتراضياً لا بالنقر: رأس الجدول الـsticky لا يبقى
+  // مرئياً على الموبايل والـtooltip لا يعمل باللمس، فالمستخدم يجب أن يرى الحالة قبل أي فرز.
+  // السطر مربوط بتجميد أيٍّ من العمودين — لو حرّر المحرك P/E وبقي P/B مجمّداً يبقى الشرح.
+  // غياب الحقل عن كل الأسهم يُبقي الرأس والجدول كما هما حرفياً
+  const anyPeFrozen = stocks.some(s => { const vp = valPartsOf(s); return vp && vp.pe === 'frozen'; });
+  const anyPbFrozen = stocks.some(s => { const vp = valPartsOf(s); return vp && vp.pb === 'frozen'; });
+  if (anyPeFrozen) document.getElementById('peStale').style.display = '';
+  if (anyPeFrozen || anyPbFrozen) document.getElementById('peNote').style.display = '';
+}
+
+// نقرة ❄️ في رأس العمود تطوي سطر الشرح وتعيده — لا تُطلق الفرز
+function togglePeNote() {
+  const n = document.getElementById('peNote');
+  n.style.display = n.style.display === 'none' ? '' : 'none';
+}
+
+// شاشة أبرز الفرص: أعلى 5 فرص من عائلة الشراء + عدّ التصنيفات السبعة + تنبيه البيئة الهابطة
+function renderDecisions() {
+  const mr = DATA.marketRegime || {};
+  const BUY_FAMILY = ['strong_buy', 'buy', 'conditional_buy'];
+  // unrated لم يُختبر بالفلتر فلا يُرشَّح هنا، ودون حد السيولة لا يُرشَّح كفرصة
+  const top5 = stocks.filter(s => BUY_FAMILY.includes(classCodeOf(s)) && !isUnrated(s.investmentScore) && !liqBlocked(s))
+    .sort((a,b) => (b.investmentScore?.total||0) - (a.investmentScore?.total||0))
+    .slice(0, 5);
+
+  const counts = {};
+  stocks.forEach(s => { const c = classCodeOf(s); counts[c] = (counts[c]||0) + 1; });
+
+  let html = '<div class="section-title">🎯 أبرز الفرص <span style="font-size:0.6em;color:#64748b;font-weight:normal">وفق النموذج — ليست نصيحة استثمارية</span></div>';
+  if (mr.mood === 'Bearish') {
+    html += `<div class="bear-note">⚠️ ${mr.advice || 'بيئة ضاغطة'}</div>`;
+  }
+  html += '<div class="count-bar">' +
+    Object.entries(CLASS_LABELS).map(([cc, lb]) =>
+      `<span class="count-chip">${lb} <b>${counts[cc]||0}</b></span>`).join('') +
+    `<span class="count-chip">📊 الإجمالي <b>${stocks.length}</b></span></div>`;
+
+  if (top5.length) {
+    html += '<div class="cards">' + top5.map(s => {
+      const sc = s.investmentScore || {};
+      const timingDot = sc.timing === 'ممتاز' ? 'g' : (sc.timing === 'مقبول' ? 'y' : 'r');
+      return `<div class="card" onclick="openModal('${s.symbol}')">
+        ${verdictBlock(s)}
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <div class="name">${s.name}${sproutTag(sc)}</div>
+            <div class="symbol">${s.symbol}</div>
+            <div class="sector-tag">${SECTOR_AR[sc.sector] || sc.sector || 'غير مصنف'}</div>
+          </div>
+          <div style="text-align:left">
+            <div class="score-num ${getScoreClass(sc.total)}">${sc.total}<span style="font-size:0.5em;color:#94a3b8">/100</span></div>
+            <div class="class-badge ${sc.classCode}">${sc.classification}</div>
+          </div>
+        </div>
+        <div class="timing" style="margin-top:6px"><span class="dot ${timingDot}"></span> توقيت: ${sc.timing || '—'}${sc.timingSignals != null ? ' (' + sc.timingSignals + '/4)' : ''}</div>
+      </div>`;
+    }).join('') + '</div>';
+  } else {
+    html += '<div style="color:#64748b;padding:16px;text-align:center">لا فرص شراء اليوم وفق النموذج</div>';
+  }
+  document.getElementById('decisions').innerHTML = html;
+}
+
+function getScoreClass(score) {
+  if (score >= 65) return 'high';
+  if (score >= 40) return 'mid';
+  return 'low';
+}
+
+function renderTopCards() {
+  // unrated يُستبعد هنا أيضاً (تصحيح 27-07): شاشة مرشَّحين والسهم لم يُختبر بالفلتر — يطابق فلتر أبرز الفرص
+  let top = stocks.filter(s => !s.investmentScore?.filtered && s.investmentScore?.total >= 65 && !isUnrated(s.investmentScore) && !liqBlocked(s))
+    .sort((a,b) => (b.investmentScore?.total||0) - (a.investmentScore?.total||0))
+    .slice(0, 12);
+  
+  let html = '';
+  top.forEach(s => {
+    let sc = s.investmentScore || {};
+    let scClass = getScoreClass(sc.total);
+    let priceClass = (s.dailyChange||0) >= 0 ? 'up' : 'down';
+    let timingDot = sc.timing === 'ممتاز' ? 'g' : (sc.timing === 'مقبول' ? 'y' : 'r');
+    
+    html += `<div class="card" onclick="openModal('${s.symbol}')">
+      ${verdictBlock(s)}
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div class="name">${s.name}${sproutTag(sc)}</div>
+          <div class="symbol">${s.symbol}</div>
+          <div class="sector-tag">${SECTOR_AR[sc.sector] || sc.sector || ''}</div>
+        </div>
+        <div style="text-align:left">
+          <div class="score-num ${scClass}">${sc.total}</div>
+          <div class="class-badge ${sc.classCode}">${sc.classification}</div>
+        </div>
+      </div>
+      <div style="margin:6px 0;font-size:0.75em">
+        <div style="color:#94a3b8;margin-bottom:2px">استثمار</div>
+        <div class="score-bar"><div class="score-fill ${scClass}" style="width:${sc.total}%"></div></div>
+      </div>
+      <div style="display:flex;gap:6px;margin:4px 0;font-size:0.65em;flex-wrap:wrap">
+        ${s.liquidityScore ? `<span style="padding:2px 6px;border-radius:4px;background:${s.liquidityScore.color==='green'?'#065f46':s.liquidityScore.color==='yellow'?'#78350f':'#7f1d1d'};color:${s.liquidityScore.color==='green'?'#6ee7b7':s.liquidityScore.color==='yellow'?'#fcd34d':'#fca5a5'}">🔄 ${s.liquidityScore.turnoverPct != null ? s.liquidityScore.turnoverPct+'%' : '—'} ${s.liquidityScore.label}</span>` : ''}
+        ${s.debtHealth ? `<span style="padding:2px 6px;border-radius:4px;background:${s.debtHealth.color==='green'?'#065f46':s.debtHealth.color==='yellow'?'#78350f':s.debtHealth.color==='red'?'#7f1d1d':'#374151'};color:${s.debtHealth.color==='green'?'#6ee7b7':s.debtHealth.color==='yellow'?'#fcd34d':s.debtHealth.color==='red'?'#fca5a5':'#9ca3af'}">💰 ${s.debtHealth.type==='bank' ? (s.debtHealth.costToIncome ? 'C/I '+s.debtHealth.costToIncome+'%' : '—') : (s.debtHealth.netDebtToEbitda != null ? 'ND/E '+s.debtHealth.netDebtToEbitda+'x' : (s.debtHealth.netDebt != null && s.debtHealth.netDebt < 0 ? 'فوائض' : '—'))} ${s.debtHealth.label}</span>` : ''}
+      </div>
+      <div class="pillars">
+        <span class="pillar ${sc.financial>=20?'g':(sc.financial>=12?'y':'r')}">مالية ${sc.financial}/30</span>
+        <span class="pillar ${sc.trend>=17?'g':(sc.trend>=10?'y':'r')}">اتجاه ${sc.trend}/25</span>
+        <span class="pillar ${sc.relativeStrength>=10?'g':(sc.relativeStrength>=5?'y':'r')}">زخم ${sc.relativeStrength}/15</span>
+        <span class="pillar ${sc.risk>=10?'g':(sc.risk>=5?'y':'r')}">مخاطر ${sc.risk}/20</span>
+        <span class="pillar ${sc.valuation>=10?'g':(sc.valuation>=5?'y':'r')}">تقييم ${sc.valuation}/15</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div class="price ${priceClass}">${s.currentPrice} ر.س</div>
+        <div class="timing"><span class="dot ${timingDot}"></span> توقيت: ${sc.timing} (${sc.timingSignals}/4)</div>
+      </div>
+    </div>`;
+  });
+  
+  document.getElementById('topCards').innerHTML = html || '<div style="color:#64748b;padding:20px;text-align:center">لا أسهم مؤهلة اليوم (65+ نقطة وفوق حد السيولة)</div>';
+}
+
+// شاشة استثناء الانعكاس: أسهم عبرت فلتر SMA200W الإقصائي بإشارات الانعكاس الثلاث وهي بعدُ تحته.
+// المطابقة التامة إلزامية — نص الرفض المقابل «تحت SMA200W بدون إشارات انعكاس» يختلف بكلمة واحدة.
+// الشارات تُحسب حية من weeklyTechnical فقد تنطفئ إشارة بين حساب الفلتر الأسبوعي والسعر اليومي،
+// والحالة المجهولة (حقل غائب) تُعرض رمادية محايدة لا حمراء
+const REVERSAL_REASON = 'تحت SMA200W لكن إشارات انعكاس';
+const REVERSAL_TAG_LABEL = 'تحت SMA200W — عبر بإشارات انعكاس';
+// وسم 🌱 بجانب اسم السهم في بطاقات الفرص (أبرز + أفضل) — نص واحد يتشاركه الموضعان والمودال
+const sproutTag = (sc) => sc && sc.filterReason === REVERSAL_REASON
+  ? ' <span title="' + REVERSAL_TAG_LABEL + '" style="cursor:help">🌱</span>'
+  : '';
+function renderReversals() {
+  const list = stocks.filter(s => s.investmentScore?.filterReason === REVERSAL_REASON)
+    .sort((a,b) => (b.investmentScore?.total||0) - (a.investmentScore?.total||0));
+  const el = document.getElementById('reversals');
+  if (!list.length) {
+    el.innerHTML = '<div style="color:#64748b;padding:16px;text-align:center">لا أسهم في هذه الفئة اليوم — لم يمنح الفلتر استثناء الانعكاس لأي سهم</div>';
+    return;
+  }
+  // ✓/✕ قبل التسمية: تمييز لا يعتمد اللون وحده
+  const sig = (state, label, v, dec) => {
+    const val = v != null ? '<span dir="ltr">' + Number(v).toFixed(dec) + '</span>' : '—';
+    return state == null
+      ? `<span class="rev-sig">${label} ${val}</span>`
+      : `<span class="rev-sig ${state ? 'on' : 'off'}">${state ? '✓' : '✕'} ${label} ${val}</span>`;
+  };
+  // التحذير جزء من الشاشة نفسها وقبل الأسماء — شرط الناقد
+  el.innerHTML = '<div class="rev-warn">⚠️ الاتجاه لم يثبت بعد — مخاطرة أعلى من قائمة الشراء</div>' +
+    '<div class="rev-note">الشارات محسوبة بآخر سعر — الحمراء إشارة تراجعت بعد الفرز الأسبوعي</div>' +
+    '<div class="cards">' + list.map(s => {
+      const sc = s.investmentScore || {};
+      const wt = s.weeklyTechnical || {};
+      return `<div class="card" onclick="openModal('${s.symbol}')">
+        ${verdictBlock(s)}
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <div class="name">${s.name}</div>
+            <div class="symbol">${s.symbol}</div>
+          </div>
+          <div style="text-align:left">
+            <div class="score-num ${getScoreClass(sc.total)}">${sc.total}<span style="font-size:0.5em;color:#94a3b8">/100</span></div>
+            <div class="class-badge ${classCodeOf(s)}">${classLabelOf(sc)}</div>
+            ${isUnrated(sc) ? '<div style="margin-top:4px">' + unratedBadge(sc, true) + '</div>' : ''}
+            ${liqBlocked(s) ? '<div style="margin-top:4px">' + liqBadge(s) + '</div>' : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">
+          ${sig(wt.ema40w != null && s.currentPrice != null ? s.currentPrice > wt.ema40w : null, 'EMA40W', wt.ema40w, 2)}
+          ${sig(wt.rsi14w != null ? wt.rsi14w > 50 : null, 'RSI-W', wt.rsi14w, 1)}
+          ${sig(wt.macdW != null && wt.macdSignalW != null ? wt.macdW > wt.macdSignalW : null, 'MACD-W', wt.macdW, 2)}
+        </div>
+        <div class="price ${(s.dailyChange||0) >= 0 ? 'up' : 'down'}" style="margin-top:6px;font-size:1.2em">${s.currentPrice != null ? s.currentPrice + ' ر.س' : '—'}</div>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+// يُبنى الجدول كاملاً مرة واحدة — الفلترة إخفاءً والفرز إعادة ترتيب للعقد نفسها (248 صفاً)
+function renderTable() {
+  let html = '';
+  stocks.forEach((s, i) => {
+    let sc = s.investmentScore || {};
+    let scClass = getScoreClass(sc.total);
+    let chClass = (s.dailyChange||0) >= 0 ? 'up' : 'down';
+    let timingDot = sc.timing === 'ممتاز' ? 'g' : (sc.timing === 'مقبول' ? 'y' : 'r');
+    let pe = s.valuation?.pe ? s.valuation.pe.toFixed(1) : '—';
+    let pb = s.valuation?.pb ? s.valuation.pb.toFixed(2) : '—';
+    // P/B مجمّد جزئياً (32 من 224 سهماً لديها valuationParts، أغلبها بنوك حيث P/B هو المقياس
+    // الأصح) — المؤشر لكل خلية على حدة لا لرأس العمود بعكس P/E المجمّد بالكامل.
+    // الفرز لا يتأثر: sortRows تقرأ البيانات لا الخلية
+    const vp = valPartsOf(s);
+    if (vp && vp.pb === 'frozen') {
+      pb = '<span style="opacity:.55">' + pb + '</span> <span title="مكرر القيمة الدفترية ' + VAL_STALE_NOTE + '" style="cursor:help">❄️</span>';
+    }
+    let roe = s.financials?.returnOnEquity != null ? s.financials.returnOnEquity + '%' : '—';
+    let rs6 = s.relativeStrength?.rsTasi6m != null ? (s.relativeStrength.rsTasi6m > 0 ? '+' : '') + s.relativeStrength.rsTasi6m.toFixed(1) + '%' : '—';
+
+    html += `<tr onclick="openModal('${s.symbol}')" data-i="${i}">
+      <td><span class="score-num ${scClass}" style="font-size:1em">${sc.filtered ? '—' : sc.total}</span></td>
+      <td><span class="class-badge ${classCodeOf(s)}" style="font-size:0.7em;padding:2px 8px">${classLabelOf(sc)}</span> ${unratedBadge(sc, true)} ${liqBadge(s, true)}</td>
+      <td>${sc.filtered ? '' : '<span class=\'dot '+timingDot+'\'></span> '+sc.timing}</td>
+      <td style="font-family:monospace;color:#64748b;text-align:center">${s.symbol}</td>
+      <td style="font-weight:600">${s.name}</td>
+      <td style="font-size:0.75em;color:#94a3b8">${SECTOR_AR[sc.sector] || sc.sector || ''}</td>
+      <td class="${chClass}">${s.currentPrice || '—'}</td>
+      <td class="${chClass}" dir="ltr">${s.dailyChange != null ? (s.dailyChange > 0 ? '+' : '') + s.dailyChange + '%' : '—'}</td>
+      <td>${pe}</td>
+      <td>${pb}</td>
+      <td>${roe}</td>
+      <td dir="ltr" style="color:${(s.relativeStrength?.rsTasi6m||0) > 0 ? '#10b981' : '#ef4444'}">${rs6}</td>
+    </tr>`;
+  });
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = html;
+  rowRefs = [...tbody.children].map(el => {
+    const s = stocks[+el.dataset.i];
+    el.dataset.search = normalizeAr(s.name + ' ' + s.symbol + ' ' + (s.yahooName || ''));
+    return { el, s };
+  });
+  sortRows();
+  applyFilters();
+}
+
+function sortRows() {
+  const val = (s) => {
+    switch(sortKey) {
+      case 'score': return s.investmentScore?.total||0;
+      case 'price': return s.currentPrice||0;
+      case 'change': return s.dailyChange||0;
+      case 'pe': return s.valuation?.pe||999;
+      case 'pb': return s.valuation?.pb||999;
+      case 'roe': return s.financials?.returnOnEquity||0;
+      case 'rs6m': return s.relativeStrength?.rsTasi6m||0;
+      default: return s.investmentScore?.total||0;
+    }
+  };
+  rowRefs.sort((a,b) => sortAsc ? val(a.s) - val(b.s) : val(b.s) - val(a.s));
+  const tbody = document.getElementById('tableBody');
+  rowRefs.forEach(r => tbody.appendChild(r.el)); // appendChild ينقل العقدة — لا إعادة بناء
+}
+
+function applyFilters() {
+  const q = normalizeAr(searchQ.trim());
+  let visible = 0;
+  rowRefs.forEach(({el, s}) => {
+    const sc = s.investmentScore || {};
+    const cls = classCodeOf(s);
+    const sec = sc.sector || s.sector || '__none__';
+    const score = sc.filtered ? -1 : (sc.total || 0);
+    const ok =
+      (!activeClasses.size || activeClasses.has(cls)) &&
+      (currentSector === 'all' || sec === currentSector) &&
+      (minScore === 0 || score >= minScore) &&
+      (!q || el.dataset.search.includes(q));
+    el.style.display = ok ? '' : 'none';
+    if (ok) visible++;
+  });
+  document.getElementById('resultCount').textContent = visible + ' / ' + stocks.length;
+}
+
+function toggleClass(cc, el) {
+  if (activeClasses.has(cc)) { activeClasses.delete(cc); el.classList.remove('active'); }
+  else { activeClasses.add(cc); el.classList.add('active'); }
+  applyFilters();
+}
+
+function setMinScore(v, btn) {
+  minScore = v;
+  document.querySelectorAll('#scoreBtns button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function setSearch(v) {
+  searchQ = v;
+  applyFilters();
+}
+
+function filterBySector(s) {
+  currentSector = s;
+  applyFilters();
+}
+
+function sortTable(key) {
+  if (sortKey === key) sortAsc = !sortAsc;
+  else { sortKey = key; sortAsc = (key === 'pe' || key === 'pb'); } // للمضاعفات: الأصغر أفضل، والغائب (999) يهبط للقاع
+  sortRows();
+}
+
+// شريط الدعم/المقاومة (عقد levels اعتباراً من 30-07) — عرض فقط
+// يُرجع '' عند غياب levels أو أي قيمة غير صالحة: لا undefined/NaN ولا استثناء يعطل المودال
+function renderLevelsBlock(s) {
+  const lv = s.levels;
+  const price = s.currentPrice;
+  const num = (x) => typeof x === 'number' && isFinite(x) && x > 0;
+  if (!lv || !num(price)) return '';
+  const sup = Array.isArray(lv.support) ? lv.support.filter(num) : [];
+  const res = Array.isArray(lv.resistance) ? lv.resistance.filter(num) : [];
+  if (!sup.length || !res.length) return '';
+  // المقياس يضم السعر نفسه — كسر دعم/مقاومة بين حسابين الأسبوعيين لا يخرج العلامة عن الشريط
+  const all = sup.concat(res, [price]);
+  const lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+  const span = hi - lo;
+  if (!(span > 0)) return '';
+  const pad = span * 0.07;
+  const pos = (v) => (((v - lo + pad) / (span + pad * 2)) * 100).toFixed(1);
+  const fmtL = (v) => v >= 100 ? v.toFixed(1) : v.toFixed(2);
+  const pct = (v) => { const p = (v / price - 1) * 100; return (p >= 0 ? '+' : '') + p.toFixed(1) + '%'; };
+  const method = String(lv.method || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  let marks = '';
+  sup.forEach(v => { marks += `<div class="lv-mark sup" style="left:${pos(v)}%"><span class="lv-val">${fmtL(v)}</span></div>`; });
+  res.forEach(v => { marks += `<div class="lv-mark res" style="left:${pos(v)}%"><span class="lv-val">${fmtL(v)}</span></div>`; });
+  marks += `<div class="lv-price" style="left:${pos(price)}%"><span class="lv-val">${fmtL(price)}</span></div>`;
+  return `<div class="levels-block">
+    <div class="levels-head"><span class="lv-title">🧭 الدعم والمقاومة</span><span class="approx-tag"${method ? ' title="طريقة الحساب: ' + method + '"' : ''}>تقريبي</span></div>
+    <div class="levels-track"><div class="levels-line"></div>${marks}</div>
+    <div class="levels-text">أقرب دعم <b>${fmtL(sup[0])}</b> (<span dir="ltr">${pct(sup[0])}</span>) / أقرب مقاومة <b>${fmtL(res[0])}</b> (<span dir="ltr">${pct(res[0])}</span>)</div>
+  </div>`;
+}
+
+// شرح دائم مرئي تحت كل رقم في المودال (قرار المالك 02-08): نص ظاهر لا tooltip ولا hover —
+// ورشة 27-07 أثبتت ثلاث مرات أن التلميحات لا تعمل باللمس والمالك يستخدم الجوال.
+// جملة واحدة قصيرة بعربية بسيطة تشرح المعنى لا الحساب، مع الاتجاه الأفضل «عموماً» حيث يفيد
+// ودون أي حكم على السهم المعروض نفسه. المودال فقط — الجدول (248 صفاً) خارج النطاق عمداً.
+// عرض بحت: لا رقم ولا حساب يتغير، وinterpretation/execInterpretation المتحجران غير مستخدمين.
+// الشرح يبقى ظاهراً تحت القيمة الغائبة «—» عمداً — قاعدة المالك: لا تخفِ، وسّم.
+// «نسبة التداول» هي Current Ratio المحاسبية (أصول متداولة ÷ خصوم متداولة) — حُسم الالتباس
+// مع دوران السهم (turnoverPct شارة 🔄) وأقرّ المالك الصياغة الحالية 02-08. شرح الدوران
+// لا يُنقل للشارة — النطاق المودال فقط (قرار المالك).
+// rs نص واحد مكرر تحت البلاطات الثلاث عمداً («خلال المدة» مصممة للمشاركة)، بينما yr52
+// بصيغة الزوج («أعلى وأدنى... بينهما») فيُعرض مرة واحدة صفاً ختامياً بعرض الشبكة —
+// تكراره تحت بلاطتين متجاورتين كان يُقرأ خطأَ نسخ (قرار المالك 02-08)
+const IND_DESC = {
+  pe: 'كم سنة من الأرباح الحالية تحتاج لاسترداد سعر السهم — الأقل أرخص عموماً',
+  pb: 'سعر السهم مقارنة بصافي ممتلكات الشركة — الأقل أرخص عموماً',
+  evEbitda: 'قيمة الشركة كلها مقارنة بأرباح نشاطها الأساسي — الأقل أرخص عموماً',
+  divYield: 'ما توزعه الشركة نقداً كل سنة كنسبة من سعر السهم',
+  peg: 'هل السعر مبرَّر بنمو الأرباح؟ — بين 0 و1 جذاب عموماً', // «بين 0 و1» لا «أقل من 1»: السالب (أرباح أو نمو سالب) ليس جذاباً
+  roe: 'كم ربحاً تولّده الشركة من أموال ملاكها — الأعلى أفضل عموماً',
+  margin: 'كم يتبقى ربحاً صافياً من كل 100 ريال مبيعات',
+  revGrowth: 'هل مبيعات الشركة تزيد أم تنقص عن العام السابق؟',
+  debtEquity: 'حجم الديون مقارنة بأموال الملاك — الأقل أكثر أماناً عموماً',
+  sma200w: 'متوسط السعر في نحو أربع سنوات — البقاء فوقه علامة اتجاه صاعد طويل',
+  rsi14w: 'قوة الدفع الشرائي — فوق 50 تعني غلبة المشترين عموماً',
+  macdw: 'مؤشر تحوّل الاتجاه — فوق الصفر ميل للصعود عموماً',
+  atr: 'متوسط تحرك السعر اليومي — الأقل يعني حركة أهدأ',
+  ema40w: 'متوسط سعر السهم خلال آخر 40 أسبوعاً — السعر فوقه يعني اتجاهاً صاعداً',
+  sma200Slope: 'هل المتوسط طويل المدى نفسه يرتفع أم ينخفض — الاتجاه العام للسهم',
+  rs: 'أداء السهم مقارنة بمؤشر السوق خلال المدة — الموجب يعني تفوقاً على السوق',
+  yr52: 'أعلى وأدنى سعر بلغه السهم خلال سنة — يبيّن موقع السعر الحالي بينهما',
+  avgVol: 'عدد الأسهم المتداولة يومياً في المتوسط خلال آخر 20 يوماً',
+  liqValue: 'كم ريالاً يُتداول من السهم يومياً — الأهم لمعرفة سهولة الدخول والخروج',
+  currentRatio: 'قدرة الشركة على سداد التزاماتها القريبة من أصولها المتاحة — فوق 1 مريح عموماً',
+};
+const indDesc = (k) => IND_DESC[k] ? '<div class="ind-desc">' + IND_DESC[k] + '</div>' : '';
+
+function openModal(sym) {
+  let s = stocks.find(x => x.symbol === sym);
+  if (!s) return;
+  let sc = s.investmentScore || {};
+  let wt = s.weeklyTechnical || {};
+  let dt = s.dailyTechnical || {};
+  let val = s.valuation || {};
+  let fin = s.financials || {};
+  let rs = s.relativeStrength || {};
+  let scClass = getScoreClass(sc.total);
+  
+  document.getElementById('modalTitle').textContent = s.name + ' (' + s.symbol + ')';
+  
+  let body = '';
+  
+  // Score overview
+  body += `<div class="modal-section">
+    <h3>📊 التقييم الاستثماري</h3>
+    <div style="text-align:center;margin:16px 0">
+      <div class="score-num ${scClass}" style="font-size:2.5em">${sc.filtered ? '—' : sc.total}<span style="font-size:0.4em;color:#94a3b8">/100</span></div>
+      <div class="class-badge ${classCodeOf(s)}" style="font-size:1em;margin:8px 0">${classLabelOf(sc)}</div>
+      ${isUnrated(sc) ? '<div style="margin-top:6px">' + unratedBadge(sc) + '</div>' : ''}
+      ${liqBlocked(s) ? '<div style="margin-top:6px">' + liqBadge(s) + '</div>' : ''}
+      ${!sc.filtered && sc.filterReason === REVERSAL_REASON ? '<div style="color:#fcd34d;margin-top:6px;font-size:0.85em">🌱 ' + REVERSAL_TAG_LABEL + '</div>' : ''}
+      ${sc.filtered ? '<div style="color:#f59e0b;margin-top:8px">لم يعدّ الفلتر: ' + (sc.filterReason||'') + '</div>' : ''}
+    </div>`;
+
+  if (!sc.filtered) {
+    // Pillar bars
+    let pillars = [
+      ['المالية', sc.financial, 30, 'قوة أرباح الشركة وسلامة وضعها المالي'],
+      ['الاتجاه', sc.trend, 25, 'هل السعر في مسار صاعد على المدى الطويل؟'],
+      ['الزخم', sc.relativeStrength, 15, 'أداء السهم مقارنة ببقية السوق في الأشهر الأخيرة'],
+      ['المخاطر', sc.risk, 20, 'مدى هدوء تحركات السهم — نقاط أعلى تعني تقلباً أقل'],
+      ['التقييم', sc.valuation, 15, 'هل السعر الحالي رخيص أم غالٍ مقارنة بأرباح الشركة؟'],
+    ];
+    pillars.forEach(([label, val, max, desc]) => {
+      let pct = Math.round((val/max)*100);
+      let color = pct >= 65 ? '#10b981' : (pct >= 40 ? '#f59e0b' : '#ef4444');
+      body += `<div class="pillar-bar">
+        <span class="bar-label">${label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="bar-val" style="color:${color}">${val}/${max}</span>
+      </div>
+      <div class="pillar-desc">${desc}</div>`;
+    });
+    
+    // Timing
+    let timingDot = sc.timing === 'ممتاز' ? '#10b981' : (sc.timing === 'مقبول' ? '#f59e0b' : '#ef4444');
+    body += `<div style="text-align:center;margin:16px 0;padding:12px;background:#0f172a;border-radius:10px">
+      <div style="font-size:0.85em;color:#94a3b8">توقيت الدخول</div>
+      <div style="font-size:1.2em;font-weight:bold;color:${timingDot};margin-top:4px">${sc.timing} (${sc.timingSignals}/4)</div>
+    </div>`;
+  }
+  body += '</div>';
+
+  // بطاقة "لماذا هذا التقييم؟" — تفسير كل محور بنقاطه من details + topDrivers
+  body += `<div class="modal-section"><h3>❓ لماذا هذا التقييم؟</h3>`;
+  const det = sc.details;
+  // فحص filtered مقدَّم عمداً: لو أرسل السيرفر يوماً details جزئية لسهم مفلتر تبقى بطاقة الاستبعاد هي المعروضة
+  if (sc.filtered) {
+    // سبب الاستبعاد الفعلي من البيانات — لا رسالة عامة (قرار المالك)
+    body += `<div style="color:#f59e0b;padding:12px;text-align:center">${sc.filterReason ? 'مستبعد: ' + ltrNums(sc.filterReason) : 'مستبعد بالفلتر الإقصائي'}</div>`;
+  } else if (det) {
+    if ((sc.topDrivers||[]).length) {
+      body += `<div class="interp" style="margin:0 0 10px">${sc.topDrivers.map(d => '<span class="driver '+d.type+'">'+d.text+'</span>').join(' ')}</div>`;
+    }
+    const whyPillars = [
+      ['المالية', det.financial, sc.financial, 30],
+      ['الاتجاه', det.trend, sc.trend, 25],
+      ['الزخم', det.relativeStrength, sc.relativeStrength, 15],
+      ['المخاطر', det.risk, sc.risk, 20],
+      ['التقييم', det.valuation, sc.valuation, 15],
+      ['التوقيت', det.timing, sc.timingSignals, 4],
+    ];
+    body += '<div class="why-grid">' + whyPillars.map(([label, lines, pts, max]) => {
+      if (!lines || !lines.length) return '';
+      const rows = lines.map(l => {
+        const i = l.lastIndexOf(' → ');
+        return i === -1
+          ? `<div class="why-line"><span>${ltrNums(l)}</span></div>`
+          : `<div class="why-line"><span>${ltrNums(l.slice(0, i))}</span><b>${l.slice(i + 3)}</b></div>`;
+      }).join('');
+      return `<div class="why-pillar"><h4><span>${label}</span><span>${pts != null ? pts + '/' + max : ''}</span></h4>${rows}</div>`;
+    }).join('') + '</div>';
+  } else {
+    body += '<div style="color:#64748b;padding:12px;text-align:center">التفاصيل غير متاحة حالياً</div>';
+  }
+  // مستقل عن details — يظهر متى صحّت levels لغير المفلترين (داخل القسم، خارج why-grid)
+  if (!sc.filtered) body += renderLevelsBlock(s);
+  body += '</div>';
+
+  // Risk reasons
+  if (!sc.filtered && sc.riskReasons && sc.riskReasons.length > 0) {
+    body += `<div class="modal-section">
+      <h3>أهم المخاطر</h3>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${sc.riskReasons.map(r => '<div style="padding:6px 10px;background:#ef444410;border-radius:6px;font-size:0.85em;color:#f87171;border-right:3px solid #ef4444">' + r + '</div>').join('')}
+      </div>
+    </div>`;
+  }
+  
+  // Valuation — حالة كل مكوّن من valuationParts: المجمّد باهت بـ❄️ وtitle شارح، والحي عادي.
+  // الأرقام نفسها لا تُمس، وغياب valuationParts يعيد العرض القديم حرفياً.
+  // PEG مشتق من P/E فيتبع حالة تجميده — المحرك لا يصدر له حالة مستقلة (قرار المالك 27-07)
+  const vp = valPartsOf(s);
+  const frz = (k) => !!vp && vp[k] === 'frozen';
+  // dk مفتاح الشرح مستقل عن k مفتاح التجميد — PEG يتبع تجميد P/E لكن شرحه شرح PEG.
+  // وسم ❄️ داخل سطر التسمية فيبقى فوق الشرح كما قرر المالك
+  const vInd = (k, valHtml, label, dk) => '<div class="indicator' + (frz(k) ? ' stale' : '') + '"' +
+    (frz(k) ? ' title="' + VAL_STALE_NOTE + '"' : '') + '><div class="val">' + valHtml + '</div><div class="lbl">' + label + (frz(k) ? ' ❄️' : '') + '</div>' + indDesc(dk) + '</div>';
+  const vUpd = valUpdatedOf(s);
+  body += `<div class="modal-section">
+    <h3>💎 التقييم المالي</h3>
+    <div class="indicator-grid">
+      ${vInd('pe', val.pe ? val.pe.toFixed(1) : '—', 'P/E', 'pe')}
+      ${vInd('pb', val.pb ? val.pb.toFixed(2) : '—', 'P/B', 'pb')}
+      ${vInd('evEbitda', val.evEbitda ? val.evEbitda.toFixed(1) : '—', 'EV/EBITDA', 'evEbitda')}
+      ${vInd('dividendYield', val.dividendYield ? (val.dividendYield*100).toFixed(1)+'%' : '—', 'توزيعات', 'divYield')}
+      ${vInd('pe' /* PEG مشتق فيتبع P/E عمداً */, val.peg ? val.peg.toFixed(2) : '—', 'PEG', 'peg')}
+    </div>
+    ${vUpd ? '<div style="font-size:0.75em;color:#64748b;text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span dir="ltr">' + vUpd + '</span></div>' : ''}
+  </div>`;
+  
+  // Financial health — دين/ملكية ونسبة التداول يُخفيان لقطاع Financials كله (بنوك وتأمين وتمويل):
+  // هيكل ميزانيات القطاع يجعل المقياسين مضللين كمؤشري صحة مستقلين (عرض فقط — التقييم لا يتغير)
+  const isFinSector = (sc.sector || s.sector) === 'Financials';
+  body += `<div class="modal-section">
+    <h3>🏦 الصحة المالية</h3>
+    <div class="indicator-grid">
+      <div class="indicator ${fin.returnOnEquity > 12 ? 'green' : (fin.returnOnEquity > 0 ? 'yellow' : 'red')}"><div class="val">${fin.returnOnEquity != null ? fin.returnOnEquity+'%' : '—'}</div><div class="lbl">ROE</div>${indDesc('roe')}</div>
+      <div class="indicator ${fin.profitMargins > 12 ? 'green' : (fin.profitMargins > 0 ? 'yellow' : 'red')}"><div class="val">${fin.profitMargins != null ? fin.profitMargins+'%' : '—'}</div><div class="lbl">هامش الربح</div>${indDesc('margin')}</div>
+      <div class="indicator ${fin.revenueGrowth > 5 ? 'green' : (fin.revenueGrowth >= 0 ? 'yellow' : 'red')}"><div class="val">${fin.revenueGrowth != null ? fin.revenueGrowth+'%' : '—'}</div><div class="lbl">نمو الإيرادات</div>${indDesc('revGrowth')}</div>
+      ${isFinSector ? '' : `<div class="indicator"><div class="val">${fin.debtToEquity != null ? fin.debtToEquity+'%' : '—'}</div><div class="lbl">دين/ملكية</div>${indDesc('debtEquity')}</div>
+      <div class="indicator"><div class="val">${fin.currentRatio != null ? fin.currentRatio : '—'}</div><div class="lbl">نسبة التداول</div>${indDesc('currentRatio')}</div>`}
+    </div>
+  </div>`;
+  
+  // Weekly Technical
+  body += `<div class="modal-section">
+    <h3>📈 الاتجاه الأسبوعي</h3>
+    <div class="indicator-grid">
+      <div class="indicator ${wt.sma200w && s.currentPrice > wt.sma200w ? 'green' : 'red'}"><div class="val">${wt.sma200w || '—'}</div><div class="lbl">SMA 200W</div>${indDesc('sma200w')}</div>
+      <div class="indicator ${wt.ema40w && s.currentPrice > wt.ema40w ? 'green' : 'red'}"><div class="val">${wt.ema40w || '—'}</div><div class="lbl">EMA 40W</div>${indDesc('ema40w')}</div>
+      <div class="indicator ${wt.rsi14w > 50 ? 'green' : 'red'}"><div class="val">${wt.rsi14w || '—'}</div><div class="lbl">RSI 14W</div>${indDesc('rsi14w')}</div>
+      <div class="indicator ${wt.macdW > 0 ? 'green' : 'red'}"><div class="val">${wt.macdW != null ? wt.macdW.toFixed(2) : '—'}</div><div class="lbl">MACD W</div>${indDesc('macdw')}</div>
+      <div class="indicator"><div class="val">${wt.sma200wSlope != null ? wt.sma200wSlope+'%' : '—'}</div><div class="lbl">ميل SMA200</div>${indDesc('sma200Slope')}</div>
+    </div>
+  </div>`;
+  
+  // Relative Strength
+  body += `<div class="modal-section">
+    <h3>⚡ القوة النسبية مقابل TASI</h3>
+    <div class="indicator-grid">
+      <div class="indicator ${(rs.rsTasi3m||0) > 0 ? 'green' : 'red'}"><div class="val" dir="ltr">${rs.rsTasi3m != null ? (rs.rsTasi3m>0?'+':'')+rs.rsTasi3m.toFixed(1)+'%' : '—'}</div><div class="lbl">3 أشهر</div>${indDesc('rs')}</div>
+      <div class="indicator ${(rs.rsTasi6m||0) > 0 ? 'green' : 'red'}"><div class="val" dir="ltr">${rs.rsTasi6m != null ? (rs.rsTasi6m>0?'+':'')+rs.rsTasi6m.toFixed(1)+'%' : '—'}</div><div class="lbl">6 أشهر</div>${indDesc('rs')}</div>
+      <div class="indicator ${(rs.rsTasi12m||0) > 0 ? 'green' : 'red'}"><div class="val" dir="ltr">${rs.rsTasi12m != null ? (rs.rsTasi12m>0?'+':'')+rs.rsTasi12m.toFixed(1)+'%' : '—'}</div><div class="lbl">12 شهر</div>${indDesc('rs')}</div>
+    </div>
+  </div>`;
+  
+  // Risk — قيمة التداول اليومية تُعرض متى وُجدت liquidityGate:
+  // حمراء دون الحد، خضراء فوقه، محايدة إن جُهلت passed (لا ادعاء اجتياز لحالة لم تُفحص)
+  const lg = liqGateOf(s);
+  body += `<div class="modal-section">
+    <h3>🛡️ المخاطر</h3>
+    <div class="indicator-grid">
+      <div class="indicator ${(dt.atrPct||0) < 2.5 ? 'green' : 'red'}"><div class="val">${dt.atrPct != null ? dt.atrPct+'%' : '—'}</div><div class="lbl">التقلب ATR%</div>${indDesc('atr')}</div>
+      <div class="indicator"><div class="val">${dt.high52w || '—'}</div><div class="lbl">أعلى 52 أسبوع</div></div>
+      <div class="indicator"><div class="val">${dt.low52w || '—'}</div><div class="lbl">أدنى 52 أسبوع</div></div>
+      <div class="indicator"><div class="val">${dt.avgVol20d ? (dt.avgVol20d/1000).toFixed(0)+'K' : '—'}</div><div class="lbl">متوسط حجم 20D</div>${indDesc('avgVol')}</div>
+      ${lg ? '<div class="indicator ' + (lg.passed === false ? 'red' : lg.passed === true ? 'green' : '') + '"><div class="val" dir="ltr">' + liqSar(lg) + '</div><div class="lbl">قيمة التداول ريال/يوم</div>' + indDesc('liqValue') + '</div>' : ''}
+      <div class="ind-desc grid-span">${IND_DESC.yr52}</div>
+    </div>
+  </div>`;
+  
+  // Chart (simple)
+  let chartPrices = s.technical?.chartPrices || [];
+  if (chartPrices.length > 0) {
+    body += `<div class="modal-section">
+      <h3>📉 آخر 30 يوم</h3>
+      <div class="chart-container"><canvas id="priceChart"></canvas></div>
+    </div>`;
+  }
+  
+  // Sector comparison — من sectorStats المحسوبة عند التحميل؛ الحقول المخزَّنة المجمّدة متجاهلة.
+  // st.sector من الخريطة نفسها كي لا يفترق العنوان عن مفتاح التجميع
+  const st = !sc.filtered && sectorStats[s.symbol];
+  if (st) {
+    const diff = (sc.total || 0) - st.avg;
+    const d = Math.round(Math.abs(diff)); // تقريب المقدار المطلق — متناظر حول المتوسط
+    body += `<div class="modal-section">
+      <h3>المقارنة القطاعية — ${SECTOR_AR[st.sector] || st.sector}</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="indicator"><div class="val" style="color:#60a5fa">${st.rank}/${st.n}</div><div class="lbl">الترتيب</div></div>
+        <div class="indicator"><div class="val" style="color:#60a5fa">${st.percentile}%</div><div class="lbl">Percentile</div></div>
+        <div class="indicator"><div class="val" style="color:#94a3b8">${st.avg.toFixed(1)}</div><div class="lbl">متوسط القطاع</div></div>
+      </div>
+      <div style="font-size:0.8em;color:#94a3b8;margin-top:8px;text-align:center">
+        ${diff > 0 && d ? '<span style="color:#10b981">أعلى من متوسط القطاع بـ '+d+' نقطة</span>' : diff < 0 && d ? '<span style="color:#ef4444">أقل من متوسط القطاع بـ '+d+' نقطة</span>' : '<span style="color:#94a3b8">عند متوسط القطاع تقريباً</span>'}
+      </div>
+    </div>`;
+  }
+  
+  // Info
+  body += `<div class="modal-section">
+    <h3>معلومات</h3>
+    <div style="font-size:0.85em;color:#94a3b8;line-height:1.8">
+      القطاع: ${SECTOR_AR[sc.sector] || sc.sector || '—'} | الصناعة: ${sc.industry || '—'}<br>
+      السعر: ${s.currentPrice} ر.س | التغير: ${s.dailyChange != null ? s.dailyChange+'%' : '—'}
+    </div>
+  </div>`;
+  
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('stockModal').classList.add('active');
+  
+  // Draw chart
+  if (chartPrices.length > 0) {
+    setTimeout(() => drawChart('priceChart', chartPrices), 100);
+  }
+}
+
+function closeModal() {
+  document.getElementById('stockModal').classList.remove('active');
+}
+
+function drawChart(id, prices) {
+  let canvas = document.getElementById(id);
+  if (!canvas) return;
+  let ctx = canvas.getContext('2d');
+  let padL = 50, padR = 10, padT = 10, padB = 24;
+  let totalW = canvas.parentElement.clientWidth - 32;
+  let totalH = canvas.parentElement.clientHeight - 32;
+  canvas.width = totalW; canvas.height = totalH;
+  let w = totalW - padL - padR;
+  let h = totalH - padT - padB;
+  
+  let min = Math.min(...prices) * 0.99;
+  let max = Math.max(...prices) * 1.01;
+  let range = max - min || 1;
+  
+  // Y-axis labels (price)
+  ctx.fillStyle = '#64748b';
+  ctx.font = '10px Segoe UI, sans-serif';
+  ctx.textAlign = 'right';
+  let ySteps = 4;
+  for (let i = 0; i <= ySteps; i++) {
+    let val = min + (range * i / ySteps);
+    let y = padT + h - (i / ySteps) * h;
+    ctx.fillText(val.toFixed(1), padL - 6, y + 3);
+    // grid line
+    ctx.beginPath();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 0.5;
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + w, y);
+    ctx.stroke();
+  }
+  
+  // X-axis labels (days ago)
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#64748b';
+  let xLabels = [0, Math.floor(prices.length/3), Math.floor(2*prices.length/3), prices.length-1];
+  xLabels.forEach(i => {
+    let x = padL + (i / (prices.length - 1)) * w;
+    let daysAgo = prices.length - 1 - i;
+    let label = daysAgo === 0 ? 'اليوم' : ('-' + daysAgo + 'ي');
+    ctx.fillText(label, x, totalH - 4);
+  });
+  
+  // Price line
+  ctx.beginPath();
+  ctx.strokeStyle = prices[prices.length-1] >= prices[0] ? '#10b981' : '#ef4444';
+  ctx.lineWidth = 2;
+  prices.forEach((p, i) => {
+    let x = padL + (i / (prices.length - 1)) * w;
+    let y = padT + h - ((p - min) / range) * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  
+  // Fill
+  ctx.lineTo(padL + w, padT + h);
+  ctx.lineTo(padL, padT + h);
+  ctx.closePath();
+  let grad = ctx.createLinearGradient(0, 0, 0, padT + h);
+  let baseColor = prices[prices.length-1] >= prices[0] ? '16,185,129' : '239,68,68';
+  grad.addColorStop(0, `rgba(${baseColor},0.3)`);
+  grad.addColorStop(1, `rgba(${baseColor},0.02)`);
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+init();
+</script>
+<script data-goatcounter="https://saif-vc-sa.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
