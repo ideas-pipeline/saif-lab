@@ -25,9 +25,11 @@ scripts/scoring-engine.py (criteria v2.1) بلا أي تعديل.
 ميزانية الطلبات (تُحسب وتُطبع قبل التشغيل — الحصة 5000/يوم)
 -----------------------------------------------------------
     يومي  (248 سهماً): quotes 5 دفعات + historical-1d 248 + TASI 1 + summary 1  ≈ 255
-    أسبوعي (--weekly): + historical-1w 248 + ratios 248 + company 248 + dividends 248 ≈ 1247
-    ملاحظة: تقدير المنسق «الأسبوعي +248» غطى الشموع فقط؛ الأساسيات لا بد أن تُجلب
-    دورياً فضُمت لوضع --weekly (إيقاع الإنتاج القائم للماليات) — القرار موثق.
+    أسبوعي (--weekly): + historical-1w 248 + ratios 248 + financials 248 + company 248
+                       + dividends 248 ≈ 1495 — ما زال مريحاً تحت الحصة.
+    التقدير happy-path: إعادات 429/الأخطاء قد ترفع المستهلك الفعلي (تشغيلة 04-08: 1342
+    لميزانية 1247). الإيقاع الذاتي ~2.5 طلب/ث + احترام Retry-After + جولة التقاط 429
+    لكل نوع — الهدف صفر فشل بسبب 429.
 
 عقود سهمك المؤكدة بالفحص الفعلي (scripts/sahmk-probe.py — لا اجتهاد خلافها)
 --------------------------------------------------------------------------
@@ -68,13 +70,29 @@ scripts/scoring-engine.py (criteria v2.1) بلا أي تعديل.
         python3 scripts/fetch-inputs-sahmk.py --shadow-compare ناتج-الجالب.json ناتج-المزامنة.json
     (محلية خالصة — بلا شبكة ولا مفتاح؛ خروج 0 = متطابق، 1 = فروق مطبوعة)
 
+مستجدات تشغيلة 04-08 (مدمجة)
+----------------------------
+    - /financials/{sym}/ يعمل **بلا معاملات** (اكتشاف --probe-financials): income_statements/
+      balance_sheets/cash_flows (4 عناصر: report_date/statement_period/fiscal_year/
+      is_full_year + الحقول) + reporting(reporting_cadence/quarterly_income_convention).
+      استُثمر: cashflow.ocf/netIncome/fcf حية (اصطلاح موثق: **آخر سنة مالية كاملة**
+      is_full_year=true الأحدث — يطابق سنوية باقي النسب؛ TTM من الأرباع مؤجل حتى تحقق
+      quarterly_income_convention)، وrevenueGrowth من سنتين كاملتين متتاليتين،
+      وC/I البنوك يُشتق فقط إن ثبت operating_income < total_revenue فعلاً
+      (بحارس معقولية 0<C/I<100 — وإن ساوى الإيراد فالاستحالة تُعدّ وتُطبع).
+    - ratios: التركيبة المؤكدة حصراً history=latest&period=annual&metrics=all —
+      history=3y أُسقط نهائياً (HTTP 400 مؤكد إنتاجياً)؛ فشل التفكيك يُعدّ فشلاً
+      مسموعاً بأسبابه (أول 3 لكل نوع) لا عدّاداً صامتاً.
+
 ما يبقى مفتوحاً (لا يُختلق — الغياب null والمحرك يتعامل معه كعادته)
 ------------------------------------------------------------------
-    - /financials 400: يمنع currentRatio وcashflow.ocf ومصروفات البنوك — بعد حل
-      التركيبة بوضع --probe-financials تُضاف خطوة جلبها.
-    - Cost/Income للبنوك: operating_income == total_revenue في ratios (لا تفصيل
-      مصروفات) → لا يُجلب من سهمك حالياً؛ القيمة القديمة (yfinance-legacy) تُحفظ
-      وتبقى محتسبة (قرار المحلل بند 2)، والمفتاح يُنشأ null فقط لمن لا قيمة قديمة له.
+    - currentRatio: يبقى موروثاً نهائياً من هذا المصدر — balance_sheets إجماليات فقط
+      (total_assets/total_liabilities) بلا شق متداول.
+    - Cost/Income للبنوك: إن أثبتت القوائم أيضاً operating_income == total_revenue
+      فالاشتقاق مستحيل (يُعدّ في bank_cti_flat) والقيمة القديمة (yfinance-legacy)
+      تُحفظ محتسبة (قرار المحلل بند 2).
+    - ترحيل الوسوم يجري في الذاكرة كل تشغيلة؛ إن حجبت بوابة فشل الكتابة ضاع معها —
+      سلوك صحيح: يعاد آلياً في التشغيلة التالية بحكم idempotent.
     - EV/EBITDA وP/E: يُخزنان كمدخلات حية في valuationInputs فقط — خارج مقام
       المحرك (criteria v2.1) حتى قرار تفعيل موسوم من المالك. P/B وعائد التوزيعات
       يمران عبر المسار القائم: valuationInputs ← compute-valuation.py (بحارس الاتساق).
@@ -251,16 +269,30 @@ def regime_from_history(closes, index_value, advancing, declining, mood):
 # الشبكة — معزولة عن الحسابات
 # ═══════════════════════════════════════════════════════════════════
 
+RATE_PER_SEC = 2.5   # حد الإيقاع الذاتي: ~2-3 طلبات/ثانية (رشقات 429 = حد دقيقة لا حصة)
+
+
 class Api:
+    """طبقة الشبكة — تهدئة إيقاع + احترام Retry-After (تشخيص تشغيلة 04-08: رشقات 429
+    من حد الدقيقة لا الحصة — المستهلك كان 1342/5000 والفشل متناثر متتالي الرموز)."""
+
     def __init__(self, key):
         self.key = key
         self.requests_made = 0
+        self.hits_429 = 0
+        self._min_gap = 1.0 / RATE_PER_SEC
+        self._last = 0.0
 
     def get(self, path, tries=3, timeout=25):
-        """GET مع إعادة محاولة وتراجع تصاعدي — يعيد (json, None) أو (None, وصف_الخطأ)"""
+        """GET مع: إيقاع ذاتي، إعادة محاولة بتراجع تصاعدي، واحترام Retry-After عند 429.
+        يعيد (json, None) أو (None, وصف_الخطأ — آخر خطأ)"""
         url = BASE + path
         err = "unknown"
         for attempt in range(tries):
+            gap = self._min_gap - (time.monotonic() - self._last)
+            if gap > 0:
+                time.sleep(gap)
+            self._last = time.monotonic()
             self.requests_made += 1
             try:
                 req = urllib.request.Request(url, headers={
@@ -269,6 +301,15 @@ class Api:
                     return json.load(resp), None
             except urllib.error.HTTPError as e:
                 err = "HTTP %d" % e.code
+                if e.code == 429:
+                    self.hits_429 += 1
+                    ra = e.headers.get("Retry-After") if e.headers else None
+                    try:
+                        delay = max(1.0, float(ra)) if ra else 5.0 * (attempt + 1)
+                    except (TypeError, ValueError):
+                        delay = 5.0 * (attempt + 1)
+                    time.sleep(min(delay, 65))
+                    continue
                 if e.code in (400, 401, 403, 404):
                     return None, err      # لا جدوى من الإعادة
             except Exception as e:
@@ -276,6 +317,15 @@ class Api:
             if attempt < tries - 1:
                 time.sleep(2 * (attempt + 1))
         return None, err
+
+
+def note_fail(counters, printed_key, label, sym, err, limit=3):
+    """طباعة سبب أول N إخفاقات لكل نوع (درس تشغيلة 04-08: عدّاد بلا سبب = تشخيص مستحيل)"""
+    counters[printed_key] = counters.get(printed_key, 0) + 1
+    if counters[printed_key] <= limit:
+        print("  ✗ %s %s: %s" % (sym, label, err))
+    elif counters[printed_key] == limit + 1:
+        print("  ✗ %s: ... (تُطبع أول %d أسباب فقط — الباقي في العداد)" % (label, limit))
 
 
 def rows_of(resp, *keys):
@@ -356,46 +406,49 @@ def fetch_quotes(api, stocks, counters, now_str):
 
 def parse_candles(resp):
     """شموع historical: date/open/high/low/close/adjusted_close/volume — مرتبة تصاعدياً.
-    يعيد (rows, adj_fallback) حيث adj_fallback = عدد الصفوف التي سقطت من adjusted_close
-    إلى close (غياب المعدل) — سقوطها في 1w يمس اصطلاح SMA200W الملزم (ملحق 24-07)
-    فيُعدّ ويُنذر به صراحة، لا صامتاً."""
+    قاعدة adjusted_close (تشخيص تشغيلة 04-08، أدنى تدخلاً): الشمعة الفاقدة للمعدل
+    **لا تُخلط بالخام** — تبقى في الصف بقيمة adj=None والمستهلك يقرر:
+      1w: تُسقط الشمعة من السلسلة المعدلة (شرط ≥50/≥200 على المتبقي)؛ سهم فقد
+          المعدل لسلسلته كلها = إنذار حاكم (تغيير اصطلاح — ملحق 24-07).
+      1d: المؤشرات الخام لا تتأثر؛ تُسقط الشمعة من سلسلة العوائد المعدلة فقط.
+    يعيد (rows, dropped_dates) — rows بعناصر (date, close, high, low, vol, adj|None)."""
     rows = rows_of(resp, "data", "candles", "history", "results")
     out = []
-    adj_fallback = 0
+    dropped_dates = []
     for r in rows:
         if r.get("close") is None or r.get("high") is None or r.get("low") is None:
             continue
         adj = r.get("adjusted_close")
         if adj is None:
-            adj = r["close"]
-            adj_fallback += 1
+            dropped_dates.append(r.get("date", "?"))
         out.append((r.get("date", ""), r["close"], r["high"], r["low"],
                     r.get("volume") or 0, adj))
     out.sort(key=lambda x: x[0])
-    return out, adj_fallback
+    return out, sorted(dropped_dates)
 
 
 def fetch_daily(api, stocks, counters, tasi_returns, stamp):
     d420 = (datetime.now(timezone.utc) - timedelta(days=420)).strftime("%Y-%m-%d")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    for i, st in enumerate(stocks):
+
+    def process(st):
+        """يعيد (نجح؟، وصف الخطأ) — قابل لإعادة التمرير في جولة التقاط 429"""
         sym = st["symbol"]
         resp, err = api.get("/historical/%s/?interval=1d&from=%s&to=%s" % (sym, d420, today))
-        rows, adj_fb = parse_candles(resp)
-        if adj_fb:
-            counters["adj_fb_rows_1d"] += adj_fb
+        rows, dropped = parse_candles(resp)
+        if dropped:
+            counters["adj_fb_rows_1d"] += len(dropped)
             counters["adj_fb_syms_1d"] += 1
         # نافذة سنة تداول: آخر 251 شمعة (اصطلاح fetch-daily-extra range=1y مع ضمان عائد 12م)
         rows = rows[-251:]
         if len(rows) < 60:
-            counters["daily_fail"] += 1
-            print("  ✗ %s شموع يومية: %s (%d شمعة)" % (sym, err or "قليلة", len(rows)))
-            continue
+            return False, (err or "شموع قليلة (%d)" % len(rows))
         closes = [r[1] for r in rows]
         highs = [r[2] for r in rows]
         lows = [r[3] for r in rows]
         vols = [r[4] for r in rows]
-        adjcls = [r[5] for r in rows]
+        # سلسلة العوائد المعدلة: الشمعة بلا adjusted_close تُسقط منها (لا خلط خام/معدل)
+        adjcls = [r[5] for r in rows if r[5] is not None]
 
         price = closes[-1]
         high52 = round(max(highs), 2)
@@ -434,27 +487,57 @@ def fetch_daily(api, stocks, counters, tasi_returns, stamp):
         if r6 is not None and tasi_returns.get("6m") is not None:
             rs["rsTasi6m"] = round(r6 - tasi_returns["6m"], 2)
         st["relativeStrength"] = rs
-        counters["daily_ok"] += 1
+        return True, None
+
+    run_with_429_sweep(stocks, process, counters, "daily_ok", "daily_fail", "شموع يومية")
+
+
+def run_with_429_sweep(stocks, process, counters, ok_key, fail_key, label):
+    """تمريرة أساسية ثم جولة التقاط ثانية لضحايا 429 حصراً (تشخيص تشغيلة 04-08).
+    process(st) → (نجح؟، وصف الخطأ). العدادات النهائية بعد الجولتين."""
+    victims = []
+    for i, st in enumerate(stocks):
+        ok, err = process(st)
+        if ok:
+            counters[ok_key] += 1
+        elif "429" in str(err):
+            victims.append(st)
+        else:
+            note_fail(counters, fail_key, label, st["symbol"], err)
         if (i + 1) % 25 == 0:
-            print("  ... %d/%d يومي" % (i + 1, len(stocks)))
-        time.sleep(0.15)
+            print("  ... %d/%d %s" % (i + 1, len(stocks), label))
+    if victims:
+        print("  🔁 جولة التقاط 429 (%s): %d رمزاً بعد تهدئة..." % (label, len(victims)))
+        time.sleep(20)
+        for st in victims:
+            ok, err = process(st)
+            if ok:
+                counters[ok_key] += 1
+            else:
+                note_fail(counters, fail_key, label + " (بعد الالتقاط)", st["symbol"], err)
 
 
-def fetch_weekly(api, stocks, counters, stamp):
+def fetch_weekly(api, stocks, counters, stamp, adj_diag):
     d5y = (datetime.now(timezone.utc) - timedelta(days=1826)).strftime("%Y-%m-%d")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    for i, st in enumerate(stocks):
+
+    def process(st):
         sym = st["symbol"]
         resp, err = api.get("/historical/%s/?interval=1w&from=%s&to=%s" % (sym, d5y, today))
-        rows, adj_fb = parse_candles(resp)
-        if adj_fb:
-            counters["adj_fb_rows_1w"] += adj_fb
+        rows, dropped = parse_candles(resp)
+        # قاعدة adjusted_close في 1w (04-08، أدنى تدخلاً): الشمعة الفاقدة تُسقط من
+        # السلسلة — لا خلط خام/معدل؛ الشرطان ≥50 و(بنيوياً) ≥200 على المتبقي.
+        # سهم فقد المعدل لسلسلته كلها = تغيير اصطلاح كامل → إنذار حاكم (ملحق 24-07).
+        if dropped:
+            counters["adj_fb_rows_1w"] += len(dropped)
             counters["adj_fb_syms_1w"] += 1
-        prices = [round(r[5], 2) for r in rows]   # adjusted_close (اصطلاح SMA200W المعتمد — ملحق 24-07)
+            if rows and len(dropped) >= len(rows):
+                adj_diag["full"].append(sym)
+            else:
+                adj_diag["partial"].append("%s (شموع %s)" % (sym, "، ".join(dropped[:5])))
+        prices = [round(r[5], 2) for r in rows if r[5] is not None]   # المعدلة حصراً
         if len(prices) < 50:
-            counters["weekly_fail"] += 1
-            print("  ✗ %s شموع أسبوعية: %s (%d)" % (sym, err or "قليلة", len(prices)))
-            continue
+            return False, (err or "شموع معدلة قليلة (%d)" % len(prices))
         macd_w, macd_sig_w, macd_hist_w = calc_macd(prices, dp=3)
         st["weeklyTechnical"] = {
             "sma200w": calc_sma(prices, 200),
@@ -469,175 +552,293 @@ def fetch_weekly(api, stocks, counters, stamp):
             # ختم لكل سهم (شرط الناقد م-3): الخلط الأسبوعي الجزئي يصبح موسوماً على مستوى الكتلة
             "updatedAt": stamp,
         }
-        counters["weekly_ok"] += 1
-        if (i + 1) % 25 == 0:
-            print("  ... %d/%d أسبوعي" % (i + 1, len(stocks)))
-        time.sleep(0.15)
+        return True, None
+
+    run_with_429_sweep(stocks, process, counters, "weekly_ok", "weekly_fail", "شموع أسبوعية")
+
+
+def _fs_val(e, key, *nests):
+    """قراءة متسامحة لحقل قائمة مالية: مسطّح أو متداخل تحت مفاتيح معروفة"""
+    if isinstance(e, dict):
+        if e.get(key) is not None:
+            return e[key]
+        for n in nests:
+            d = e.get(n)
+            if isinstance(d, dict) and d.get(key) is not None:
+                return d[key]
+    return None
+
+
+def _latest_full_year(elements, nests):
+    """آخر عنصر سنة كاملة (is_full_year=true، الأحدث بـreport_date) — اصطلاح OCF الموثق"""
+    fy = [e for e in elements if _fs_val(e, "is_full_year", *nests) is True]
+    if not fy:
+        return None
+    return max(fy, key=lambda e: str(_fs_val(e, "report_date", *nests) or ""))
+
+
+def parse_financials(f):
+    """تفكيك /financials/{sym}/ (بلا معاملات — البنية المؤكدة 04-08):
+    income_statements/balance_sheets/cash_flows (4 عناصر لكل منها) + reporting.
+    اصطلاح الفترة المقرر والموثق: **آخر سنة مالية كاملة** (is_full_year=true الأحدث
+    بـreport_date) من كل قائمة — يطابق الاصطلاح السنوي لكل نسب المحور المالي.
+    TTM من الأرباع مؤجل عمداً: يتطلب quarterly_income_convention=discrete وتحققاً
+    لم يجر بعد؛ reporting يُقرأ ويُعاد للمستدعي للاطلاع.
+    currentRatio يبقى موروثاً: balance_sheets إجماليات فقط (total_assets/liabilities)
+    بلا شق متداول — موثق نهائياً."""
+    if not isinstance(f, dict):
+        return None
+    body = f
+    for k in ("data", "results"):
+        if isinstance(body.get(k), dict):
+            body = body[k]
+    inc = body.get("income_statements") or []
+    cfs = body.get("cash_flows") or []
+    if not isinstance(inc, list) or not isinstance(cfs, list) or (not inc and not cfs):
+        return {"_shape_error": "مفاتيح غير متوقعة: %s" % sorted(body.keys())[:8]}
+    NEST_I = ("income",)
+    NEST_C = ("cash_flows", "cash_flow")
+    out = {"reporting": body.get("reporting") or {}}
+    li = _latest_full_year(inc, NEST_I)
+    if li:
+        out["totalRevenue"] = _fs_val(li, "total_revenue", *NEST_I)
+        out["operatingIncome"] = _fs_val(li, "operating_income", *NEST_I)
+        out["grossProfit"] = _fs_val(li, "gross_profit", *NEST_I)
+        out["netIncome"] = _fs_val(li, "net_income", *NEST_I)
+        out["reportDate"] = _fs_val(li, "report_date", *NEST_I)
+        out["fiscalYear"] = _fs_val(li, "fiscal_year", *NEST_I)
+    lc = _latest_full_year(cfs, NEST_C)
+    if lc:
+        out["ocf"] = _fs_val(lc, "operating_cash_flow", *NEST_C)
+        out["fcf"] = _fs_val(lc, "free_cash_flow", *NEST_C)
+        out["cfReportDate"] = _fs_val(lc, "report_date", *NEST_C)
+        out["cfFiscalYear"] = _fs_val(lc, "fiscal_year", *NEST_C)
+    # نمو الإيرادات: آخر سنتين كاملتين متتاليتين من قوائم الدخل (يغني عن history=3y المرفوض)
+    fy_inc = sorted((e for e in inc if _fs_val(e, "is_full_year", *NEST_I) is True),
+                    key=lambda e: str(_fs_val(e, "report_date", *NEST_I) or ""), reverse=True)
+    revs = [_fs_val(e, "total_revenue", *NEST_I) for e in fy_inc[:2]]
+    if len(revs) == 2 and revs[0] is not None and revs[1]:
+        out["revenueGrowth"] = round((revs[0] - revs[1]) / abs(revs[1]) * 100, 1)
+    return out
 
 
 def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_decision):
-    """ratios + company + dividends — أسبوعي.
-    مقياس D/E: يُحسم مقطعياً على الكون الكامل فقط (م-4) — في وضع --symbols يُقرأ القرار
-    المثبت من تشغيلة كاملة سابقة (data.deScaleDecision) أو يُرفض التطبيق بإنذار."""
+    """ratios(latest المؤكدة حصراً) + قوائم /financials/ (بلا معاملات) + company + dividends.
+    - أُسقط history=3y نهائياً (400 مؤكد في تشغيلة 04-08) — النمو من القوائم مباشرة.
+    - مقياس D/E: يُحسم مقطعياً على الكون الكامل فقط (م-4)؛ --symbols يقرأ المثبت أو يرفض.
+    - جولة التقاط 429 لكل نقطة نهاية على حدة، وأسباب أول 3 إخفاقات تُطبع لكل نوع."""
     de_raw = {}
-    ratios_multi_ok = None   # هل يقبل history=3y؟ يُجرب على أول رمز
-    for i, st in enumerate(stocks):
+    scratch = {}          # sym -> قيم تتجمع من ratios+financials لدمج sectorFinancials بعد الجولتين
+    reporting_shown = [False]
+
+    def setf(st, key, val, source):
+        """كتابة حقل financials بدمج حافظ + وسم — «الجالب لا يختم إلا ما جلب»"""
+        if val is not None:
+            st.setdefault("financials", {})[key] = val
+            st.setdefault("financialsParts", {})[key] = {"source": source, "asOf": today}
+
+    def do_ratios(st):
         sym = st["symbol"]
-
-        # 1) ratios — نحاول history=3y لنمو الإيرادات، وإلا latest
-        r = None
-        if ratios_multi_ok in (None, True):
-            r, err = api.get("/analytics/ratios/%s/?history=3y&period=annual&metrics=all" % sym)
-            if ratios_multi_ok is None:
-                ratios_multi_ok = r is not None
-                print("  ratios history=3y: %s" % ("مقبول" if ratios_multi_ok else "مرفوض (%s) — تراجع إلى latest" % err))
+        # التركيبة المؤكدة بالفحص اليدوي حرفياً — لا معاملات مجربة أخرى
+        r, err = api.get("/analytics/ratios/%s/?history=latest&period=annual&metrics=all" % sym)
         if r is None:
-            r, err = api.get("/analytics/ratios/%s/?history=latest&period=annual&metrics=all" % sym)
-        periods = rows_of(r, "data", "results", "history")
-        if not periods and isinstance(r, dict):
-            periods = [r]
-        if not periods:
-            counters["ratios_fail"] += 1
-        else:
-            # الأحدث أولاً أو الأقدم أولاً؟ نرتب بتاريخ إن وجد وإلا نفترض الأحدث أولاً
-            def pdate(p):
-                return str(p.get("date") or p.get("period") or p.get("fiscal_year") or "")
-            if len(periods) > 1 and pdate(periods[0]) and pdate(periods[0]) < pdate(periods[-1]):
-                periods = list(reversed(periods))
-            latest = periods[0]
-            rat = latest.get("ratios") or {}
-            km = latest.get("key_metrics") or {}
-            # ── financials: دمج حافظ بخريطة حقول (قرار المحلل ج-2، نمط valuationParts معمماً) ──
-            # «الجالب لا يختم إلا ما جلب»: الحقل المجلوب يُكتب ويُوسم sahmk بتاريخ اليوم؛
-            # الحقل القائم غير المجلوب لا يُمس ويحتفظ بوسمه الموروث (من الترحيل) — لا ختم زور.
-            fin = st.setdefault("financials", {})
-            parts = st.setdefault("financialsParts", {})
-            def setf(key, val):
-                if val is not None:
-                    fin[key] = val
-                    parts[key] = {"source": "sahmk analytics/ratios", "asOf": today}
-            setf("profitMargins", round(rat["net_margin"], 1) if rat.get("net_margin") is not None else None)
-            setf("returnOnEquity", round(rat["roe"], 1) if rat.get("roe") is not None else None)
-            setf("returnOnAssets", round(rat["roa"], 2) if rat.get("roa") is not None else None)
-            if rat.get("debt_to_equity") is not None:
-                de_raw[sym] = rat["debt_to_equity"]   # الحسم المقطعي بعد الجمع (يوسم عند التطبيق)
-            # نمو الإيرادات من فترتين سنويتين إن توفرتا — فشله يُبقي القديم بوسمه الموروث
-            revs = []
-            for p in periods[:2]:
-                tr = (p.get("key_metrics") or {}).get("total_revenue")
-                if tr:
-                    revs.append(tr)
-            if len(revs) == 2 and revs[1]:
-                setf("revenueGrowth", round((revs[0] - revs[1]) / abs(revs[1]) * 100, 1))
-                counters["revgrowth_ok"] += 1
-            else:
-                counters["revgrowth_miss"] += 1
-            legacy_left = sorted(k for k, v in parts.items()
-                                 if isinstance(v, dict) and v.get("source") != "sahmk analytics/ratios")
-            st["financialsSource"] = ("sahmk analytics/ratios" if not legacy_left
-                                      else "mixed: sahmk + موروث (%s) — انظر financialsParts" % "، ".join(legacy_left))
-            st["financialsUpdated"] = today   # يصدق على حقول sahmk في financialsParts حصراً
-            counters["ratios_ok"] += 1
-            # ── sectorFinancials للبنوك: دمج بمستوى الحقل (قرار المحلل بند 2) ──
-            # ROA/الإيرادات تُكتب حية من سهمك؛ costToIncome القديمة (yfinance) تُحفظ ولا تُمس
-            # وتبقى محتسبة في النقاط؛ الحقول الموروثة تُعدَّد صراحة في الوسم.
-            if "Bank" in (st.get("industry") or ""):
-                old_sf = st.get("sectorFinancials") or {}
-                sf = dict(old_sf)
-                sf["type"] = "bank"
-                written_now = []
-                for k, v in (("ROA", round(rat["roa"], 2) if rat.get("roa") is not None else None),
-                             ("totalRevenue", km.get("total_revenue")),
-                             ("operatingIncome", km.get("operating_income"))):
-                    if v is not None:
-                        sf[k] = v
-                        written_now.append(k)
-                sf.setdefault("costToIncome", None)   # المفتاح لازم لمسار البنوك في المحرك — القيمة القديمة إن وجدت تبقى
-                meta = {"type", "source", "updatedAt", "sahmkFields", "legacyFields", "error"}
-                sf["sahmkFields"] = sorted(written_now)
-                sf["legacyFields"] = sorted(k for k in old_sf
-                                            if k not in meta and k not in written_now)
-                sf["source"] = ("sahmk analytics/ratios" if not sf["legacyFields"]
-                                else "mixed: sahmk(%s) + yfinance-legacy(%s)" % (
-                                    "،".join(sf["sahmkFields"]), "،".join(sf["legacyFields"])))
-                sf["updatedAt"] = today   # يصدق على sahmkFields حصراً
-                st["sectorFinancials"] = sf
-            # debtHealth: لا تُكتب إطلاقاً (قرار المحلل بند 1) — الكتلة القائمة (yfinance-legacy
-            # الموسومة بالترحيل) تبقى كما هي محتسبة في النقاط. يُمنع استبدال صالح بـnull.
-        time.sleep(0.15)
+            return False, err
+        body = r
+        for k in ("data", "results"):
+            if isinstance(body.get(k), dict):
+                body = body[k]
+        if isinstance(body, list):
+            body = body[0] if body else {}
+        rat = body.get("ratios") or {}
+        if not rat:
+            # فشل تفكيك = فشل مسموع لا صامت (درس 04-08)
+            return False, "بنية غير متوقعة — مفاتيح: %s" % sorted(body.keys() if isinstance(body, dict) else [])[:8]
+        setf(st, "profitMargins", round(rat["net_margin"], 1) if rat.get("net_margin") is not None else None, "sahmk analytics/ratios")
+        setf(st, "returnOnEquity", round(rat["roe"], 1) if rat.get("roe") is not None else None, "sahmk analytics/ratios")
+        setf(st, "returnOnAssets", round(rat["roa"], 2) if rat.get("roa") is not None else None, "sahmk analytics/ratios")
+        if rat.get("debt_to_equity") is not None:
+            de_raw[sym] = rat["debt_to_equity"]
+        scratch.setdefault(sym, {})["roa"] = rat.get("roa")
+        return True, None
 
-        # 2) company → valuationInputs (العقد القائم لـ compute-valuation.py)
-        c, cerr = api.get("/company/%s/" % sym)
-        fn = ((c or {}).get("fundamentals") or {})
+    def do_financials(st):
+        sym = st["symbol"]
+        f, err = api.get("/financials/%s/" % sym)   # بلا معاملات — المؤكد 04-08
+        if f is None:
+            return False, err
+        p = parse_financials(f)
+        if p is None or "_shape_error" in (p or {}):
+            return False, (p or {}).get("_shape_error", "استجابة غير قابلة للتفكيك")
+        if not reporting_shown[0] and p.get("reporting"):
+            reporting_shown[0] = True
+            print("  📋 reporting: cadence=%s | quarterly_convention=%s (اصطلاح OCF: آخر سنة كاملة)"
+                  % (p["reporting"].get("reporting_cadence"), p["reporting"].get("quarterly_income_convention")))
+        # cashflow: إحياء OCF (3ن) — ترقية الوسم من legacy-unknown إلى sahmk بختم report_date الحقيقي
+        if p.get("ocf") is not None:
+            cf = dict(st.get("cashflow") or {})
+            cf["ocf"] = p["ocf"]
+            if p.get("netIncome") is not None:
+                cf["netIncome"] = p["netIncome"]
+            if p.get("fcf") is not None:
+                cf["fcf"] = p["fcf"]
+            cf["source"] = "sahmk /financials"
+            cf["asOf"] = p.get("cfReportDate") or p.get("reportDate")
+            cf["convention"] = "annual-full-year"
+            st["cashflow"] = cf
+            counters["ocf_ok"] += 1
+        # نمو الإيرادات من القوائم
+        if p.get("revenueGrowth") is not None:
+            setf(st, "revenueGrowth", p["revenueGrowth"], "sahmk /financials")
+            counters["revgrowth_ok"] += 1
+        else:
+            counters["revgrowth_miss"] += 1
+        # مصروفات البنوك: تُشتق فقط إن كان operating_income < total_revenue فعلاً
+        # (في ratios كانا متساويين — القوائم تحسمها بالقيم؛ الاشتقاق بحارس معقولية 0<C/I<100)
+        if "Bank" in (st.get("industry") or ""):
+            rev, opi = p.get("totalRevenue"), p.get("operatingIncome")
+            sc = scratch.setdefault(sym, {})
+            sc["bankRevenue"], sc["bankOpIncome"] = rev, opi
+            if rev and opi is not None and 0 < opi < rev:
+                cti = round((rev - opi) / rev * 100, 1)
+                if 0 < cti < 100:
+                    sc["cti"] = cti
+                    counters["bank_cti_ok"] += 1
+            elif rev and opi is not None and opi >= rev:
+                counters["bank_cti_flat"] += 1   # لا تفصيل مصروفات في القوائم أيضاً
+        return True, None
+
+    def do_company(st):
+        sym = st["symbol"]
+        c, err = api.get("/company/%s/" % sym)
+        if c is None:
+            return False, err
+        fn = c.get("fundamentals") or {}
         ptb = fn.get("price_to_book")
         bv = fn.get("book_value")
-        tp = (c or {}).get("current_price")
+        tp = c.get("current_price")
         # (م-1) current_price غير مؤكد بعقد الفحص — عدّ صريح، وغيابه = «غير قابل للتحقق» (None)
-        # لا «فاشل الاتساق» (False): compute-valuation يجمد في الحالتين، لكن الوسم لا يكذب
-        if c is not None:
-            if tp is not None:
-                counters["company_cp_ok"] += 1
-            else:
-                counters["company_cp_miss"] += 1
+        if tp is not None:
+            counters["company_cp_ok"] += 1
+        else:
+            counters["company_cp_miss"] += 1
         if ptb and bv and tp and tp > 0:
             cons = abs((ptb * bv) / tp - 1) < 0.03   # حارس الاتساق القائم (3%)
         elif tp is None or not tp:
             cons = None                              # غير قابل للتحقق — ليس فشل اتساق
         else:
             cons = False
-        # دمج حافظ بمجموعات (قرار المحلل — قاعدة 5): مجموعة company ومجموعة dividends
-        # تُكتب كل منهما متماسكة فقط عند نجاح جلبها؛ فشل إحداهما يبقي قيمها القديمة
-        # بختمها القديم (companyAsOf/divsAsOf) — لا استبدال صالح بغائب ولا ختم زور.
+        # دمج حافظ بمجموعات: مجموعة company متماسكة (قرار المحلل — قاعدة 5)
         vi = dict(st.get("valuationInputs") or {})
-        if c is not None:
-            vi.update({
-                "priceToBook": ptb, "bookValue": bv, "theirPrice": tp,
-                "marketCap": fn.get("market_cap"), "sharesOutstanding": fn.get("shares_outstanding"),
-                "pbConsistent": cons,
-                # مدخلات حية خارج مقام المحرك (criteria v2.1) حتى قرار تفعيل موسوم:
-                "peRatio": fn.get("pe_ratio"), "epsTtm": fn.get("eps_ttm"),
-                "forwardPe": fn.get("forward_pe"),
-                "companyAsOf": today,
-            })
-            counters["company_ok"] += 1
-        else:
-            counters["company_fail"] += 1
-            print("  ✗ %s company: %s" % (sym, cerr))
-        time.sleep(0.15)
+        vi.update({
+            "priceToBook": ptb, "bookValue": bv, "theirPrice": tp,
+            "marketCap": fn.get("market_cap"), "sharesOutstanding": fn.get("shares_outstanding"),
+            "pbConsistent": cons,
+            # مدخلات حية خارج مقام المحرك (criteria v2.1) حتى قرار تفعيل موسوم:
+            "peRatio": fn.get("pe_ratio"), "epsTtm": fn.get("eps_ttm"),
+            "forwardPe": fn.get("forward_pe"),
+            "companyAsOf": today, "updatedAt": today, "source": "sahmk-direct",
+        })
+        st["valuationInputs"] = vi
+        return True, None
 
-        # 3) dividends → divTtm12m/divBasis (خوارزمية الطبقتين القائمة)
-        dv, derr = api.get("/dividends/%s/?limit=50" % sym)
-        if dv is not None:
-            now = datetime.now(timezone.utc)
-            d365 = (now - timedelta(days=365)).strftime("%Y-%m-%d")
-            d548 = (now - timedelta(days=548)).strftime("%Y-%m-%d")
-            rows = []
-            for h in rows_of(dv, "history", "data"):
-                ed = h.get("eligibility_date") or h.get("due_date") or h.get("date")
-                val = h.get("value") if h.get("value") is not None else h.get("amount")
-                if ed and val and val > 0:
-                    rows.append((ed, val))
-            rows.sort(reverse=True)
-            tot = sum(v for e, v in rows if d365 <= e <= today)
-            if tot > 0:
-                vi["divTtm12m"], vi["divBasis"] = round(tot, 4), "ttm12m"
-            else:
-                recent = [(e, v) for e, v in rows if d548 <= e <= today]
-                if recent:
-                    vi["divTtm12m"], vi["divBasis"] = round(recent[0][1], 4), "last18m"
-                else:
-                    vi["divTtm12m"], vi["divBasis"] = 0.0, "none"
-            vi["divsAsOf"] = today
-            counters["dividends_ok"] += 1
+    def do_dividends(st):
+        sym = st["symbol"]
+        dv, err = api.get("/dividends/%s/?limit=50" % sym)
+        if dv is None:
+            return False, err
+        now = datetime.now(timezone.utc)
+        d365 = (now - timedelta(days=365)).strftime("%Y-%m-%d")
+        d548 = (now - timedelta(days=548)).strftime("%Y-%m-%d")
+        rows = []
+        for h in rows_of(dv, "history", "data"):
+            ed = h.get("eligibility_date") or h.get("due_date") or h.get("date")
+            val = h.get("value") if h.get("value") is not None else h.get("amount")
+            if ed and val and val > 0:
+                rows.append((ed, val))
+        rows.sort(reverse=True)
+        vi = dict(st.get("valuationInputs") or {})
+        tot = sum(v for e, v in rows if d365 <= e <= today)
+        if tot > 0:
+            vi["divTtm12m"], vi["divBasis"] = round(tot, 4), "ttm12m"
         else:
-            counters["dividends_fail"] += 1
-        if c is not None or dv is not None:
-            vi["updatedAt"] = today   # يصدق على المجموعة/المجموعتين المجلوبتين (companyAsOf/divsAsOf)
-            vi["source"] = "sahmk-direct"
-            st["valuationInputs"] = vi
+            recent = [(e, v) for e, v in rows if d548 <= e <= today]
+            if recent:
+                vi["divTtm12m"], vi["divBasis"] = round(recent[0][1], 4), "last18m"
+            else:
+                vi["divTtm12m"], vi["divBasis"] = 0.0, "none"
+        vi["divsAsOf"] = today
+        vi["updatedAt"] = today
+        vi["source"] = "sahmk-direct"
+        st["valuationInputs"] = vi
+        return True, None
+
+    ENDPOINTS = (("ratios", "نسب مالية", "ratios_ok", "ratios_fail", do_ratios),
+                 ("financials", "قوائم مالية", "financials_ok", "financials_fail", do_financials),
+                 ("company", "company", "company_ok", "company_fail", do_company),
+                 ("dividends", "توزيعات", "dividends_ok", "dividends_fail", do_dividends))
+    victims = []
+    for i, st in enumerate(stocks):
+        for name, label, okk, failk, fn in ENDPOINTS:
+            ok, err = fn(st)
+            if ok:
+                counters[okk] += 1
+            elif "429" in str(err):
+                victims.append((st, label, okk, failk, fn))   # تُلتقط لاحقاً — لا عدّ الآن
+            else:
+                note_fail(counters, failk, label, st["symbol"], err)
         if (i + 1) % 25 == 0:
             print("  ... %d/%d أساسيات" % (i + 1, len(stocks)))
-        time.sleep(0.15)
+    if victims:
+        print("  🔁 جولة التقاط 429 (أساسيات): %d طلباً بعد تهدئة..." % len(victims))
+        time.sleep(20)
+        for st, label, okk, failk, fn in victims:
+            ok, err = fn(st)
+            if ok:
+                counters[okk] += 1
+            else:
+                note_fail(counters, failk, label + " (بعد الالتقاط)", st["symbol"], err)
+
+    # ── دمج sectorFinancials للبنوك — بعد اكتمال الجولتين (ROA من ratios + C/I من القوائم) ──
+    for st in stocks:
+        if "Bank" not in (st.get("industry") or ""):
+            continue
+        sc = scratch.get(st["symbol"], {})
+        if not sc:
+            continue   # فشل كلا المصدرين — الكتلة القديمة تبقى بلا مساس ولا ختم
+        old_sf = st.get("sectorFinancials") or {}
+        sf = dict(old_sf)
+        sf["type"] = "bank"
+        written_now = []
+        for k, v in (("ROA", round(sc["roa"], 2) if sc.get("roa") is not None else None),
+                     ("costToIncome", sc.get("cti")),
+                     ("totalRevenue", sc.get("bankRevenue")),
+                     ("operatingIncome", sc.get("bankOpIncome"))):
+            if v is not None:
+                sf[k] = v
+                written_now.append(k)
+        sf.setdefault("costToIncome", None)   # المفتاح لازم لمسار البنوك — القديمة إن وجدت باقية
+        meta = {"type", "source", "updatedAt", "sahmkFields", "legacyFields", "error"}
+        sf["sahmkFields"] = sorted(written_now)
+        sf["legacyFields"] = sorted(k for k in old_sf if k not in meta and k not in written_now)
+        sf["source"] = ("sahmk (ratios+financials)" if not sf["legacyFields"]
+                        else "mixed: sahmk(%s) + yfinance-legacy(%s)" % (
+                            "،".join(sf["sahmkFields"]), "،".join(sf["legacyFields"])))
+        sf["updatedAt"] = today   # يصدق على sahmkFields حصراً
+        st["sectorFinancials"] = sf
+    # debtHealth: لا تُكتب إطلاقاً (قرار المحلل بند 1) — الكتل الموسومة بالترحيل تبقى محتسبة.
+
+    # تحديث وسم مصدر financials الإجمالي بعد الجولتين
+    for st in stocks:
+        parts = st.get("financialsParts") or {}
+        if not parts or not st.get("financials"):
+            continue
+        if not any(isinstance(v, dict) and str(v.get("source", "")).startswith("sahmk") for v in parts.values()):
+            continue   # لم يُجلب شيء لهذا السهم — الوسوم القديمة كما هي
+        legacy_left = sorted(k for k, v in parts.items()
+                             if isinstance(v, dict) and not str(v.get("source", "")).startswith("sahmk"))
+        st["financialsSource"] = ("sahmk (ratios+financials)" if not legacy_left
+                                  else "mixed: sahmk + موروث (%s) — انظر financialsParts" % "، ".join(legacy_left))
+        st["financialsUpdated"] = today   # يصدق على حقول sahmk في financialsParts حصراً
 
     # ── بوابة current_price (م-1): غيابه الواسع يجمد حارس P/B للسوق كله ──
     cp_total = counters["company_cp_ok"] + counters["company_cp_miss"]
@@ -820,9 +1021,23 @@ def migrate_legacy_tags(data):
 
 def shadow_compare(path_a, path_b):
     """معيار القبول الحاكم (قرار المحلل بند 7): مقارنة ناتج المحرك على ملفين —
-    صفر فرق في total واسم التصنيف لكل الأسهم = شرط اعتماد الجالب. أي فرق = خلل يوقف الاعتماد."""
+    صفر فرق في total واسم التصنيف لكل الأسهم = شرط اعتماد الجالب. أي فرق = خلل يوقف الاعتماد.
+    حارس الفراغ (درس 04-08): نجاح زائف طُبع حين حجبت البوابة كتابة الجالب فقورن الملف
+    بنفسه — الآن: هدف بلا ختم sahmk-direct نضِر أو أختام جلب متطابقة = «مقارنة فارغة» بخروج 2."""
     a = json.load(open(path_a))
     b = json.load(open(path_b))
+    # حارس الفراغ — قبل أي حكم
+    empty_reasons = []
+    if os.path.abspath(path_a) == os.path.abspath(path_b):
+        empty_reasons.append("الملفان مسار واحد")
+    if a.get("priceSource") != "sahmk-direct-v1":
+        empty_reasons.append("الطرف الأول (المفترض ناتج الجالب) بلا ختم sahmk-direct-v1 — لم يُجدد")
+    if a.get("lastUpdated") and a.get("lastUpdated") == b.get("lastUpdated"):
+        empty_reasons.append("ختم lastUpdated متطابق في الطرفين (%s) — الهدف لم يُجدد" % a.get("lastUpdated"))
+    if empty_reasons:
+        print("⚠️ مقارنة فارغة — لا حكم اعتماد منها: %s" % "؛ ".join(empty_reasons))
+        print("   (جدد ناتج الجالب أولاً ثم أعد المقارنة — خروج 2 كي لا يُقرأ نجاح زائف)")
+        sys.exit(2)
     A = {s["symbol"]: s.get("investmentScore") or {} for s in a.get("stocks", [])}
     B = {s["symbol"]: s.get("investmentScore") or {} for s in b.get("stocks", [])}
     only_a = sorted(set(A) - set(B))
@@ -851,7 +1066,7 @@ def probe_financials(api):
     """تجربة تركيبات معاملات /financials/ — من معاملات SDK سهمك الرسمي (v0.15.0):
     type/period/statement_period/history/metrics/result/include_partial"""
     combos = [
-        "",
+        "",                                   # المؤكدة 04-08: تعمل بلا معاملات
         "?period=annual",
         "?type=income",
         "?type=income&period=annual",
@@ -871,8 +1086,19 @@ def probe_financials(api):
                 print("  🌳 شجرة المفاتيح (أول تركيبة ناجحة):")
                 for line in key_tree(resp, depth=3, indent="    "):
                     print(line)
+                # طباعة القيم لا الأنواع فقط (مطلب 04-08 — فحص مصروفات البنوك بالأرقام)
+                p = parse_financials(resp) or {}
+                rev, opi = p.get("totalRevenue"), p.get("operatingIncome")
+                exp = (rev - opi) if (rev is not None and opi is not None) else None
+                cti = round(exp / rev * 100, 1) if (exp is not None and rev) else None
+                print("  💵 آخر سنة كاملة (%s / fy=%s): revenue=%s | operating_income=%s | gross_profit=%s"
+                      % (p.get("reportDate"), p.get("fiscalYear"), rev, opi, p.get("grossProfit")))
+                print("     مصروفات مشتقة=%s | C/I مشتق=%s%% | net_income=%s | OCF=%s | FCF=%s | نمو الإيرادات=%s%%"
+                      % (exp, cti, p.get("netIncome"), p.get("ocf"), p.get("fcf"), p.get("revenueGrowth")))
+                print("     reporting=%s" % (p.get("reporting"),))
+                if rev is not None and opi is not None and opi >= rev:
+                    print("     ⚠️ operating_income >= total_revenue — لا تفصيل مصروفات في القوائم أيضاً (توثيق الاستحالة)")
                 break
-            time.sleep(0.3)
     print("طلبات مستهلكة: %d" % api.requests_made)
 
 
@@ -925,21 +1151,26 @@ def main():
 
     n = len(stocks)
     batches = (n + 49) // 50
-    budget = batches + n + 2 + (n * 4 if args.weekly else 0)
+    budget = batches + n + 2 + (n * 5 if args.weekly else 0)
     print("═" * 60)
     print("سيف تداول — جالب سهمك المباشر (sahmk-direct-v1)")
     print("أسهم: %d | الوضع: %s" % (n, "أسبوعي (1w + أساسيات)" if args.weekly else "يومي"))
     print("ميزانية الطلبات المتوقعة: ~%d (quotes %d + 1d %d + TASI/summary 2%s) — الحصة 5000/يوم"
-          % (budget, batches, n, " + 1w %d + ratios %d + company %d + dividends %d" % (n, n, n, n) if args.weekly else ""))
+          % (budget, batches, n,
+             " + 1w %d + ratios %d + financials %d + company %d + dividends %d" % (n, n, n, n, n) if args.weekly else ""))
+    print("(التقدير happy-path — إعادات 429/الأخطاء قد تزيد المستهلك الفعلي؛ الإيقاع الذاتي ~%.1f طلب/ث)" % RATE_PER_SEC)
     print("═" * 60)
 
     counters = {k: 0 for k in (
         "quotes_ok", "quotes_fail", "quotes_batch_fail", "daily_ok", "daily_fail",
-        "weekly_ok", "weekly_fail", "ratios_ok", "ratios_fail", "revgrowth_ok", "revgrowth_miss",
+        "weekly_ok", "weekly_fail", "ratios_ok", "ratios_fail",
+        "financials_ok", "financials_fail", "revgrowth_ok", "revgrowth_miss",
+        "ocf_ok", "bank_cti_ok", "bank_cti_flat",
         "company_ok", "company_fail", "company_cp_ok", "company_cp_miss",
         "dividends_ok", "dividends_fail",
         "adj_fb_rows_1d", "adj_fb_syms_1d", "adj_fb_rows_1w", "adj_fb_syms_1w",
         "tasi_ok", "tasi_fail", "tasi_api_stale", "regime_ok", "regime_fail")}
+    adj_diag = {"partial": [], "full": []}   # تشخيص شموع 1w الفاقدة adjusted_close (رمز + تواريخ)
 
     now_riyadh = datetime.now(RIYADH).strftime("%Y-%m-%d %H:%M")
     stamp_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -970,8 +1201,8 @@ def main():
     de_decision = None
     if args.weekly:
         print("🗓 الشموع الأسبوعية (1w)...")
-        fetch_weekly(api, stocks, counters, stamp_utc)
-        print("🏦 الأساسيات (ratios/company/dividends)...")
+        fetch_weekly(api, stocks, counters, stamp_utc, adj_diag)
+        print("🏦 الأساسيات (ratios/financials/company/dividends)...")
         de_decision = fetch_fundamentals(api, stocks, counters, today,
                                          full_universe=not args.symbols,
                                          stored_de_decision=data.get("deScaleDecision"))
@@ -984,11 +1215,13 @@ def main():
 
     # 6) الخلاصة وبوابة الفشل — قبل أي كتابة (م-3: الملف لا يُكتب أصلاً عند فشل >10%)
     print("═" * 60)
-    print("الطلبات المستهلكة فعلياً: %d / ميزانية ~%d" % (api.requests_made, budget))
+    print("الطلبات المستهلكة فعلياً: %d / ميزانية ~%d | رشقات 429 المصادفة: %d (كلها عولجت بالإيقاع/Retry-After/الالتقاط)"
+          % (api.requests_made, budget, api.hits_429))
     fail_types = []
     for label, ok_k, fail_k in (
             ("أسعار", "quotes_ok", "quotes_fail"), ("شموع يومية", "daily_ok", "daily_fail"),
             ("شموع أسبوعية", "weekly_ok", "weekly_fail"), ("نسب مالية", "ratios_ok", "ratios_fail"),
+            ("قوائم مالية", "financials_ok", "financials_fail"),
             ("company", "company_ok", "company_fail"), ("توزيعات", "dividends_ok", "dividends_fail")):
         ok, fl = counters[ok_k], counters[fail_k]
         if ok + fl == 0:
@@ -998,22 +1231,34 @@ def main():
         print("%s %s: نجح %d | فشل %d (%.0f%%)" % (mark, label, ok, fl, pct))
         if pct > 10:
             fail_types.append(label)
-    print("نمو الإيرادات: متاح %d | غير متاح %d" % (counters["revgrowth_ok"], counters["revgrowth_miss"]))
+    if counters["financials_ok"] + counters["financials_fail"]:
+        print("قوائم: نمو الإيرادات متاح %d | غير متاح %d (من الناجحة) | OCF حي %d | C/I بنوك مشتق %d | مصروفات غير مفصلة %d"
+              % (counters["revgrowth_ok"], counters["revgrowth_miss"], counters["ocf_ok"],
+                 counters["bank_cti_ok"], counters["bank_cti_flat"]))
     print("TASI: %s%s | نظام السوق: %s" % (
         "✅" if counters["tasi_ok"] else "✗",
         " (واجهة فشلت — تاريخ محلي)" if counters["tasi_api_stale"] else "",
         "✅" if counters["regime_ok"] else "✗"))
-    # (م-2) السقوط adjusted_close→close معدود ومعلن — وفي 1w إنذار صريح (اصطلاح SMA200W ملزم)
+    # قاعدة adjusted_close (04-08): الفاقدة تُسقط من السلسلة المعدلة — لا خلط خام/معدل.
+    # الإسقاط الجزئي = ملاحظة معدودة بالرمز والتواريخ؛ الإنذار الحاكم فقط لسهم فقد
+    # سلسلته المعدلة كلها (تغيير اصطلاح كامل — ملحق 24-07).
     if counters["adj_fb_rows_1d"]:
-        print("⚠️ 1d: %d شمعة بلا adjusted_close سقطت إلى close عند %d سهماً"
+        print("ℹ️ 1d: %d شمعة بلا adjusted_close أُسقطت من سلسلة العوائد المعدلة عند %d سهماً (المؤشرات الخام سليمة)"
               % (counters["adj_fb_rows_1d"], counters["adj_fb_syms_1d"]))
-    if counters["adj_fb_rows_1w"]:
-        print("⛔ إنذار اصطلاح: 1w فيها %d شمعة بلا adjusted_close سقطت إلى close عند %d سهماً —"
-              % (counters["adj_fb_rows_1w"], counters["adj_fb_syms_1w"]))
-        print("   هذا يمس أساس SMA200W المعدل (ملحق 24-07: ترحيل السلسلة إلى خام = وسم نسخة معايير)")
-        print("   — لا اعتماد لهذه التشغيلة قبل قرار وسم موثق.")
+    if adj_diag["partial"]:
+        print("ℹ️ 1w: شموع بلا adjusted_close أُسقطت من السلسلة (لا خلط) عند %d سهماً:" % len(adj_diag["partial"]))
+        for line in adj_diag["partial"][:10]:
+            print("   • %s" % line)
+        if len(adj_diag["partial"]) > 10:
+            print("   • ... و%d آخرين" % (len(adj_diag["partial"]) - 10))
+    if adj_diag["full"]:
+        print("⛔ إنذار اصطلاح حاكم: %d سهماً فقد adjusted_close لسلسلته الأسبوعية كلها: %s"
+              % (len(adj_diag["full"]), adj_diag["full"][:10]))
+        print("   إسقاط السلسلة كلها = سهم بلا weeklyTechnical؛ وأي بديل خام = تغيير اصطلاح SMA200W")
+        print("   (ملحق 24-07: يستلزم وسم نسخة معايير) — لا اعتماد قبل قرار وسم موثق.")
     if fail_types:
         print("⛔ فشل يتجاوز 10%% في: %s — لا كتابة، الملف القديم يبقى كما هو" % "، ".join(fail_types))
+        print("   (ترحيل الوسوم إن جرى هذه التشغيلة لم يُحفظ مع الحجب — سلوك صحيح: يعاد آلياً بحكم idempotent)")
         sys.exit(1)
 
     # 7) أختام وكتابة ذرية — لا تُبلغ إلا بعد عبور البوابة
