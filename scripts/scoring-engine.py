@@ -8,6 +8,9 @@ v1.1: قواعد متخصصة للبنوك (ROA + Cost-to-Income من Yahoo Fina
       التأمين والقطاعات الأخرى = قواعد عامة (بدون تغيير)
 """
 import json, sys
+import os as _os
+_D = _os.path.dirname(_os.path.abspath(__file__))
+_ROOT = _os.path.dirname(_D)
 
 def compute_risk_reasons(s):
     # (2026-07-24) بانرات مخاطر حية بدل الحفرية الموروثة — العتبات تطابق محور المخاطر
@@ -651,12 +654,12 @@ def classify(total_score, timing_label):
 
 
 def run_scoring():
-    with open('/srv/ideas/stocks-data.json') as f:
+    with open(_os.path.join(_ROOT,'stocks-data.json')) as f:
         data = json.load(f)
     
     # Load SMA200W Z-scores
     import os
-    zscores_path = '/srv/ideas/sma200w-zscores.json'
+    zscores_path = _os.path.join(_ROOT,'sma200w-zscores.json')
     sma200w_zscores = {}
     if os.path.exists(zscores_path):
         with open(zscores_path) as f:
@@ -759,7 +762,7 @@ def run_scoring():
         
         stats[class_code] = stats.get(class_code, 0) + 1
     
-    with open('/srv/ideas/stocks-data.json', 'w') as f:
+    with open(_os.path.join(_ROOT,'stocks-data.json'), 'w') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     
     print("=" * 50)
