@@ -90,9 +90,18 @@ scripts/scoring-engine.py (criteria v2.1) بلا أي تعديل.
       فقد adjusted_close الكامل لسهم = تخطٍّ معدود (weekly_fail) والكتلة القديمة باقية —
       لا تغيير اصطلاح يقع فلا سلطة إيقاف؛ وغياب current_price الواسع = «تحذير جسيم
       بتدهور آمن» (تجميد P/B محافظ) — إسقاط التشغيلة له عقوبة غير متناسبة.
-    - ratios: التركيبة المؤكدة حصراً history=latest&period=annual&metrics=all —
-      history=3y أُسقط نهائياً (HTTP 400 مؤكد إنتاجياً)؛ فشل التفكيك يُعدّ فشلاً
-      مسموعاً بأسبابه (أول 3 لكل نوع) لا عدّاداً صامتاً.
+    - ratios (04-08ج): metrics=core — رسالة الرفض الحرفية سمّتها («INVALID_METRICS:
+      metrics must be one of: core, extended»؛ سهمك غيّرت التحقق بعد فحصنا الأول).
+      التفكيك مرن يقبل الشكلين: قائمة جذرية (رد «بلا معاملات») أو قاموس بمفتاح ratios
+      (العقد القديم) أو مسطح. history=3y ساقط نهائياً؛ فشل التفكيك مسموع بأسبابه.
+    - TASI (04-08ج): استجابة 200 بشموع صفر مع تاريخ محلي محدّث (آخره ≤4 أيام تقويمية —
+      يغطي «اليوم أو أمس تداولي» عبر نهاية الأسبوع والعطل) = «✅ لا جديد» لا فشل؛
+      الفشل الحقيقي: خطأ HTTP أو فراغ مع تاريخ قديم (محاولة متباعدة واحدة قبل الحكم).
+    - مصروفات البنوك — **استنتاج نهائي (04-08ج)**: قيم operating_income في قوائم سهمك
+      للبنوك غير صالحة (1010: غائبة؛ 1180: 70431 مقابل إيراد 30.15 مليار = 0.00023%) →
+      الاشتقاق متعذر بنيوياً. C/I يبقى legacy لبوابة بند 27 — قرار المحلل بالتجميد
+      يغلق تلقائياً على «بقاء legacy». الحارس الرباعي (مشتق/opi≥rev/غير معقول <1% من
+      rev/غائب) يبقى يقظاً لو أصلحت سهمك قوائمها.
 
 ما يبقى مفتوحاً (لا يُختلق — الغياب null والمحرك يتعامل معه كعادته)
 ------------------------------------------------------------------
@@ -684,17 +693,25 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
 
     def do_ratios(st):
         sym = st["symbol"]
-        # التركيبة المؤكدة بالفحص اليدوي حرفياً — لا معاملات مجربة أخرى
-        r, err = api.get("/analytics/ratios/%s/?history=latest&period=annual&metrics=all" % sym)
+        # (04-08ج) metrics=core — القيمة المسماة صراحة في رسالة الرفض
+        # «INVALID_METRICS: metrics must be one of: core, extended» (سهمك غيرت التحقق بعد فحصنا)
+        r, err = api.get("/analytics/ratios/%s/?history=latest&period=annual&metrics=core" % sym)
         if r is None:
             return False, err
+        # تفكيك مرن يقبل الشكلين المرصودين: قائمة جذرية (رد «بلا معاملات» 04-08ج)
+        # أو قاموس بمفتاح ratios (العقد القديم) أو قاموس مسطح يحمل النسب مباشرة
         body = r
-        for k in ("data", "results"):
-            if isinstance(body.get(k), dict):
-                body = body[k]
+        if isinstance(body, dict):
+            for k in ("data", "results"):
+                if isinstance(body.get(k), (dict, list)):
+                    body = body[k]
+                    break
         if isinstance(body, list):
-            body = body[0] if body else {}
+            body = body[0] if body and isinstance(body[0], dict) else {}
         rat = body.get("ratios") or {}
+        if not rat and isinstance(body, dict) and any(
+                k in body for k in ("roe", "roa", "net_margin", "debt_to_equity")):
+            rat = body   # الجسد نفسه هو النسب (شكل مسطح)
         if not rat:
             # فشل تفكيك = فشل مسموع لا صامت (درس 04-08)
             return False, "بنية غير متوقعة — مفاتيح: %s" % sorted(body.keys() if isinstance(body, dict) else [])[:8]
@@ -751,21 +768,30 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
         # القيمة القديمة legacy تبقى هي المحتسبة، والمشتق يُخزن في حقل معلوماتي مستقل
         # (costToIncomeDerived — لا يقرؤه المحرك) ويُطبع جدول مقارنة العشرة. القرار
         # النهائي (اعتماد بوسم / معايرة موسومة / بقاء legacy لبند 27) على فروق أول تشغيلة.
-        # الاشتقاق من القوائم حصراً (04-08ب: استقلال تام عن نجاح ratios) مع عدّ الحالات
-        # الثلاث صراحة: مشتق | مصروفات غير مفصلة (opi>=rev) | مدخل غائب (rev أو opi null)
+        # الاشتقاق من القوائم حصراً (04-08ب) مع عدّ الحالات الأربع صراحة (04-08ج):
+        # مشتق | opi>=rev (لا تفصيل) | opi غير معقول (< 1% من rev — درس 1180: opi=70431
+        # مقابل rev=30.15 مليار أنتج cti=100.0 فسقط بلا تصنيف ووُسم «غائب» زوراً) | مدخل غائب
         if "Bank" in (st.get("industry") or ""):
             rev, opi = p.get("totalRevenue"), p.get("operatingIncome")
             sc = scratch.setdefault(sym, {})
             sc["bankRevenue"], sc["bankOpIncome"] = rev, opi
-            if rev and opi is not None and 0 < opi < rev:
+            if rev and opi is not None and opi >= rev:
+                sc["ctiWhy"] = "opi≥rev (لا تفصيل مصروفات)"
+                counters["bank_cti_flat"] += 1
+            elif rev and opi is not None and opi < 0.01 * rev:
+                sc["ctiWhy"] = "opi غير معقول (%.5f%% من rev)" % (opi / rev * 100)
+                counters["bank_cti_implausible"] += 1
+            elif rev and opi is not None:
                 cti = round((rev - opi) / rev * 100, 1)
                 if 0 < cti < 100:
                     sc["ctiDerived"] = cti   # للمقارنة والتخزين المعلوماتي — لا للاحتساب
                     counters["bank_cti_ok"] += 1
-            elif rev and opi is not None and opi >= rev:
-                counters["bank_cti_flat"] += 1   # لا تفصيل مصروفات في القوائم أيضاً
+                else:
+                    sc["ctiWhy"] = "C/I خارج (0,100): %s" % cti
+                    counters["bank_cti_implausible"] += 1
             else:
-                counters["bank_cti_na"] += 1     # rev أو opi غائب من القوائم — يُشخص بالقيم في الجدول
+                sc["ctiWhy"] = "rev/opi غائب من القوائم"
+                counters["bank_cti_na"] += 1     # يُشخص بالقيم في الجدول
         # مدخلات المسار البديل عن ratios (تُستخدم فقط عند فشله — بعد الجولتين)
         sc2 = scratch.setdefault(sym, {})
         sc2["stmt"] = {k: p.get(k) for k in ("totalRevenue", "netIncome", "stockholdersEquity",
@@ -937,10 +963,9 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
         derived = sf.get("costToIncomeDerived")
         diff = round(derived - legacy_ci, 1) if (derived is not None and legacy_ci is not None) else None
         rev, opi = sc.get("bankRevenue"), sc.get("bankOpIncome")
+        # (04-08ج) السبب من التصنيف الرباعي الصريح المسجل عند الاشتقاق — لا استنتاج لاحق يخطئ
         why = ("" if derived is not None
-               else "قوائم لم تُجلب" if "stmt" not in sc
-               else "opi≥rev (لا تفصيل مصروفات)" if (rev and opi is not None and opi >= rev)
-               else "rev/opi غائب من القوائم")
+               else sc.get("ctiWhy") or ("قوائم لم تُجلب" if "stmt" not in sc else "غير مصنف؟"))
         bank_rows.append((st["symbol"], legacy_ci, derived, diff, rev, opi, why))
     if bank_rows:
         print("🏦 مقارنة C/I البنوك (الاشتقاق مجمد بقرار المحلل — legacy هي المحتسبة؛ المصدر: القوائم لا ratios):")
@@ -1026,27 +1051,44 @@ def fetch_tasi(api, counters, hist_file, data):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     def _tasi_once():
+        """يعيد (rows, reason, empty200) — الفراغ بنجاح 200 يُميز عن فشل النقل"""
         resp, err = api.get("/historical/TASI/?interval=1d&from=%s&to=%s" % (last, today))
         rows, _ = parse_candles(resp)   # للمؤشر نستخدم close الخام — عدّاد السقوط لا يعنيه
-        # (04-08ب) السبب الفعلي بدل (None): نجاح HTTP بجسد بلا شموع يُسمى باسمه
         if rows:
-            return rows, None
+            return rows, None, False
         if err:
-            return [], err              # فشل نقل — الكود وجسد الرد (من Api.get)
+            return [], err, False       # فشل نقل — الكود وجسد الرد (من Api.get)
         shape = (sorted(resp.keys())[:6] if isinstance(resp, dict) else type(resp).__name__)
-        return [], "استجابة 200 بلا شموع — الشكل: %s" % shape
+        return [], "استجابة 200 بلا شموع — الشكل: %s" % shape, True
 
-    rows, reason = _tasi_once()
-    if not rows:
-        # فشل عرضي على الأرجح — محاولة إضافية واحدة متباعدة قبل أي حكم (تشخيص أعمى ممنوع)
+    def _hist_fresh():
+        """(04-08ج) التاريخ المحلي «محدّث»: آخره خلال ≤4 أيام تقويمية — يغطي «اليوم أو
+        أمس تداولي» عبر نهاية الأسبوع السعودية وملاصقة العطل (التفعيل الرقمي الموثق)"""
+        if not hist:
+            return False
+        try:
+            gap = (datetime.strptime(today, "%Y-%m-%d")
+                   - datetime.strptime(hist[-1]["date"], "%Y-%m-%d")).days
+            return gap <= 4
+        except ValueError:
+            return False
+
+    rows, reason, empty200 = _tasi_once()
+    if not rows and empty200 and _hist_fresh():
+        # (04-08ج) فراغ مشروع ≠ فشل: الطلب «من آخر يوم محلي» والتاريخ محدّث أصلاً
+        # (رصد 04-08ب: 200 بشموع صفر والشكل ['count','data',...] لأن المحلي حتى اليوم)
+        print("  ✅ TASI: لا شموع جديدة — التاريخ المحلي محدّث (آخره %s، %d يوماً)"
+              % (hist[-1]["date"], len(hist)))
+    elif not rows:
+        # فشل حقيقي محتمل (خطأ HTTP، أو فراغ مع تاريخ قديم) — محاولة متباعدة واحدة قبل أي حكم
         print("  ⚠️ historical/TASI بلا بيانات (%s) — محاولة متباعدة بعد 10ث..." % reason)
         time.sleep(10)
-        rows, reason = _tasi_once()
-    if not rows and not hist:
-        counters["tasi_fail"] += 1
-        print("  ✗ تاريخ TASI: %s — لا تاريخ محلي: فشل حاكم (المُستدعي يجهض قبل الكتابة)" % reason)
-        return None
-    if not rows:
+        rows, reason, empty200 = _tasi_once()
+    if not rows and not (empty200 and _hist_fresh()):
+        if not hist:
+            counters["tasi_fail"] += 1
+            print("  ✗ تاريخ TASI: %s — لا تاريخ محلي: فشل حاكم (المُستدعي يجهض قبل الكتابة)" % reason)
+            return None
         counters["tasi_api_stale"] += 1
         print("  ⚠️ واجهة TASI فشلت (%s) — نُكمل بالتاريخ المحلي القائم (%d يوماً، آخره %s)"
               % (reason, len(hist), hist[-1]["date"]))
@@ -1381,20 +1423,34 @@ def probe_ratios(api):
                 print("  %-45s ✗ %s" % (c or "(بلا معاملات)", err))
                 continue
             print("  %-45s ✅" % (c or "(بلا معاملات)"))
+            # (04-08ج) لا افتراض للشكل — نطبع البنية أولاً ثم نحاول الاستخراج بتسامح
+            # (انهيار الجولة السابقة: قائمة جذرية قابلت body.get)
+            print("  🌳 البنية:")
+            for line in key_tree(resp, depth=3, indent="    "):
+                print(line)
             body = resp
-            for k in ("data", "results"):
-                if isinstance(body.get(k), dict):
-                    body = body[k]
+            if isinstance(body, dict):
+                for k in ("data", "results"):
+                    if isinstance(body.get(k), (dict, list)):
+                        body = body[k]
+                        break
             if isinstance(body, list):
-                body = body[0] if body else {}
-            rat = body.get("ratios") or {}
-            km = body.get("key_metrics") or {}
+                print("  📐 قائمة جذرية بطول %d — الاستخراج من العنصر الأول" % len(body))
+                body = body[0] if body and isinstance(body[0], dict) else {}
+            rat = body.get("ratios") if isinstance(body, dict) else None
+            if not rat and isinstance(body, dict) and any(
+                    k in body for k in ("roe", "roa", "net_margin", "debt_to_equity")):
+                rat = body   # شكل مسطح
+            rat = rat or {}
+            km = body.get("key_metrics") if isinstance(body, dict) else None
+            km = km or {}
             print("  💵 القيم: roe=%s | roa=%s | net_margin=%s | operating_margin=%s | debt_to_equity=%s"
                   % (rat.get("roe"), rat.get("roa"), rat.get("net_margin"),
                      rat.get("operating_margin"), rat.get("debt_to_equity")))
             print("     key_metrics: %s" % ({k2: km[k2] for k2 in list(km)[:6]} if km else "غائبة"))
             if not rat:
-                print("     ⚠️ نجح الطلب لكن ratios غائبة — مفاتيح الجسد: %s" % sorted(body.keys())[:8])
+                print("     ⚠️ نجح الطلب لكن لا نسب معروفة — مفاتيح الجسد: %s"
+                      % (sorted(body.keys())[:8] if isinstance(body, dict) else type(body).__name__))
             break
     print("طلبات مستهلكة: %d" % api.requests_made)
 
@@ -1508,7 +1564,7 @@ def main():
         "quotes_ok", "quotes_fail", "quotes_batch_fail", "daily_ok", "daily_fail",
         "weekly_ok", "weekly_fail", "ratios_ok", "ratios_fail",
         "financials_ok", "financials_fail", "revgrowth_ok", "revgrowth_miss",
-        "ocf_ok", "bank_cti_ok", "bank_cti_flat", "bank_cti_na",
+        "ocf_ok", "bank_cti_ok", "bank_cti_flat", "bank_cti_na", "bank_cti_implausible",
         "company_ok", "company_fail", "company_cp_ok", "company_cp_miss",
         "dividends_ok", "dividends_fail",
         "adj_fb_rows_1d", "adj_fb_syms_1d", "adj_fb_rows_1w", "adj_fb_syms_1w",
@@ -1575,9 +1631,9 @@ def main():
         if pct > 10:
             fail_types.append(label)
     if counters["financials_ok"] + counters["financials_fail"]:
-        print("قوائم: نمو الإيرادات متاح %d | غير متاح %d (من الناجحة) | OCF حي %d | C/I بنوك مشتق %d | مصروفات غير مفصلة %d | مدخل C/I غائب %d"
+        print("قوائم: نمو الإيرادات متاح %d | غير متاح %d (من الناجحة) | OCF حي %d | C/I بنوك مشتق %d | مصروفات غير مفصلة %d | opi غير معقول %d | مدخل غائب %d"
               % (counters["revgrowth_ok"], counters["revgrowth_miss"], counters["ocf_ok"],
-                 counters["bank_cti_ok"], counters["bank_cti_flat"], counters["bank_cti_na"]))
+                 counters["bank_cti_ok"], counters["bank_cti_flat"], counters["bank_cti_implausible"], counters["bank_cti_na"]))
     print("TASI: %s%s | نظام السوق: %s" % (
         "✅" if counters["tasi_ok"] else "✗",
         " (واجهة فشلت — تاريخ محلي)" if counters["tasi_api_stale"] else "",
