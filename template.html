@@ -78,7 +78,11 @@ h1{text-align:center;color:#f59e0b;margin:20px 0 8px;font-size:1.6em}
 .chip.active.strong_sell{background:#ef444440;color:#ef4444;border-color:#ef4444}
 .chip.active.filtered{background:#47556940;color:#cbd5e1;border-color:#64748b}
 .class-badge.filtered{background:#47556940;color:#94a3b8}
-.unrated-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:max(0.68em,9px);background:#47556933;color:#94a3b8;border:1px solid #64748b;white-space:nowrap}
+/* unrated: حالة معلوماتية محايدة — رمادي بحد متقطّع يميّزه عن «مفلتر» (رمادي بحد متصل)
+   وعن فئات التقييم الملوّنة، والرمز ❔ في التسمية إشارة نصية لا تعتمد اللون وحده */
+.chip.active.unrated{background:#64748b26;color:#cbd5e1;border-color:#94a3b8;border-style:dashed}
+.class-badge.unrated{background:#64748b26;color:#94a3b8;border:1px dashed #64748b}
+.unrated-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:max(0.68em,9px);background:#47556933;color:#94a3b8;border:1px dashed #64748b;white-space:nowrap}
 .unrated-badge.wrap{white-space:normal;line-height:1.6}
 .liq-gate{display:inline-block;padding:2px 8px;border-radius:12px;font-size:max(0.68em,9px);background:#78350f22;color:#fcd34d;border:1px solid #d97706;white-space:nowrap}
 .liq-gate.wrap{white-space:normal;line-height:1.6}
@@ -268,7 +272,11 @@ const DATA = __STOCKS_DATA__;
 const SECTOR_AR = {"Financials": "المالية", "Materials": "المواد الأساسية", "Industrials": "الصناعية", "Consumer Discretionary": "السلع الاستهلاكية", "Consumer Staples": "السلع الأساسية", "Healthcare": "الرعاية الصحية", "Real Estate": "العقارية", "Energy": "الطاقة", "Technology": "التقنية", "Communication Services": "الاتصالات", "Utilities": "المرافق", "Unknown": "غير مصنف"};
 
 const stocks = DATA.stocks;
-const CLASS_LABELS = {strong_buy:'⭐ شراء قوي', buy:'✅ شراء', conditional_buy:'☑️ شراء مشروط', hold:'⏳ انتظار', sell:'❌ بيع', strong_sell:'⛔ بيع قوي', filtered:'🚫 لم يعدّ الفلتر'};
+// unrated فئة معروضة كاملة الحقوق (شرط الناقد 1 — criteria v2.1): بدونها يعرض شريط العد
+// شرائح مجموعها لا يساوي «الإجمالي» يوم التفعيل ولا يمكن فلترة هذه الأسهم. موقعها بعد فئات
+// التقييم وقبل «مفلتر»: ليست حكماً سلبياً ولا إيجابياً — بيانات أسبوعية غير كافية فقط.
+// التسمية تطابق classification الصادر من المحرك حرفياً ('غير مُقيَّم')
+const CLASS_LABELS = {strong_buy:'⭐ شراء قوي', buy:'✅ شراء', conditional_buy:'☑️ شراء مشروط', hold:'⏳ انتظار', sell:'❌ بيع', strong_sell:'⛔ بيع قوي', unrated:'❔ غير مُقيَّم', filtered:'🚫 لم يعدّ الفلتر'};
 let activeClasses = new Set(); // فارغة = الكل
 let currentSector = 'all';
 let minScore = 0;
@@ -279,7 +287,8 @@ let rowRefs = []; // {el, s} — الصفوف تُبنى مرة واحدة ثم 
 
 // classCode هو المرجع الوحيد للتصنيف (قرار المالك) — classification للمفلتر يقول "انتظار" زوراً
 const classCodeOf = (s) => (s.investmentScore && (s.investmentScore.filtered ? 'filtered' : s.investmentScore.classCode)) || '';
-const classLabelOf = (sc) => sc.filtered ? 'لم يعدّ الفلتر' : (sc.classification || '');
+// fallback دفاعي لـunrated: لو غاب classification يوماً تبقى الشارة بتسمية لا بفراغ
+const classLabelOf = (sc) => sc.filtered ? 'لم يعدّ الفلتر' : (sc.classification || (sc.classCode === 'unrated' ? 'غير مُقيَّم' : ''));
 
 // unrated (يصدره المحرك اعتباراً من 02-08): السهم لم يُختبر بفلتر SMA200W لقصر تاريخه الأسبوعي —
 // ليس رفضاً كـfiltered، فنقاطه وتفاصيله تبقى ظاهرة ويُستبعد من «أبرز الفرص» فقط.
@@ -486,7 +495,8 @@ function togglePeNote() {
   n.style.display = n.style.display === 'none' ? '' : 'none';
 }
 
-// شاشة أبرز الفرص: أعلى 5 فرص من عائلة الشراء + عدّ التصنيفات السبعة + تنبيه البيئة الهابطة
+// شاشة أبرز الفرص: أعلى 5 فرص من عائلة الشراء + عدّ الفئات الثماني (بما فيها unrated —
+// مجموع الشرائح يجب أن يساوي «الإجمالي» دائماً) + تنبيه البيئة الهابطة
 function renderDecisions() {
   const mr = DATA.marketRegime || {};
   const BUY_FAMILY = ['strong_buy', 'buy', 'conditional_buy'];

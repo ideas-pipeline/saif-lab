@@ -12,8 +12,9 @@ CONFIG_JSON="${CONFIG_JSON:-/srv/ideas/watchlist-config.json}"
 STOCKS_JSON="${STOCKS_JSON:-/srv/ideas/stocks-data.json}"
 HTML_FILE="${HTML_FILE:-/srv/ideas/stocks-site/watchlist-accuracy.html}"
 CACHE_FILE="${CACHE_FILE:-/srv/ideas/.entry-adjclose-cache.json}"
+TASI_HISTORY="${TASI_HISTORY:-/srv/ideas/tasi-history.json}"
 
-export CONFIG_JSON STOCKS_JSON HTML_FILE CACHE_FILE
+export CONFIG_JSON STOCKS_JSON HTML_FILE CACHE_FILE TASI_HISTORY
 
 python3 << 'PYEOF'
 import json, re, os, time, urllib.request
@@ -95,6 +96,41 @@ with open(STOCKS_JSON) as f:
     data = json.load(f)
 price_map = {s["symbol"]: s.get("currentPrice") for s in data.get("stocks", [])}
 
+# ── 1-ب) measurement v3 (2026-08-03): عائد تاسي للفترة المطابقة لكل مدخل ──
+# قيمة تاسي عند تاريخ d = إغلاق آخر سجل تاريخه <= d (عطل/نهايات أسبوع = آخر إغلاق متاح).
+# نهاية فترة المفتوحة = يوم آخر تحديث بيانات (lastUpdated) لا «اليوم» الميلادي.
+# entryDate أقدم من أول سجل → tasiRet=null (لا تقدير ولا استيفاء — منع الدقة الزائفة).
+TASI_HISTORY = os.environ.get("TASI_HISTORY", "/srv/ideas/tasi-history.json")
+with open(TASI_HISTORY) as f:
+    _tasi_rows = sorted((h["date"], h["close"]) for h in json.load(f)["data"] if h.get("close"))
+
+def tasi_close_at(d):
+    prev = None
+    for td, tc in _tasi_rows:
+        if td <= d:
+            prev = tc
+        else:
+            break
+    return prev
+
+_lu_day = str(data.get("lastUpdated", ""))[:10]
+
+def tasi_period(entry_date, end_date):
+    """يعيد (tasiRet%, periodDays) أو (None, None/أيام)"""
+    if not entry_date:
+        return None, None
+    end = end_date or _lu_day
+    try:
+        days = (datetime.strptime(end, "%Y-%m-%d") - datetime.strptime(entry_date, "%Y-%m-%d")).days
+    except ValueError:
+        return None, None
+    if _tasi_rows and entry_date < _tasi_rows[0][0]:
+        return None, days
+    s0, s1 = tasi_close_at(entry_date), tasi_close_at(end)
+    if not s0 or not s1:
+        return None, days
+    return round((s1 - s0) / s0 * 100, 2), days
+
 cache = {}
 if os.path.exists(CACHE_FILE):
     try:
@@ -173,6 +209,12 @@ for s in stocks_config:
     lines.append(f'    entryPrice:    {entry_price},      // {source} | يدوي أصلي: {manual}')
     lines.append(f'    entrySource:   "{source}",')
     lines.append(f"    divsSince:     {divs},")
+    # measurement v3: عائد تاسي للفترة المطابقة + طول الفترة بالأيام + نظام السوق عند الدخول
+    _end = close_date if (status == "closed" and close_date) else None
+    _tret, _tdays = tasi_period(entry_date, _end)
+    lines.append(f"    tasiRet:       {_tret if _tret is not None else 'null'},")
+    lines.append(f"    periodDays:    {_tdays if _tdays is not None else 'null'},")
+    lines.append(f'    regimeAtEntry: "{s.get("regimeAtEntry", "")}",')
     if status == "closed":
         lines.append(f"    status:        \"closed\",")
         lines.append(f"    closeDate:     \"{close_date}\",")
@@ -208,7 +250,8 @@ new_html = re.sub(r'(updatedAt:\s*")[^"]+(")', r"\g<1>" + now_iso + r"\2", new_h
 with open(HTML_FILE, "w") as f:
     f.write(new_html)
 
-print(f"\n✅ Done tr-v2 — {len(stocks_config)} stocks | sahmk: {stats['sahmk-close']} | adjclose: {stats['adjclose']} | cache: {stats['cache']} | fallback: {stats['manual-fallback']} | same-day: {stats['same-day-close']}")
+_t_ok = sum(1 for s in stocks_config if tasi_period(s.get("entryDate", config.get("entryDate", "")), s.get("closeDate") if s.get("status") == "closed" else None)[0] is not None)
+print(f"\n✅ Done tr-v2 + measurement v3 — {len(stocks_config)} stocks | sahmk: {stats['sahmk-close']} | adjclose: {stats['adjclose']} | cache: {stats['cache']} | fallback: {stats['manual-fallback']} | same-day: {stats['same-day-close']} | tasiRet: {_t_ok}/{len(stocks_config)}")
 PYEOF
 
 echo "✅ Script finished"

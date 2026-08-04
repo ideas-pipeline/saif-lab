@@ -206,19 +206,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 74,
+        "total": 80,
         "financial": 24,
         "trend": 22,
         "relativeStrength": 7,
         "risk": 14,
-        "valuation": 11,
-        "timing": "ممتاز",
-        "timingSignals": 3,
+        "valuation": 5,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "شراء",
         "classCode": "buy",
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -265,15 +266,13 @@
             "C/I 29.6% (بنك) → 5/5"
           ],
           "valuation": [
-            "P/E 8.8 vs قطاع 16.9 (0.52x) → 5/5",
             "P/B 1.02 vs قطاع 1.02 (1.00x) → 2/4",
-            "Yield 10.1% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 10.1% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 46.3",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -464,12 +463,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 54,
+        "total": 57,
         "financial": 8,
         "trend": 20,
         "relativeStrength": 8,
         "risk": 10,
-        "valuation": 11,
+        "valuation": 5,
         "timing": "ممتاز",
         "timingSignals": 4,
         "classification": "انتظار",
@@ -477,6 +476,7 @@
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -523,10 +523,8 @@
             "C/I 52.4% (بنك) → 1/5"
           ],
           "valuation": [
-            "P/E 11.3 vs قطاع 16.9 (0.67x) → 5/5",
             "P/B 1.05 vs قطاع 1.02 (1.03x) → 2/4",
-            "Yield 4.1% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 4.1% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -724,12 +722,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 71,
+        "total": 77,
         "financial": 19,
         "trend": 21,
         "relativeStrength": 9,
         "risk": 14,
-        "valuation": 12,
+        "valuation": 6,
         "timing": "ممتاز",
         "timingSignals": 4,
         "classification": "شراء",
@@ -737,6 +735,7 @@
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -783,10 +782,8 @@
             "C/I 35.9% (بنك) → 4/5"
           ],
           "valuation": [
-            "P/E 7.7 vs قطاع 16.9 (0.46x) → 5/5",
             "P/B 0.72 vs قطاع 1.02 (0.71x) → 3/4",
-            "Yield 5.0% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 5.0% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -982,19 +979,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 78,
+        "total": 84,
         "financial": 22,
         "trend": 23,
         "relativeStrength": 11,
         "risk": 15,
-        "valuation": 11,
-        "timing": "ممتاز",
-        "timingSignals": 3,
+        "valuation": 5,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "شراء",
         "classCode": "buy",
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -1041,15 +1039,13 @@
             "C/I 33.9% (بنك) → 5/5"
           ],
           "valuation": [
-            "P/E 9.9 vs قطاع 16.9 (0.59x) → 5/5",
             "P/B 0.96 vs قطاع 1.02 (0.94x) → 2/4",
-            "Yield 5.4% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 5.4% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 57.0",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -1242,12 +1238,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 65,
+        "total": 69,
         "financial": 22,
         "trend": 15,
         "relativeStrength": 6,
         "risk": 14,
-        "valuation": 11,
+        "valuation": 5,
         "timing": "ممتاز",
         "timingSignals": 3,
         "classification": "شراء",
@@ -1255,6 +1251,7 @@
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -1301,10 +1298,8 @@
             "C/I 30.9% (بنك) → 5/5"
           ],
           "valuation": [
-            "P/E 9.4 vs قطاع 16.9 (0.56x) → 5/5",
             "P/B 0.82 vs قطاع 1.02 (0.80x) → 2/4",
-            "Yield 6.0% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 6.0% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -1500,12 +1495,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 72,
+        "total": 78,
         "financial": 22,
         "trend": 23,
         "relativeStrength": 8,
         "risk": 12,
-        "valuation": 11,
+        "valuation": 5,
         "timing": "ممتاز",
         "timingSignals": 3,
         "classification": "شراء",
@@ -1513,6 +1508,7 @@
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -1559,10 +1555,8 @@
             "C/I 33.8% (بنك) → 5/5"
           ],
           "valuation": [
-            "P/E 8.5 vs قطاع 16.9 (0.50x) → 5/5",
             "P/B 0.85 vs قطاع 1.02 (0.83x) → 2/4",
-            "Yield 5.9% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 5.9% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -1965,19 +1959,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 60,
+        "total": 66,
         "financial": 30,
         "trend": 9,
         "relativeStrength": 3,
         "risk": 15,
-        "valuation": 6,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "valuation": 2,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "شراء مشروط",
+        "classCode": "conditional_buy",
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -2024,15 +2019,13 @@
             "C/I 23.4% (بنك) → 5/5"
           ],
           "valuation": [
-            "P/E 17.3 vs قطاع 16.9 (1.02x) → 3/5",
             "P/B 1.91 vs قطاع 1.02 (1.87x) → 0/4",
-            "Yield 3.9% → 2/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 3.9% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 46.4",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -2430,19 +2423,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 71,
+        "total": 78,
         "financial": 24,
         "trend": 20,
         "relativeStrength": 9,
         "risk": 15,
-        "valuation": 7,
-        "timing": "مقبول",
-        "timingSignals": 2,
-        "classification": "شراء مشروط",
-        "classCode": "conditional_buy",
+        "valuation": 2,
+        "timing": "ممتاز",
+        "timingSignals": 3,
+        "classification": "شراء",
+        "classCode": "buy",
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -2485,15 +2479,13 @@
             "C/I 31.4% (بنك) → 5/5"
           ],
           "valuation": [
-            "P/E 12.1 vs قطاع 16.9 (0.72x) → 4/5",
             "P/B 1.91 vs قطاع 1.02 (1.88x) → 0/4",
-            "Yield 3.5% → 2/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 3.5% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 50.7",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -2713,19 +2705,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 75,
+        "total": 81,
         "financial": 26,
         "trend": 22,
         "relativeStrength": 6,
         "risk": 14,
-        "valuation": 11,
+        "valuation": 5,
         "timing": "ممتاز",
         "timingSignals": 4,
-        "classification": "شراء",
-        "classCode": "buy",
+        "classification": "شراء قوي",
+        "classCode": "strong_buy",
         "sector": "Financials",
         "industry": "Banks - Regional",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -2772,10 +2765,8 @@
             "C/I 28.2% (بنك) → 5/5"
           ],
           "valuation": [
-            "P/E 10.1 vs قطاع 16.9 (0.60x) → 5/5",
             "P/B 1.07 vs قطاع 1.02 (1.05x) → 2/4",
-            "Yield 8.4% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 8.4% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -3898,19 +3889,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 39,
+        "total": 46,
         "financial": 27,
         "trend": 9,
         "relativeStrength": 0,
         "risk": 5,
         "valuation": 0,
-        "timing": "انتظر",
-        "timingSignals": 1,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "بيع",
         "classCode": "sell",
         "sector": "Materials",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -3958,14 +3950,12 @@
             "ND/EBITDA 1.6x (معقول) → 3/5"
           ],
           "valuation": [
-            "P/E 47.2 vs قطاع 18.9 (2.49x) → 0/5",
-            "P/B 3.59 vs قطاع 1.09 (3.29x) → 0/4",
-            "EV/EBITDA 20.1 → 0/3"
+            "P/B 3.59 vs قطاع 1.09 (3.29x) → 0/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 48.6",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -5119,19 +5109,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 67,
+        "total": 78,
         "financial": 30,
         "trend": 21,
         "relativeStrength": 8,
         "risk": 9,
         "valuation": 2,
-        "timing": "مقبول",
-        "timingSignals": 2,
-        "classification": "شراء مشروط",
-        "classCode": "conditional_buy",
+        "timing": "ممتاز",
+        "timingSignals": 3,
+        "classification": "شراء",
+        "classCode": "buy",
         "sector": "Industrials",
         "industry": "Electrical Equipment &amp; Parts",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -5179,15 +5170,13 @@
             "فوائض نقدية (ND/EBITDA -0.3x) → 5/5"
           ],
           "valuation": [
-            "P/E 27.9 vs قطاع 18.1 (1.54x) → 0/5",
             "P/B 11.68 vs قطاع 2.41 (4.85x) → 0/4",
-            "Yield 3.4% → 2/3",
-            "EV/EBITDA 25.1 → 0/3"
+            "Yield 3.4% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 51.1",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -5368,19 +5357,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 47,
+        "total": 50,
         "financial": 20,
         "trend": 14,
         "relativeStrength": 5,
         "risk": 5,
-        "valuation": 5,
+        "valuation": 1,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Materials",
         "industry": "Steel",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -5424,10 +5414,8 @@
             "ND/EBITDA 4.7x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 19.4 vs قطاع 18.9 (1.03x) → 3/5",
             "P/B 23.67 vs قطاع 1.09 (21.72x) → 0/4",
-            "Yield 1.3% → 1/3",
-            "EV/EBITDA 14.3 → 1/3"
+            "Yield 1.3% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -5611,19 +5599,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 53,
+        "total": 59,
         "financial": 23,
         "trend": 16,
         "relativeStrength": 4,
         "risk": 9,
-        "valuation": 4,
-        "timing": "انتظر",
-        "timingSignals": 1,
+        "valuation": 1,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "انتظار",
         "classCode": "hold",
         "sector": null,
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -5670,13 +5659,12 @@
             "ND/EBITDA 0.6x (مريح) → 4/5"
           ],
           "valuation": [
-            "Yield 1.6% → 1/3",
-            "EV/EBITDA 6.7 → 3/3"
+            "Yield 1.6% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "⚠️ RSI-D 36.9",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -5854,19 +5842,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 77,
+        "total": 81,
         "financial": 30,
         "trend": 22,
         "relativeStrength": 9,
         "risk": 9,
-        "valuation": 11,
+        "valuation": 3,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "شراء — انتظر توقيت",
+        "classCode": "buy_wait",
         "sector": "Materials",
         "industry": "Steel",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -5914,10 +5903,8 @@
             "فوائض نقدية (ND/EBITDA -0.6x) → 5/5"
           ],
           "valuation": [
-            "P/E 8.6 vs قطاع 18.9 (0.45x) → 5/5",
             "P/B 4.57 vs قطاع 1.09 (4.19x) → 0/4",
-            "Yield 4.6% → 3/3",
-            "EV/EBITDA 6.9 → 3/3"
+            "Yield 4.6% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -6100,19 +6087,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 45,
+        "total": 51,
         "financial": 29,
         "trend": 9,
         "relativeStrength": 1,
         "risk": 6,
-        "valuation": 2,
+        "valuation": 1,
         "timing": "ممتاز",
         "timingSignals": 3,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Materials",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -6160,10 +6148,8 @@
             "ND/EBITDA -0.0x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 29.0 vs قطاع 18.9 (1.53x) → 0/5",
             "P/B 42.42 vs قطاع 1.09 (38.92x) → 0/4",
-            "Yield 1.7% → 1/3",
-            "EV/EBITDA 13.9 → 1/3"
+            "Yield 1.7% → 1/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -6342,19 +6328,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 62,
+        "total": 71,
         "financial": 24,
         "trend": 10,
         "relativeStrength": 11,
         "risk": 12,
-        "valuation": 8,
+        "valuation": 7,
         "timing": "ممتاز",
         "timingSignals": 4,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Discretionary",
         "industry": "Packaging &amp; Containers",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -6393,8 +6380,7 @@
           ],
           "valuation": [
             "P/B 1.73 vs قطاع 2.94 (0.59x) → 4/4",
-            "Yield 5.4% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 5.4% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -6984,19 +6970,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 74,
+        "total": 82,
         "financial": 26,
         "trend": 23,
         "relativeStrength": 11,
         "risk": 10,
-        "valuation": 8,
+        "valuation": 4,
         "timing": "ممتاز",
-        "timingSignals": 4,
-        "classification": "شراء",
-        "classCode": "buy",
+        "timingSignals": 3,
+        "classification": "شراء قوي",
+        "classCode": "strong_buy",
         "sector": "Industrials",
         "industry": "Staffing &amp; Employment Services",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -7044,15 +7031,13 @@
             "ND/EBITDA 2.5x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 19.4 vs قطاع 18.1 (1.07x) → 3/5",
             "P/B 2.55 vs قطاع 2.41 (1.06x) → 2/4",
-            "Yield 3.7% → 2/3",
-            "EV/EBITDA 13.6 → 1/3"
+            "Yield 3.7% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 55.0",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -7419,19 +7404,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 68,
+        "total": 71,
         "financial": 27,
         "trend": 8,
         "relativeStrength": 11,
         "risk": 13,
-        "valuation": 12,
-        "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "شراء",
-        "classCode": "buy",
+        "valuation": 5,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Staffing &amp; Employment Services",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -7477,15 +7463,13 @@
             "فوائض نقدية (ND/EBITDA -0.6x) → 5/5"
           ],
           "valuation": [
-            "P/E 11.9 vs قطاع 18.1 (0.66x) → 5/5",
             "P/B 1.87 vs قطاع 2.41 (0.77x) → 3/4",
-            "Yield 2.6% → 2/3",
-            "EV/EBITDA 8.6 → 2/3"
+            "Yield 2.6% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 55.7",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -7662,19 +7646,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 65,
+        "total": 68,
         "financial": 26,
         "trend": 8,
         "relativeStrength": 11,
         "risk": 13,
-        "valuation": 10,
+        "valuation": 3,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "شراء مشروط",
-        "classCode": "conditional_buy",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Staffing &amp; Employment Services",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -7716,10 +7701,8 @@
             "فوائض نقدية (ND/EBITDA -0.7x) → 5/5"
           ],
           "valuation": [
-            "P/E 15.7 vs قطاع 18.1 (0.87x) → 4/5",
             "P/B 4.02 vs قطاع 2.41 (1.67x) → 0/4",
-            "Yield 4.2% → 3/3",
-            "EV/EBITDA 6.7 → 3/3"
+            "Yield 4.2% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -7906,14 +7889,15 @@
         "trend": 16,
         "relativeStrength": 11,
         "risk": 3,
-        "valuation": 5,
+        "valuation": 0,
         "timing": "ممتاز",
-        "timingSignals": 4,
+        "timingSignals": 3,
         "classification": "بيع قوي",
         "classCode": "strong_sell",
         "sector": "Materials",
         "industry": "Chemicals",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -7960,14 +7944,12 @@
             "Vol20/50: 2.50 → 1/4"
           ],
           "valuation": [
-            "P/E 8.3 vs قطاع 18.9 (0.44x) → 5/5",
-            "P/B 2.69 vs قطاع 1.09 (2.47x) → 0/4",
-            "EV/EBITDA 43.8 → 0/3"
+            "P/B 2.69 vs قطاع 1.09 (2.47x) → 0/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 52.7",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -8355,12 +8337,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 55,
+        "total": 58,
         "financial": 24,
         "trend": 9,
         "relativeStrength": 5,
         "risk": 11,
-        "valuation": 9,
+        "valuation": 3,
         "timing": "انتظر",
         "timingSignals": 0,
         "classification": "انتظار",
@@ -8368,6 +8350,7 @@
         "sector": "Materials",
         "industry": "Agricultural Inputs",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -8415,10 +8398,8 @@
             "فوائض نقدية (ND/EBITDA -2.6x) → 5/5"
           ],
           "valuation": [
-            "P/E 14.9 vs قطاع 18.9 (0.79x) → 4/5",
             "P/B 20.10 vs قطاع 1.09 (18.44x) → 0/4",
-            "Yield 9.0% → 3/3",
-            "EV/EBITDA 10.1 → 2/3"
+            "Yield 9.0% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -8983,19 +8964,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 72,
+        "total": 76,
         "financial": 18,
         "trend": 22,
         "relativeStrength": 11,
         "risk": 10,
-        "valuation": 15,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "valuation": 7,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "شراء مشروط",
+        "classCode": "conditional_buy",
         "sector": "Consumer Staples",
         "industry": "Packaged Foods",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -9043,15 +9025,13 @@
             "ND/EBITDA 2.2x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 8.3 vs قطاع 18.1 (0.46x) → 5/5",
             "P/B 1.48 vs قطاع 3.10 (0.48x) → 4/4",
-            "Yield 6.4% → 3/3",
-            "EV/EBITDA 6.1 → 3/3"
+            "Yield 6.4% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 44.8",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -9418,19 +9398,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 59,
+        "total": 67,
         "financial": 16,
         "trend": 19,
         "relativeStrength": 11,
         "risk": 10,
-        "valuation": 6,
+        "valuation": 4,
         "timing": "ممتاز",
         "timingSignals": 4,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "شراء",
+        "classCode": "buy",
         "sector": "Healthcare",
         "industry": "Drug Manufacturers - Specialty &amp; Generic",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -9478,10 +9459,8 @@
             "ND/EBITDA 3.8x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 25.3 vs قطاع 20.8 (1.22x) → 1/5",
             "P/B 2.25 vs قطاع 3.06 (0.73x) → 3/4",
-            "Yield 1.1% → 1/3",
-            "EV/EBITDA 14.4 → 1/3"
+            "Yield 1.1% → 1/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -10236,19 +10215,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 50,
+        "total": 52,
         "financial": 13,
         "trend": 10,
         "relativeStrength": 11,
         "risk": 10,
-        "valuation": 9,
+        "valuation": 3,
         "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "timingSignals": 4,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Utilities",
         "industry": "Utilities - Diversified",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -10290,15 +10270,13 @@
             "ND/EBITDA 6.2x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 16.6 vs قطاع 20.1 (0.83x) → 4/5",
             "P/B 18.28 vs قطاع 2.89 (6.32x) → 0/4",
-            "Yield 4.6% → 3/3",
-            "EV/EBITDA 10.0 → 2/3"
+            "Yield 4.6% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 57.0",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -10474,7 +10452,7 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 19,
+        "total": 22,
         "financial": 14,
         "trend": 1,
         "relativeStrength": 0,
@@ -10482,11 +10460,12 @@
         "valuation": 1,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Utilities",
         "industry": null,
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -10528,10 +10507,8 @@
             "ND/EBITDA 3.3x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 34.6 vs قطاع 20.1 (1.72x) → 0/5",
             "P/B 4.33 vs قطاع 2.89 (1.50x) → 0/4",
-            "Yield 1.2% → 1/3",
-            "EV/EBITDA 20.3 → 0/3"
+            "Yield 1.2% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -11093,19 +11070,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 56,
+        "total": 58,
         "financial": 18,
         "trend": 24,
         "relativeStrength": 7,
         "risk": 3,
-        "valuation": 7,
-        "timing": "انتظر",
-        "timingSignals": 1,
+        "valuation": 0,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "انتظار",
         "classCode": "hold",
         "sector": "Industrials",
         "industry": "Electrical Equipment &amp; Parts",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -11150,14 +11128,11 @@
             "البعد عن قمة 52أ 16.1% → 1/4",
             "Vol20/50: 0.67 → 1/4"
           ],
-          "valuation": [
-            "P/E 9.3 vs قطاع 18.1 (0.51x) → 5/5",
-            "EV/EBITDA 10.0 → 2/3"
-          ],
+          "valuation": [],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 47.5",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -11541,19 +11516,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 34,
+        "total": 39,
         "financial": 9,
         "trend": 12,
         "relativeStrength": 11,
         "risk": 2,
-        "valuation": 2,
-        "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "valuation": 1,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "بيع",
+        "classCode": "sell",
         "sector": "Consumer Discretionary",
         "industry": "Furnishings, Fixtures &amp; Appliances",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -11596,13 +11572,12 @@
             "Vol20/50: 0.58 → 1/4"
           ],
           "valuation": [
-            "P/B 3.65 vs قطاع 2.94 (1.24x) → 1/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 3.65 vs قطاع 2.94 (1.24x) → 1/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 51.4",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -12556,7 +12531,7 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 45,
+        "total": 52,
         "financial": 14,
         "trend": 14,
         "relativeStrength": 10,
@@ -12564,11 +12539,12 @@
         "valuation": 2,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Consumer Discretionary",
         "industry": "Packaging &amp; Containers",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -12607,9 +12583,7 @@
             "Vol20/50: 0.82 → 3/4"
           ],
           "valuation": [
-            "P/E 550.0 vs قطاع 28.9 (19.01x) → 0/5",
-            "P/B 2.94 vs قطاع 2.94 (1.00x) → 2/4",
-            "EV/EBITDA 42.3 → 0/3"
+            "P/B 2.94 vs قطاع 2.94 (1.00x) → 2/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -12792,19 +12766,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 73,
+        "total": 82,
         "financial": 23,
         "trend": 24,
         "relativeStrength": 11,
         "risk": 11,
-        "valuation": 8,
-        "timing": "ممتاز",
-        "timingSignals": 3,
+        "valuation": 5,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "شراء",
         "classCode": "buy",
         "sector": "Industrials",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -12852,15 +12827,13 @@
             "ND/EBITDA 0.8x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 26.8 vs قطاع 18.1 (1.48x) → 1/5",
             "P/B 1.90 vs قطاع 2.41 (0.79x) → 3/4",
-            "Yield 2.3% → 2/3",
-            "EV/EBITDA 8.2 → 2/3"
+            "Yield 2.3% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 49.2",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -13037,12 +13010,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 67,
+        "total": 69,
         "financial": 20,
         "trend": 25,
         "relativeStrength": 8,
         "risk": 7,
-        "valuation": 10,
+        "valuation": 2,
         "timing": "انتظر",
         "timingSignals": 0,
         "classification": "انتظار",
@@ -13050,6 +13023,7 @@
         "sector": "Materials",
         "industry": "Steel",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -13097,10 +13071,8 @@
             "ND/EBITDA 0.4x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 8.7 vs قطاع 18.9 (0.46x) → 5/5",
             "P/B 2.45 vs قطاع 1.09 (2.25x) → 0/4",
-            "Yield 2.7% → 2/3",
-            "EV/EBITDA 6.6 → 3/3"
+            "Yield 2.7% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -13692,19 +13664,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 71,
+        "total": 78,
         "financial": 24,
         "trend": 20,
         "relativeStrength": 7,
         "risk": 15,
-        "valuation": 9,
-        "timing": "مقبول",
-        "timingSignals": 2,
-        "classification": "شراء مشروط",
-        "classCode": "conditional_buy",
+        "valuation": 4,
+        "timing": "ممتاز",
+        "timingSignals": 3,
+        "classification": "شراء",
+        "classCode": "buy",
         "sector": "Energy",
         "industry": "Oil &amp; Gas Integrated",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -13752,15 +13725,13 @@
             "ND/EBITDA 0.1x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 18.9 vs قطاع 18.9 (1.00x) → 3/5",
             "P/B 4.25 vs قطاع 3.28 (1.30x) → 1/4",
-            "Yield 4.9% → 3/3",
-            "EV/EBITDA 8.3 → 2/3"
+            "Yield 4.9% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 60.4",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -13937,19 +13908,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 59,
+        "total": 64,
         "financial": 22,
         "trend": 9,
         "relativeStrength": 11,
         "risk": 12,
-        "valuation": 8,
+        "valuation": 4,
         "timing": "ممتاز",
-        "timingSignals": 4,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "timingSignals": 3,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Energy",
         "industry": "Oil &amp; Gas Exploration &amp; Production",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -13991,15 +13963,13 @@
             "فوائض نقدية (ND/EBITDA -0.4x) → 5/5"
           ],
           "valuation": [
-            "P/E 18.5 vs قطاع 18.9 (0.98x) → 3/5",
             "P/B 3.28 vs قطاع 3.28 (1.00x) → 2/4",
-            "Yield 3.5% → 2/3",
-            "EV/EBITDA 13.5 → 1/3"
+            "Yield 3.5% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 46.9",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -14176,12 +14146,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 63,
+        "total": 71,
         "financial": 21,
         "trend": 22,
         "relativeStrength": 9,
         "risk": 10,
-        "valuation": 4,
+        "valuation": 2,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "انتظار",
@@ -14189,6 +14159,7 @@
         "sector": "Industrials",
         "industry": "Conglomerates",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -14228,10 +14199,8 @@
             "ND/EBITDA 2.4x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 20.6 vs قطاع 18.1 (1.14x) → 1/5",
             "P/B 2.76 vs قطاع 2.41 (1.14x) → 1/4",
-            "Yield 1.2% → 1/3",
-            "EV/EBITDA 14.7 → 1/3"
+            "Yield 1.2% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -14606,12 +14575,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 40,
+        "total": 46,
         "financial": 14,
         "trend": 9,
         "relativeStrength": 5,
         "risk": 9,
-        "valuation": 5,
+        "valuation": 4,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "بيع",
@@ -14619,6 +14588,7 @@
         "sector": "Materials",
         "industry": "Specialty Chemicals",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -14662,10 +14632,8 @@
             "فوائض نقدية → 5/5"
           ],
           "valuation": [
-            "P/E 62.6 vs قطاع 18.9 (3.31x) → 0/5",
             "P/B 0.92 vs قطاع 1.09 (0.84x) → 2/4",
-            "Yield 2.1% → 2/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 2.1% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -15059,12 +15027,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 59,
+        "total": 63,
         "financial": 22,
         "trend": 14,
         "relativeStrength": 11,
         "risk": 8,
-        "valuation": 7,
+        "valuation": 2,
         "timing": "ممتاز",
         "timingSignals": 3,
         "classification": "انتظار",
@@ -15072,6 +15040,7 @@
         "sector": "Consumer Staples",
         "industry": "Packaged Foods",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -15115,10 +15084,8 @@
             "ND/EBITDA 2.3x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 17.6 vs قطاع 18.1 (0.97x) → 3/5",
             "P/B 22.51 vs قطاع 3.10 (7.26x) → 0/4",
-            "Yield 2.4% → 2/3",
-            "EV/EBITDA 10.1 → 2/3"
+            "Yield 2.4% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -15489,19 +15456,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 46,
+        "total": 53,
         "financial": 13,
         "trend": 14,
         "relativeStrength": 7,
         "risk": 12,
         "valuation": 2,
         "timing": "ممتاز",
-        "timingSignals": 4,
-        "classification": "بيع",
-        "classCode": "sell",
+        "timingSignals": 3,
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Consumer Staples",
         "industry": "Beverages - Non-Alcoholic",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -15541,15 +15509,13 @@
             "فوائض نقدية (ND/EBITDA -2.2x) → 5/5"
           ],
           "valuation": [
-            "P/E 77.9 vs قطاع 18.1 (4.29x) → 0/5",
             "P/B 4.12 vs قطاع 3.10 (1.33x) → 1/4",
-            "Yield 1.8% → 1/3",
-            "EV/EBITDA 26.9 → 0/3"
+            "Yield 1.8% → 1/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 53.4",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -15746,19 +15712,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 55,
+        "total": 57,
         "financial": 24,
         "trend": 6,
         "relativeStrength": 7,
         "risk": 9,
-        "valuation": 12,
-        "timing": "مقبول",
-        "timingSignals": 2,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "valuation": 5,
+        "timing": "ممتاز",
+        "timingSignals": 3,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Staples",
         "industry": "Packaged Foods",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -15804,15 +15771,13 @@
             "ND/EBITDA 3.3x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 10.8 vs قطاع 18.1 (0.60x) → 5/5",
             "P/B 2.72 vs قطاع 3.10 (0.88x) → 2/4",
-            "Yield 6.0% → 3/3",
-            "EV/EBITDA 10.6 → 2/3"
+            "Yield 6.0% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 54.5",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -15991,19 +15956,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 60,
+        "total": 62,
         "financial": 21,
         "trend": 10,
         "relativeStrength": 11,
         "risk": 11,
-        "valuation": 10,
+        "valuation": 3,
         "timing": "ممتاز",
         "timingSignals": 3,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Staples",
         "industry": "Packaged Foods",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -16049,10 +16015,8 @@
             "ND/EBITDA 2.6x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 10.6 vs قطاع 18.1 (0.58x) → 5/5",
             "P/B 7.97 vs قطاع 3.10 (2.57x) → 0/4",
-            "Yield 6.6% → 3/3",
-            "EV/EBITDA 9.7 → 2/3"
+            "Yield 6.6% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -16233,19 +16197,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 67,
+        "total": 69,
         "financial": 27,
         "trend": 10,
         "relativeStrength": 11,
         "risk": 8,
-        "valuation": 14,
+        "valuation": 6,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Staples",
         "industry": "Agricultural Inputs",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -16291,10 +16256,8 @@
             "ND/EBITDA 2.2x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 8.8 vs قطاع 18.1 (0.49x) → 5/5",
             "P/B 1.71 vs قطاع 3.10 (0.55x) → 4/4",
-            "Yield 2.3% → 2/3",
-            "EV/EBITDA 7.8 → 3/3"
+            "Yield 2.3% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -16476,19 +16439,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 67,
+        "total": 70,
         "financial": 28,
         "trend": 7,
         "relativeStrength": 10,
         "risk": 13,
-        "valuation": 12,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Staples",
         "industry": null,
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -16534,10 +16498,8 @@
             "ND/EBITDA 0.9x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 11.8 vs قطاع 18.1 (0.65x) → 5/5",
             "P/B 2.72 vs قطاع 3.10 (0.88x) → 2/4",
-            "Yield 6.0% → 3/3",
-            "EV/EBITDA 9.4 → 2/3"
+            "Yield 6.0% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -16713,19 +16675,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 22,
+        "total": 24,
         "financial": 10,
         "trend": 2,
         "relativeStrength": 1,
         "risk": 4,
-        "valuation": 6,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Staples",
         "industry": "Packaged Foods",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -16764,8 +16727,7 @@
           ],
           "valuation": [
             "P/B 2.21 vs قطاع 3.10 (0.71x) → 3/4",
-            "Yield 2.1% → 2/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 2.1% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -16949,19 +16911,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 38,
+        "total": 42,
         "financial": 26,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 9,
-        "valuation": 4,
+        "valuation": 2,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": null,
         "industry": null,
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -17002,8 +16965,7 @@
             "فوائض نقدية (ND/EBITDA -0.6x) → 5/5"
           ],
           "valuation": [
-            "Yield 3.3% → 2/3",
-            "EV/EBITDA 8.7 → 2/3"
+            "Yield 3.3% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -17380,12 +17342,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 65,
+        "total": 74,
         "financial": 20,
         "trend": 25,
         "relativeStrength": 11,
         "risk": 9,
-        "valuation": 3,
+        "valuation": 2,
         "timing": "ممتاز",
         "timingSignals": 3,
         "classification": "شراء",
@@ -17393,6 +17355,7 @@
         "sector": "Consumer Staples",
         "industry": "Household &amp; Personal Products",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -17440,10 +17403,8 @@
             "ND/EBITDA 3.9x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 44.7 vs قطاع 18.1 (2.47x) → 0/5",
             "P/B 4.15 vs قطاع 3.10 (1.34x) → 1/4",
-            "Yield 0.7% → 1/3",
-            "EV/EBITDA 16.8 → 1/3"
+            "Yield 0.7% → 1/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -17901,12 +17862,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 54,
+        "total": 56,
         "financial": 27,
         "trend": 11,
         "relativeStrength": 0,
         "risk": 7,
-        "valuation": 12,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "انتظار",
@@ -17914,6 +17875,7 @@
         "sector": "Industrials",
         "industry": "Engineering &amp; Construction",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -17961,10 +17923,8 @@
             "ND/EBITDA 1.4x (معقول) → 3/5"
           ],
           "valuation": [
-            "P/E 10.8 vs قطاع 18.1 (0.60x) → 5/5",
             "P/B 2.34 vs قطاع 2.41 (0.97x) → 2/4",
-            "Yield 4.5% → 3/3",
-            "EV/EBITDA 9.1 → 2/3"
+            "Yield 4.5% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -18339,19 +18299,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 44,
+        "total": 51,
         "financial": 14,
         "trend": 12,
         "relativeStrength": 11,
         "risk": 5,
         "valuation": 4,
-        "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "بيع",
-        "classCode": "sell",
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Consumer Discretionary",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -18395,13 +18356,12 @@
             "ND/EBITDA 8.5x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/B 0.95 vs قطاع 2.94 (0.32x) → 4/4",
-            "EV/EBITDA 37.8 → 0/3"
+            "P/B 0.95 vs قطاع 2.94 (0.32x) → 4/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 63.1",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -18969,19 +18929,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 77,
+        "total": 81,
         "financial": 23,
         "trend": 24,
         "relativeStrength": 11,
         "risk": 11,
-        "valuation": 12,
+        "valuation": 4,
         "timing": "ممتاز",
         "timingSignals": 3,
-        "classification": "شراء",
-        "classCode": "buy",
+        "classification": "شراء قوي",
+        "classCode": "strong_buy",
         "sector": "Industrials",
         "industry": "Electrical Equipment &amp; Parts",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -19029,10 +18990,8 @@
             "ND/EBITDA 0.9x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 8.7 vs قطاع 18.1 (0.48x) → 5/5",
             "P/B 2.21 vs قطاع 2.41 (0.92x) → 2/4",
-            "Yield 3.5% → 2/3",
-            "EV/EBITDA 6.8 → 3/3"
+            "Yield 3.5% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -19216,12 +19175,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 66,
+        "total": 71,
         "financial": 19,
         "trend": 22,
         "relativeStrength": 11,
         "risk": 8,
-        "valuation": 9,
+        "valuation": 4,
         "timing": "ممتاز",
         "timingSignals": 3,
         "classification": "شراء",
@@ -19229,6 +19188,7 @@
         "sector": "Energy",
         "industry": "Oil &amp; Gas Refining &amp; Marketing",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -19275,9 +19235,7 @@
             "Vol20/50: 1.53 → 4/4"
           ],
           "valuation": [
-            "P/E 8.9 vs قطاع 18.9 (0.47x) → 5/5",
-            "P/B 1.95 vs قطاع 3.28 (0.59x) → 4/4",
-            "EV/EBITDA 21.9 → 0/3"
+            "P/B 1.95 vs قطاع 3.28 (0.59x) → 4/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -19461,19 +19419,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 19,
+        "total": 21,
         "financial": 8,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 5,
-        "valuation": 6,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Energy",
         "industry": "Oil &amp; Gas Drilling",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -19511,10 +19470,8 @@
             "ND/EBITDA 3.2x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 30.9 vs قطاع 18.9 (1.64x) → 0/5",
             "P/B 1.30 vs قطاع 3.28 (0.40x) → 4/4",
-            "Yield 1.6% → 1/3",
-            "EV/EBITDA 12.3 → 1/3"
+            "Yield 1.6% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -19698,19 +19655,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 38,
+        "total": 41,
         "financial": 19,
         "trend": 6,
         "relativeStrength": 1,
         "risk": 7,
-        "valuation": 7,
+        "valuation": 4,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Energy",
         "industry": "Oil &amp; Gas Drilling",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -19752,10 +19710,8 @@
             "ND/EBITDA 4.0x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 22.9 vs قطاع 18.9 (1.21x) → 1/5",
             "P/B 2.87 vs قطاع 3.28 (0.87x) → 2/4",
-            "Yield 2.7% → 2/3",
-            "EV/EBITDA 9.4 → 2/3"
+            "Yield 2.7% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -20724,19 +20680,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 51,
+        "total": 60,
         "financial": 16,
         "trend": 14,
         "relativeStrength": 10,
         "risk": 8,
         "valuation": 6,
         "timing": "ممتاز",
-        "timingSignals": 4,
+        "timingSignals": 3,
         "classification": "انتظار",
         "classCode": "hold",
         "sector": "Consumer Discretionary",
         "industry": "Packaging &amp; Containers",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -20776,15 +20733,13 @@
             "ND/EBITDA 4.7x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 230.0 vs قطاع 28.9 (7.95x) → 0/5",
             "P/B 2.10 vs قطاع 2.94 (0.72x) → 3/4",
-            "Yield 16.1% → 3/3",
-            "EV/EBITDA 18.2 → 0/3"
+            "Yield 16.1% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 52.6",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -22361,12 +22316,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 70,
+        "total": 73,
         "financial": 25,
         "trend": 14,
         "relativeStrength": 10,
         "risk": 12,
-        "valuation": 13,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 0,
         "classification": "انتظار",
@@ -22374,6 +22329,7 @@
         "sector": "Materials",
         "industry": "Building Materials",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -22417,10 +22373,8 @@
             "فوائض نقدية (ND/EBITDA -0.1x) → 5/5"
           ],
           "valuation": [
-            "P/E 8.9 vs قطاع 18.9 (0.47x) → 5/5",
             "P/B 0.90 vs قطاع 1.09 (0.83x) → 2/4",
-            "Yield 4.8% → 3/3",
-            "EV/EBITDA 5.0 → 3/3"
+            "Yield 4.8% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -25677,19 +25631,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 51,
+        "total": 56,
         "financial": 29,
         "trend": 1,
         "relativeStrength": 8,
         "risk": 10,
-        "valuation": 6,
+        "valuation": 2,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Healthcare",
         "industry": "Drug Manufacturers - Specialty &amp; Generic",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -25731,10 +25686,8 @@
             "فوائض نقدية (ND/EBITDA -0.3x) → 5/5"
           ],
           "valuation": [
-            "P/E 21.2 vs قطاع 20.8 (1.02x) → 3/5",
             "P/B 5.73 vs قطاع 3.06 (1.87x) → 0/4",
-            "Yield 3.0% → 2/3",
-            "EV/EBITDA 17.8 → 1/3"
+            "Yield 3.0% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -25918,19 +25871,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 50,
+        "total": 54,
         "financial": 30,
         "trend": 2,
         "relativeStrength": 4,
         "risk": 8,
-        "valuation": 9,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Healthcare",
         "industry": null,
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -25976,10 +25930,8 @@
             "ND/EBITDA 0.4x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 20.5 vs قطاع 20.8 (0.99x) → 3/5",
             "P/B 3.14 vs قطاع 3.06 (1.03x) → 2/4",
-            "Yield 4.2% → 3/3",
-            "EV/EBITDA 17.2 → 1/3"
+            "Yield 4.2% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -26177,19 +26129,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 42,
+        "total": 47,
         "financial": 20,
         "trend": 2,
         "relativeStrength": 6,
         "risk": 10,
-        "valuation": 6,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "valuation": 4,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Healthcare",
         "industry": "Medical Care Facilities",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -26222,15 +26175,13 @@
             "ND/EBITDA 1.6x (معقول) → 3/5"
           ],
           "valuation": [
-            "P/E 24.2 vs قطاع 20.8 (1.16x) → 1/5",
             "P/B 2.06 vs قطاع 3.06 (0.67x) → 3/4",
-            "Yield 0.9% → 1/3",
-            "EV/EBITDA 17.2 → 1/3"
+            "Yield 0.9% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 46.9",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -26401,19 +26352,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 35,
+        "total": 40,
         "financial": 25,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 7,
-        "valuation": 4,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "valuation": 3,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Healthcare",
         "industry": "Medical Care Facilities",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -26456,13 +26408,12 @@
           ],
           "valuation": [
             "P/B 2.71 vs قطاع 3.06 (0.89x) → 2/4",
-            "Yield 1.1% → 1/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 1.1% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 50.5",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -26637,19 +26588,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 35,
+        "total": 40,
         "financial": 23,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 8,
-        "valuation": 5,
+        "valuation": 4,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Healthcare",
         "industry": "Medical Care Facilities",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -26692,8 +26644,7 @@
           ],
           "valuation": [
             "P/B 3.77 vs قطاع 3.06 (1.23x) → 1/4",
-            "Yield 7.3% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 7.3% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -26876,19 +26827,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 64,
+        "total": 66,
         "financial": 22,
         "trend": 14,
         "relativeStrength": 11,
         "risk": 9,
-        "valuation": 11,
+        "valuation": 3,
         "timing": "ممتاز",
         "timingSignals": 3,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "شراء",
+        "classCode": "buy",
         "sector": "Real Estate",
         "industry": "Real Estate Services",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -26936,9 +26888,7 @@
             "ND/EBITDA 1.8x (معقول) → 3/5"
           ],
           "valuation": [
-            "P/E 10.7 vs قطاع 16.2 (0.66x) → 5/5",
-            "P/B 0.88 vs قطاع 1.40 (0.63x) → 3/4",
-            "EV/EBITDA 7.5 → 3/3"
+            "P/B 0.88 vs قطاع 1.40 (0.63x) → 3/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -27313,12 +27263,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 74,
+        "total": 78,
         "financial": 29,
         "trend": 21,
         "relativeStrength": 8,
         "risk": 7,
-        "valuation": 13,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "انتظار",
@@ -27326,6 +27276,7 @@
         "sector": "Industrials",
         "industry": "Marine Shipping",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -27373,10 +27324,8 @@
             "ND/EBITDA 2.2x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 12.1 vs قطاع 18.1 (0.67x) → 5/5",
             "P/B 1.65 vs قطاع 2.41 (0.68x) → 3/4",
-            "Yield 3.2% → 2/3",
-            "EV/EBITDA 7.6 → 3/3"
+            "Yield 3.2% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -28955,19 +28904,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 31,
+        "total": 32,
         "financial": 15,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 10,
-        "valuation": 7,
-        "timing": "مقبول",
-        "timingSignals": 2,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "valuation": 3,
+        "timing": "ممتاز",
+        "timingSignals": 3,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Communication Services",
         "industry": "Broadcasting",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -29005,14 +28955,12 @@
             "فوائض نقدية (ND/EBITDA -2.4x) → 5/5"
           ],
           "valuation": [
-            "P/E 15.5 vs قطاع 15.1 (1.03x) → 3/5",
-            "P/B 1.49 vs قطاع 2.27 (0.66x) → 3/4",
-            "EV/EBITDA 17.6 → 1/3"
+            "P/B 1.49 vs قطاع 2.27 (0.66x) → 3/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 46.0",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -29542,19 +29490,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 17,
+        "total": 19,
         "financial": 8,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 5,
-        "valuation": 4,
-        "timing": "مقبول",
-        "timingSignals": 2,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "valuation": 3,
+        "timing": "ممتاز",
+        "timingSignals": 3,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Financials",
         "industry": null,
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -29591,14 +29540,12 @@
             "Vol20/50: 1.35 → 4/4"
           ],
           "valuation": [
-            "P/E 130.3 vs قطاع 16.9 (7.71x) → 0/5",
-            "P/B 0.65 vs قطاع 1.02 (0.64x) → 3/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 0.65 vs قطاع 1.02 (0.64x) → 3/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 52.1",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -29779,14 +29726,15 @@
         "trend": 1,
         "relativeStrength": 0,
         "risk": 5,
-        "valuation": 5,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "valuation": 0,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Financials",
         "industry": "Asset Management",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -29831,14 +29779,12 @@
             "Vol20/50: 1.35 → 4/4"
           ],
           "valuation": [
-            "P/E 12.1 vs قطاع 16.9 (0.71x) → 4/5",
-            "P/B 1.46 vs قطاع 1.02 (1.43x) → 0/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 1.46 vs قطاع 1.02 (1.43x) → 0/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "⚠️ RSI-D 34.8",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -30012,19 +29958,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 43,
+        "total": 49,
         "financial": 28,
         "trend": 1,
         "relativeStrength": 1,
         "risk": 11,
-        "valuation": 4,
+        "valuation": 3,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Financials",
         "industry": "Asset Management",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -30071,8 +30018,7 @@
           ],
           "valuation": [
             "P/B 8.76 vs قطاع 1.02 (8.59x) → 0/4",
-            "Yield 4.7% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 4.7% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -30464,7 +30410,7 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 57,
+        "total": 67,
         "financial": 24,
         "trend": 17,
         "relativeStrength": 6,
@@ -30477,6 +30423,7 @@
         "sector": "Industrials",
         "industry": "Engineering &amp; Construction",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -30524,10 +30471,8 @@
             "فوائض نقدية (ND/EBITDA -2.2x) → 5/5"
           ],
           "valuation": [
-            "P/E 36.1 vs قطاع 18.1 (2.00x) → 0/5",
             "P/B 4.00 vs قطاع 2.41 (1.66x) → 0/4",
-            "Yield 1.9% → 1/3",
-            "EV/EBITDA 32.7 → 0/3"
+            "Yield 1.9% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -31465,19 +31410,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 40,
+        "total": 41,
         "financial": 25,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 8,
-        "valuation": 8,
+        "valuation": 3,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Electrical Equipment &amp; Parts",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -31519,10 +31465,8 @@
             "ND/EBITDA 0.4x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 15.9 vs قطاع 18.1 (0.88x) → 4/5",
             "P/B 4.37 vs قطاع 2.41 (1.81x) → 0/4",
-            "Yield 4.1% → 3/3",
-            "EV/EBITDA 13.3 → 1/3"
+            "Yield 4.1% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -31706,19 +31650,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 52,
+        "total": 54,
         "financial": 25,
         "trend": 2,
         "relativeStrength": 7,
         "risk": 10,
-        "valuation": 11,
-        "timing": "مقبول",
-        "timingSignals": 2,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "valuation": 5,
+        "timing": "ممتاز",
+        "timingSignals": 3,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": null,
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -31751,15 +31696,13 @@
             "فوائض نقدية (ND/EBITDA -0.8x) → 5/5"
           ],
           "valuation": [
-            "P/E 14.9 vs قطاع 18.1 (0.83x) → 4/5",
             "P/B 2.41 vs قطاع 2.41 (1.00x) → 2/4",
-            "Yield 5.4% → 3/3",
-            "EV/EBITDA 9.8 → 2/3"
+            "Yield 5.4% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 61.5",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -31934,19 +31877,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 50,
+        "total": 59,
         "financial": 11,
         "trend": 22,
         "relativeStrength": 11,
         "risk": 8,
         "valuation": 1,
         "timing": "ممتاز",
-        "timingSignals": 4,
+        "timingSignals": 3,
         "classification": "انتظار",
         "classCode": "hold",
         "sector": "Industrials",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -31994,15 +31938,13 @@
             "ND/EBITDA 2.1x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 66.5 vs قطاع 18.1 (3.68x) → 0/5",
             "P/B 22.77 vs قطاع 2.41 (9.45x) → 0/4",
-            "Yield 1.0% → 1/3",
-            "EV/EBITDA 33.3 → 0/3"
+            "Yield 1.0% → 1/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 56.2",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -32391,12 +32333,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 66,
+        "total": 70,
         "financial": 26,
         "trend": 17,
         "relativeStrength": 9,
         "risk": 10,
-        "valuation": 7,
+        "valuation": 1,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "انتظار",
@@ -32404,6 +32346,7 @@
         "sector": "Energy",
         "industry": "Oil &amp; Gas Equipment &amp; Services",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -32451,10 +32394,8 @@
             "فوائض نقدية (ND/EBITDA -0.7x) → 5/5"
           ],
           "valuation": [
-            "P/E 14.8 vs قطاع 18.9 (0.78x) → 4/5",
             "P/B 5.19 vs قطاع 3.28 (1.58x) → 0/4",
-            "Yield 1.9% → 1/3",
-            "EV/EBITDA 11.8 → 2/3"
+            "Yield 1.9% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -32620,19 +32561,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 28,
+        "total": 31,
         "financial": 21,
         "trend": 0,
         "relativeStrength": 0,
         "risk": 7,
-        "valuation": 1,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "valuation": 0,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": null,
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -32673,13 +32615,12 @@
             "فوائض نقدية (ND/EBITDA -0.9x) → 5/5"
           ],
           "valuation": [
-            "P/B 3.77 vs قطاع 2.41 (1.57x) → 0/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 3.77 vs قطاع 2.41 (1.57x) → 0/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 42.9",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -32857,12 +32798,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 35,
+        "total": 40,
         "financial": 16,
         "trend": 9,
         "relativeStrength": 1,
         "risk": 8,
-        "valuation": 3,
+        "valuation": 2,
         "timing": "مقبول",
         "timingSignals": 2,
         "classification": "بيع",
@@ -32870,6 +32811,7 @@
         "sector": null,
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -32912,8 +32854,7 @@
             "ND/EBITDA 0.6x (مريح) → 4/5"
           ],
           "valuation": [
-            "Yield 2.8% → 2/3",
-            "EV/EBITDA 14.2 → 1/3"
+            "Yield 2.8% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -33294,12 +33235,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 26,
+        "total": 29,
         "financial": 3,
         "trend": 12,
         "relativeStrength": 8,
         "risk": 3,
-        "valuation": 1,
+        "valuation": 0,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "بيع قوي",
@@ -33307,6 +33248,7 @@
         "sector": "Consumer Staples",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -33349,8 +33291,7 @@
             "Vol20/50: 0.92 → 3/4"
           ],
           "valuation": [
-            "P/B 28.98 vs قطاع 3.10 (9.35x) → 0/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 28.98 vs قطاع 3.10 (9.35x) → 0/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -33721,12 +33662,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 57,
+        "total": 62,
         "financial": 19,
         "trend": 14,
         "relativeStrength": 11,
         "risk": 8,
-        "valuation": 8,
+        "valuation": 4,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "انتظار",
@@ -33734,6 +33675,7 @@
         "sector": "Consumer Staples",
         "industry": "Food Distribution",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -33781,10 +33723,8 @@
             "ND/EBITDA 1.2x (معقول) → 3/5"
           ],
           "valuation": [
-            "P/E 18.1 vs قطاع 18.1 (1.00x) → 3/5",
             "P/B 3.10 vs قطاع 3.10 (1.00x) → 2/4",
-            "Yield 3.3% → 2/3",
-            "EV/EBITDA 13.9 → 1/3"
+            "Yield 3.3% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -34358,14 +34298,15 @@
         "trend": 1,
         "relativeStrength": 3,
         "risk": 9,
-        "valuation": 9,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "valuation": 2,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Discretionary",
         "industry": "Specialty Retail",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -34411,15 +34352,13 @@
             "فوائض نقدية (ND/EBITDA -0.1x) → 5/5"
           ],
           "valuation": [
-            "P/E 18.2 vs قطاع 28.9 (0.63x) → 5/5",
             "P/B 4.40 vs قطاع 2.94 (1.50x) → 0/4",
-            "Yield 3.3% → 2/3",
-            "EV/EBITDA 10.6 → 2/3"
+            "Yield 3.3% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 42.8",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -34980,19 +34919,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 76,
+        "total": 82,
         "financial": 24,
         "trend": 23,
         "relativeStrength": 11,
         "risk": 13,
-        "valuation": 9,
+        "valuation": 3,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "شراء مشروط",
-        "classCode": "conditional_buy",
+        "classification": "شراء",
+        "classCode": "buy",
         "sector": "Consumer Discretionary",
         "industry": "Specialty Retail",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -35040,10 +34980,8 @@
             "ND/EBITDA 0.3x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 16.5 vs قطاع 28.9 (0.57x) → 5/5",
             "P/B 11.88 vs قطاع 2.94 (4.04x) → 0/4",
-            "Yield 5.4% → 3/3",
-            "EV/EBITDA 13.4 → 1/3"
+            "Yield 5.4% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -35224,12 +35162,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 41,
+        "total": 44,
         "financial": 18,
         "trend": 9,
         "relativeStrength": 2,
         "risk": 8,
-        "valuation": 6,
+        "valuation": 3,
         "timing": "انتظر",
         "timingSignals": 1,
         "classification": "بيع",
@@ -35237,6 +35175,7 @@
         "sector": "Consumer Discretionary",
         "industry": "Specialty Retail",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -35280,10 +35219,8 @@
             "ND/EBITDA 1.6x (معقول) → 3/5"
           ],
           "valuation": [
-            "P/E 28.9 vs قطاع 28.9 (1.00x) → 3/5",
             "P/B 3.35 vs قطاع 2.94 (1.14x) → 1/4",
-            "Yield 2.4% → 2/3",
-            "EV/EBITDA 20.3 → 0/3"
+            "Yield 2.4% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -35466,19 +35403,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 46,
+        "total": 52,
         "financial": 25,
         "trend": 2,
         "relativeStrength": 8,
         "risk": 11,
-        "valuation": 2,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "valuation": 1,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Discretionary",
         "industry": "Furnishings, Fixtures &amp; Appliances",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -35520,15 +35458,13 @@
             "ND/EBITDA 1.9x (معقول) → 3/5"
           ],
           "valuation": [
-            "P/E 38.4 vs قطاع 28.9 (1.33x) → 1/5",
             "P/B 4.65 vs قطاع 2.94 (1.58x) → 0/4",
-            "Yield 0.9% → 1/3",
-            "EV/EBITDA 18.6 → 0/3"
+            "Yield 0.9% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 43.2",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -35699,19 +35635,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 21,
+        "total": 23,
         "financial": 12,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 7,
-        "valuation": 2,
+        "valuation": 1,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Discretionary",
         "industry": "Specialty Retail",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -35749,8 +35686,7 @@
             "فوائض نقدية (ND/EBITDA -2.0x) → 5/5"
           ],
           "valuation": [
-            "P/B 3.43 vs قطاع 2.94 (1.17x) → 1/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 3.43 vs قطاع 2.94 (1.17x) → 1/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -35918,19 +35854,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 39,
+        "total": 44,
         "financial": 23,
         "trend": 0,
         "relativeStrength": 3,
         "risk": 9,
-        "valuation": 6,
+        "valuation": 5,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Industrial Distribution",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -35968,8 +35905,7 @@
           ],
           "valuation": [
             "P/B 2.24 vs قطاع 2.41 (0.93x) → 2/4",
-            "Yield 16.0% → 3/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 16.0% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -36154,12 +36090,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 46,
+        "total": 49,
         "financial": 17,
         "trend": 11,
         "relativeStrength": 8,
         "risk": 7,
-        "valuation": 5,
+        "valuation": 1,
         "timing": "ممتاز",
         "timingSignals": 4,
         "classification": "بيع",
@@ -36167,6 +36103,7 @@
         "sector": "Consumer Discretionary",
         "industry": "Specialty Retail",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -36214,10 +36151,8 @@
             "ND/EBITDA 5.1x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 28.2 vs قطاع 28.9 (0.97x) → 3/5",
             "P/B 79.04 vs قطاع 2.94 (26.88x) → 0/4",
-            "Yield 1.7% → 1/3",
-            "EV/EBITDA 13.2 → 1/3"
+            "Yield 1.7% → 1/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -37746,19 +37681,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 29,
+        "total": 28,
         "financial": 16,
         "trend": 1,
         "relativeStrength": 0,
         "risk": 6,
-        "valuation": 7,
+        "valuation": 2,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Rental &amp; Leasing Services",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -37800,9 +37736,7 @@
             "ND/EBITDA 8.4x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 10.4 vs قطاع 18.1 (0.57x) → 5/5",
-            "P/B 2.17 vs قطاع 2.41 (0.90x) → 2/4",
-            "EV/EBITDA 18.2 → 0/3"
+            "P/B 2.17 vs قطاع 2.41 (0.90x) → 2/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -37987,19 +37921,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 59,
+        "total": 64,
         "financial": 25,
         "trend": 10,
         "relativeStrength": 8,
         "risk": 13,
-        "valuation": 6,
+        "valuation": 2,
         "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "timingSignals": 4,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Integrated Freight &amp; Logistics",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -38045,15 +37980,13 @@
             "ND/EBITDA 0.1x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 18.1 vs قطاع 18.1 (1.00x) → 3/5",
             "P/B 8.56 vs قطاع 2.41 (3.55x) → 0/4",
-            "Yield 3.8% → 2/3",
-            "EV/EBITDA 15.1 → 1/3"
+            "Yield 3.8% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 55.3",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -38224,19 +38157,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 21,
+        "total": 23,
         "financial": 10,
         "trend": 2,
         "relativeStrength": 2,
         "risk": 5,
-        "valuation": 3,
+        "valuation": 2,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Airlines",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -38274,8 +38208,7 @@
             "ND/EBITDA 2.7x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/B 2.32 vs قطاع 2.41 (0.96x) → 2/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 2.32 vs قطاع 2.41 (0.96x) → 2/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -38440,19 +38373,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 23,
+        "total": 26,
         "financial": 17,
         "trend": 0,
         "relativeStrength": 0,
         "risk": 4,
-        "valuation": 3,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "valuation": 2,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Industrials",
         "industry": "Rental &amp; Leasing Services",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -38493,13 +38427,12 @@
             "ND/EBITDA 3.2x (خطر) → 0/5"
           ],
           "valuation": [
-            "Yield 2.1% → 2/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 2.1% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 50.7",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -38892,19 +38825,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 62,
+        "total": 69,
         "financial": 18,
         "trend": 25,
         "relativeStrength": 11,
         "risk": 1,
-        "valuation": 10,
+        "valuation": 7,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "شراء مشروط",
+        "classCode": "conditional_buy",
         "sector": "Industrials",
         "industry": "Conglomerates",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -38952,10 +38886,8 @@
             "ND/EBITDA 8.8x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 19.5 vs قطاع 18.1 (1.08x) → 3/5",
             "P/B 0.71 vs قطاع 2.41 (0.29x) → 4/4",
-            "Yield 5.2% → 3/3",
-            "EV/EBITDA 20.6 → 0/3"
+            "Yield 5.2% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -39712,19 +39644,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 63,
+        "total": 71,
         "financial": 19,
         "trend": 23,
         "relativeStrength": 10,
         "risk": 9,
-        "valuation": 5,
-        "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "valuation": 3,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "شراء مشروط",
+        "classCode": "conditional_buy",
         "sector": "Real Estate",
         "industry": "Real Estate - Development",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -39772,14 +39705,12 @@
             "ND/EBITDA 5.1x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 18.4 vs قطاع 16.2 (1.13x) → 1/5",
-            "P/B 0.94 vs قطاع 1.40 (0.67x) → 3/4",
-            "EV/EBITDA 14.8 → 1/3"
+            "P/B 0.94 vs قطاع 1.40 (0.67x) → 3/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 58.5",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -39954,19 +39885,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 47,
+        "total": 53,
         "financial": 11,
         "trend": 16,
         "relativeStrength": 11,
         "risk": 9,
-        "valuation": 2,
+        "valuation": 1,
         "timing": "ممتاز",
         "timingSignals": 3,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Real Estate",
         "industry": "Real Estate - Development",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -40014,8 +39946,7 @@
             "ND/EBITDA 122.2x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/B 1.79 vs قطاع 1.40 (1.28x) → 1/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 1.79 vs قطاع 1.40 (1.28x) → 1/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -41178,19 +41109,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 34,
+        "total": 39,
         "financial": 24,
         "trend": 4,
         "relativeStrength": 5,
         "risk": 2,
-        "valuation": 1,
+        "valuation": 0,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Real Estate",
         "industry": "Real Estate - Development",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -41236,8 +41168,7 @@
             "ND/EBITDA 6.8x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/B 15.32 vs قطاع 1.40 (10.94x) → 0/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 15.32 vs قطاع 1.40 (10.94x) → 0/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -41404,19 +41335,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 24,
+        "total": 27,
         "financial": 19,
         "trend": 0,
         "relativeStrength": 0,
         "risk": 4,
-        "valuation": 2,
+        "valuation": 1,
         "timing": "انتظر",
         "timingSignals": 0,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Real Estate",
         "industry": "Real Estate - Development",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -41457,8 +41389,7 @@
             "ND/EBITDA 3.9x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/B 1.78 vs قطاع 1.40 (1.27x) → 1/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 1.78 vs قطاع 1.40 (1.27x) → 1/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -41625,19 +41556,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 36,
+        "total": 41,
         "financial": 26,
         "trend": 0,
         "relativeStrength": 3,
         "risk": 5,
-        "valuation": 4,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "valuation": 3,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Real Estate",
         "industry": "Real Estate Services",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -41683,13 +41615,12 @@
           ],
           "valuation": [
             "P/B 1.66 vs قطاع 1.40 (1.19x) → 1/4",
-            "Yield 3.3% → 2/3",
-            "EV/EBITDA غير متوفر → 1/3"
+            "Yield 3.3% → 2/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 41.8",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -41866,12 +41797,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 61,
+        "total": 63,
         "financial": 13,
         "trend": 17,
         "relativeStrength": 11,
         "risk": 10,
-        "valuation": 13,
+        "valuation": 6,
         "timing": "مقبول",
         "timingSignals": 2,
         "classification": "انتظار",
@@ -41879,6 +41810,7 @@
         "sector": "Utilities",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -41926,10 +41858,8 @@
             "ND/EBITDA 4.9x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 15.1 vs قطاع 20.1 (0.75x) → 4/5",
             "P/B 0.28 vs قطاع 2.89 (0.10x) → 4/4",
-            "Yield 4.0% → 2/3",
-            "EV/EBITDA 5.9 → 3/3"
+            "Yield 4.0% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -43542,19 +43472,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 67,
+        "total": 69,
         "financial": 21,
         "trend": 10,
         "relativeStrength": 11,
         "risk": 14,
-        "valuation": 14,
+        "valuation": 6,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "شراء مشروط",
-        "classCode": "conditional_buy",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Discretionary",
         "industry": "Restaurants",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -43600,10 +43531,8 @@
             "ND/EBITDA 0.9x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 19.1 vs قطاع 28.9 (0.66x) → 5/5",
             "P/B 0.70 vs قطاع 2.94 (0.24x) → 4/4",
-            "Yield 3.9% → 2/3",
-            "EV/EBITDA 7.7 → 3/3"
+            "Yield 3.9% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -44167,19 +44096,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 30,
+        "total": 34,
         "financial": 18,
         "trend": 1,
         "relativeStrength": 4,
         "risk": 6,
-        "valuation": 3,
+        "valuation": 2,
         "timing": "ممتاز",
         "timingSignals": 3,
-        "classification": "بيع قوي",
-        "classCode": "strong_sell",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Discretionary",
         "industry": "Leisure",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -44221,8 +44151,7 @@
             "ND/EBITDA 3.9x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/B 3.10 vs قطاع 2.94 (1.05x) → 2/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 3.10 vs قطاع 2.94 (1.05x) → 2/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -44395,19 +44324,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 56,
+        "total": 60,
         "financial": 29,
         "trend": 0,
         "relativeStrength": 9,
         "risk": 10,
-        "valuation": 11,
+        "valuation": 6,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Consumer Staples",
         "industry": "Education &amp; Training Services",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -44448,10 +44378,8 @@
             "فوائض نقدية (ND/EBITDA -0.7x) → 5/5"
           ],
           "valuation": [
-            "P/E 17.3 vs قطاع 18.1 (0.95x) → 3/5",
             "P/B 1.65 vs قطاع 3.10 (0.53x) → 4/4",
-            "Yield 3.2% → 2/3",
-            "EV/EBITDA 9.7 → 2/3"
+            "Yield 3.2% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -44829,7 +44757,7 @@
         "trend": 12,
         "relativeStrength": 11,
         "risk": 7,
-        "valuation": 9,
+        "valuation": 3,
         "timing": "ممتاز",
         "timingSignals": 3,
         "classification": "بيع",
@@ -44837,6 +44765,7 @@
         "sector": "Consumer Staples",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -44883,9 +44812,7 @@
             "Vol20/50: 1.41 → 4/4"
           ],
           "valuation": [
-            "P/E 8.4 vs قطاع 18.1 (0.46x) → 5/5",
-            "P/B 1.96 vs قطاع 3.10 (0.63x) → 3/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 1.96 vs قطاع 3.10 (0.63x) → 3/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -45253,19 +45180,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 48,
+        "total": 54,
         "financial": 15,
         "trend": 14,
         "relativeStrength": 7,
         "risk": 9,
-        "valuation": 5,
+        "valuation": 4,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Consumer Staples",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -45309,8 +45237,7 @@
             "فوائض نقدية → 5/5"
           ],
           "valuation": [
-            "P/B 1.23 vs قطاع 3.10 (0.40x) → 4/4",
-            "EV/EBITDA غير متوفر → 1/3"
+            "P/B 1.23 vs قطاع 3.10 (0.40x) → 4/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -45496,19 +45423,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 76,
+        "total": 83,
         "financial": 26,
         "trend": 22,
         "relativeStrength": 8,
         "risk": 15,
-        "valuation": 9,
+        "valuation": 4,
         "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "شراء",
-        "classCode": "buy",
+        "timingSignals": 4,
+        "classification": "شراء قوي",
+        "classCode": "strong_buy",
         "sector": "Communication Services",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -45548,15 +45476,13 @@
             "ND/EBITDA 0.0x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 14.2 vs قطاع 15.1 (0.94x) → 3/5",
             "P/B 2.54 vs قطاع 2.27 (1.12x) → 1/4",
-            "Yield 5.0% → 3/3",
-            "EV/EBITDA 9.6 → 2/3"
+            "Yield 5.0% → 3/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 57.4",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "✅ حجم متزايد"
           ]
         },
@@ -45734,12 +45660,12 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 61,
+        "total": 64,
         "financial": 24,
         "trend": 11,
         "relativeStrength": 5,
         "risk": 13,
-        "valuation": 11,
+        "valuation": 5,
         "timing": "مقبول",
         "timingSignals": 2,
         "classification": "انتظار",
@@ -45747,6 +45673,7 @@
         "sector": "Communication Services",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -45790,10 +45717,8 @@
             "ND/EBITDA 0.8x (مريح) → 4/5"
           ],
           "valuation": [
-            "P/E 14.6 vs قطاع 15.1 (0.97x) → 3/5",
             "P/B 2.38 vs قطاع 2.27 (1.05x) → 2/4",
-            "Yield 6.7% → 3/3",
-            "EV/EBITDA 7.2 → 3/3"
+            "Yield 6.7% → 3/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -46165,19 +46090,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 58,
+        "total": 60,
         "financial": 29,
         "trend": 11,
         "relativeStrength": 2,
         "risk": 11,
-        "valuation": 8,
-        "timing": "انتظر",
-        "timingSignals": 1,
+        "valuation": 1,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "انتظار",
         "classCode": "hold",
         "sector": "Communication Services",
         "industry": null,
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -46225,15 +46151,13 @@
             "فوائض نقدية (ND/EBITDA -1.8x) → 5/5"
           ],
           "valuation": [
-            "P/E 11.1 vs قطاع 15.1 (0.74x) → 4/5",
             "P/B 3.30 vs قطاع 2.27 (1.46x) → 0/4",
-            "Yield 0.8% → 1/3",
-            "EV/EBITDA 6.9 → 3/3"
+            "Yield 0.8% → 1/3"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 42.9",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -46413,7 +46337,7 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 49,
+        "total": 57,
         "financial": 10,
         "trend": 21,
         "relativeStrength": 11,
@@ -46421,11 +46345,12 @@
         "valuation": 1,
         "timing": "مقبول",
         "timingSignals": 2,
-        "classification": "بيع",
-        "classCode": "sell",
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Technology",
         "industry": "Information Technology Services",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -46473,10 +46398,8 @@
             "ND/EBITDA 9.9x (خطر) → 0/5"
           ],
           "valuation": [
-            "P/E 49.6 vs قطاع 20.6 (2.41x) → 0/5",
             "P/B 23.50 vs قطاع 3.32 (7.08x) → 0/4",
-            "Yield 1.2% → 1/3",
-            "EV/EBITDA 45.7 → 0/3"
+            "Yield 1.2% → 1/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
@@ -47257,19 +47180,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 35,
+        "total": 36,
         "financial": 20,
         "trend": 1,
         "relativeStrength": 2,
         "risk": 7,
-        "valuation": 7,
-        "timing": "انتظر",
-        "timingSignals": 1,
-        "classification": "بيع",
-        "classCode": "sell",
+        "valuation": 2,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Technology",
         "industry": "Software - Infrastructure",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -47311,14 +47235,12 @@
             "ND/EBITDA 2.9x (مرتفع) → 1/5"
           ],
           "valuation": [
-            "P/E 14.5 vs قطاع 20.6 (0.70x) → 4/5",
-            "P/B 2.97 vs قطاع 3.32 (0.90x) → 2/4",
-            "EV/EBITDA 14.0 → 1/3"
+            "P/B 2.97 vs قطاع 3.32 (0.90x) → 2/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
             "✅ RSI-D 49.9",
-            "⚠️ MACD-D سلبي",
+            "✅ MACD-D إيجابي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -47731,19 +47653,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 59,
+        "total": 67,
         "financial": 22,
         "trend": 14,
         "relativeStrength": 9,
         "risk": 10,
-        "valuation": 7,
-        "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "valuation": 5,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "شراء مشروط",
+        "classCode": "conditional_buy",
         "sector": "Financials",
         "industry": "Insurance - Life",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -47787,15 +47710,13 @@
             "فوائض نقدية (ND/EBITDA -7.1x) → 5/5"
           ],
           "valuation": [
-            "P/E 18.7 vs قطاع 16.9 (1.11x) → 1/5",
             "P/B 0.79 vs قطاع 1.02 (0.77x) → 3/4",
-            "Yield 3.3% → 2/3",
-            "EV/EBITDA 13.8 → 1/3"
+            "Yield 3.3% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 51.0",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -48421,19 +48342,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 45,
+        "total": 52,
         "financial": 6,
         "trend": 14,
         "relativeStrength": 11,
         "risk": 12,
         "valuation": 4,
         "timing": "ممتاز",
-        "timingSignals": 4,
-        "classification": "بيع",
-        "classCode": "sell",
+        "timingSignals": 3,
+        "classification": "انتظار",
+        "classCode": "hold",
         "sector": "Financials",
         "industry": "Insurance - Diversified",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -48477,14 +48399,12 @@
             "فوائض نقدية (ND/EBITDA -2.2x) → 5/5"
           ],
           "valuation": [
-            "P/E 71.2 vs قطاع 16.9 (4.21x) → 0/5",
-            "P/B 0.08 vs قطاع 1.02 (0.08x) → 4/4",
-            "EV/EBITDA 19.5 → 0/3"
+            "P/B 0.08 vs قطاع 1.02 (0.08x) → 4/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 57.4",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -49528,19 +49448,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 51,
+        "total": 54,
         "financial": 14,
         "trend": 14,
         "relativeStrength": 11,
         "risk": 10,
-        "valuation": 5,
-        "timing": "ممتاز",
-        "timingSignals": 3,
+        "valuation": 0,
+        "timing": "مقبول",
+        "timingSignals": 2,
         "classification": "انتظار",
         "classCode": "hold",
         "sector": "Financials",
         "industry": "Insurance - Diversified",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -49584,14 +49505,12 @@
             "فوائض نقدية → 5/5"
           ],
           "valuation": [
-            "P/E 16.4 vs قطاع 16.9 (0.97x) → 3/5",
-            "P/B 1.51 vs قطاع 1.02 (1.48x) → 0/4",
-            "EV/EBITDA 11.8 → 2/3"
+            "P/B 1.51 vs قطاع 1.02 (1.48x) → 0/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 55.6",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -50842,7 +50761,7 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 41,
+        "total": 48,
         "financial": 20,
         "trend": 11,
         "relativeStrength": 3,
@@ -50855,6 +50774,7 @@
         "sector": "Financials",
         "industry": "Insurance - Reinsurance",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -50902,9 +50822,7 @@
             "فوائض نقدية (ND/EBITDA -3.6x) → 5/5"
           ],
           "valuation": [
-            "P/E 34.8 vs قطاع 16.9 (2.06x) → 0/5",
-            "P/B 23.19 vs قطاع 1.02 (22.73x) → 0/4",
-            "EV/EBITDA 24.2 → 0/3"
+            "P/B 23.19 vs قطاع 1.02 (22.73x) → 0/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
@@ -51747,19 +51665,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 74,
+        "total": 78,
         "financial": 23,
         "trend": 21,
         "relativeStrength": 11,
         "risk": 12,
-        "valuation": 11,
-        "timing": "ممتاز",
-        "timingSignals": 3,
-        "classification": "شراء",
-        "classCode": "buy",
+        "valuation": 3,
+        "timing": "مقبول",
+        "timingSignals": 2,
+        "classification": "شراء مشروط",
+        "classCode": "conditional_buy",
         "sector": "Financials",
         "industry": "Insurance - Diversified",
         "filtered": false,
+        "unrated": false,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -51807,15 +51726,13 @@
             "فوائض نقدية (ND/EBITDA -2.0x) → 5/5"
           ],
           "valuation": [
-            "P/E 8.7 vs قطاع 16.9 (0.52x) → 5/5",
             "P/B 1.41 vs قطاع 1.02 (1.39x) → 1/4",
-            "Yield 3.7% → 2/3",
-            "EV/EBITDA 5.3 → 3/3"
+            "Yield 3.7% → 2/3"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 56.3",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "⚠️ حجم متراجع"
           ]
         },
@@ -52220,19 +52137,20 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 59,
+        "total": 62,
         "financial": 20,
         "trend": 12,
         "relativeStrength": 11,
         "risk": 12,
-        "valuation": 7,
+        "valuation": 1,
         "timing": "ممتاز",
-        "timingSignals": 4,
+        "timingSignals": 3,
         "classification": "انتظار",
         "classCode": "hold",
         "sector": "Financials",
         "industry": "Insurance - Diversified",
         "filtered": false,
+        "unrated": false,
         "filterReason": "تحت SMA200W لكن إشارات انعكاس",
         "confidence": "",
         "confidenceCode": "",
@@ -52280,14 +52198,12 @@
             "فوائض نقدية (ND/EBITDA -1.6x) → 5/5"
           ],
           "valuation": [
-            "P/E 14.3 vs قطاع 16.9 (0.85x) → 4/5",
-            "P/B 1.15 vs قطاع 1.02 (1.13x) → 1/4",
-            "EV/EBITDA 8.8 → 2/3"
+            "P/B 1.15 vs قطاع 1.02 (1.13x) → 1/4"
           ],
           "timing": [
             "✅ فوق EMA50D",
             "✅ RSI-D 54.5",
-            "✅ MACD-D إيجابي",
+            "⚠️ MACD-D سلبي",
             "✅ حجم متزايد"
           ]
         },
@@ -53103,7 +53019,7 @@
       },
       "valuationUpdatedAt": "2026-08-03 16:23",
       "investmentScore": {
-        "total": 50,
+        "total": 58,
         "financial": 30,
         "trend": 6,
         "relativeStrength": 5,
@@ -53111,11 +53027,12 @@
         "valuation": 0,
         "timing": "انتظر",
         "timingSignals": 1,
-        "classification": "انتظار",
-        "classCode": "hold",
+        "classification": "غير مُقيَّم",
+        "classCode": "unrated",
         "sector": "Technology",
         "industry": "Software - Application",
         "filtered": false,
+        "unrated": true,
         "filterReason": "عدّى الفلتر",
         "confidence": "",
         "confidenceCode": "",
@@ -53161,9 +53078,7 @@
             "فوائض نقدية (ND/EBITDA -2.1x) → 5/5"
           ],
           "valuation": [
-            "P/E 41.3 vs قطاع 20.6 (2.01x) → 0/5",
-            "P/B 12.62 vs قطاع 3.32 (3.80x) → 0/4",
-            "EV/EBITDA 36.1 → 0/3"
+            "P/B 12.62 vs قطاع 3.32 (3.80x) → 0/4"
           ],
           "timing": [
             "⚠️ تحت EMA50D",
