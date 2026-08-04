@@ -709,9 +709,17 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
         if isinstance(body, list):
             body = body[0] if body and isinstance(body[0], dict) else {}
         rat = body.get("ratios") or {}
+        # (04-08ح) «ratios» قد تكون قائمة فترات (الشكل المؤكد: ratios[0].ratios.roe) —
+        # ننزل لأحدث فترة، ثم لقاموس النسب المتداخل إن وُجد
+        if isinstance(rat, list):
+            rat = rat[0] if rat and isinstance(rat[0], dict) else {}
+        if isinstance(rat, dict) and isinstance(rat.get("ratios"), dict):
+            rat = rat["ratios"]
         if not rat and isinstance(body, dict) and any(
                 k in body for k in ("roe", "roa", "net_margin", "debt_to_equity")):
             rat = body   # الجسد نفسه هو النسب (شكل مسطح)
+        if not isinstance(rat, dict):
+            rat = {}
         if not rat:
             # فشل تفكيك = فشل مسموع لا صامت (درس 04-08)
             return False, "بنية غير متوقعة — مفاتيح: %s" % sorted(body.keys() if isinstance(body, dict) else [])[:8]
@@ -1438,10 +1446,16 @@ def probe_ratios(api):
                 print("  📐 قائمة جذرية بطول %d — الاستخراج من العنصر الأول" % len(body))
                 body = body[0] if body and isinstance(body[0], dict) else {}
             rat = body.get("ratios") if isinstance(body, dict) else None
+            # (04-08ح) نفس نزول do_ratios: قائمة فترات → أحدث فترة → قاموس النسب المتداخل
+            if isinstance(rat, list):
+                rat = rat[0] if rat and isinstance(rat[0], dict) else {}
+            if isinstance(rat, dict) and isinstance(rat.get("ratios"), dict):
+                body = rat          # الفترة تحمل key_metrics أيضاً
+                rat = rat["ratios"]
             if not rat and isinstance(body, dict) and any(
                     k in body for k in ("roe", "roa", "net_margin", "debt_to_equity")):
                 rat = body   # شكل مسطح
-            rat = rat or {}
+            rat = rat if isinstance(rat, dict) else {}
             km = body.get("key_metrics") if isinstance(body, dict) else None
             km = km or {}
             print("  💵 القيم: roe=%s | roa=%s | net_margin=%s | operating_margin=%s | debt_to_equity=%s"
