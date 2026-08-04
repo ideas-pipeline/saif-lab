@@ -77,9 +77,19 @@ scripts/scoring-engine.py (criteria v2.1) بلا أي تعديل.
       is_full_year + الحقول) + reporting(reporting_cadence/quarterly_income_convention).
       استُثمر: cashflow.ocf/netIncome/fcf حية (اصطلاح موثق: **آخر سنة مالية كاملة**
       is_full_year=true الأحدث — يطابق سنوية باقي النسب؛ TTM من الأرباع مؤجل حتى تحقق
-      quarterly_income_convention)، وrevenueGrowth من سنتين كاملتين متتاليتين،
-      وC/I البنوك يُشتق فقط إن ثبت operating_income < total_revenue فعلاً
-      (بحارس معقولية 0<C/I<100 — وإن ساوى الإيراد فالاستحالة تُعدّ وتُطبع).
+      quarterly_income_convention؛ netIncome الغائب من القوائم مع بقاء قديم = وسم
+      netIncomeSource صريح — لا خلط عمرين تحت وسم واحد)، وrevenueGrowth من سنتين
+      كاملتين **متتاليتين فعلاً** (تحقق تتالي fiscal_year — فجوة سنة = لا نمو).
+    - **C/I البنوك — الاشتقاق مجمد بقرار المحلل (الخيار ب، 04-08):** المشتق
+      (rev−opi)/rev يُحسب ويُخزن معلوماتياً في sectorFinancials.costToIncomeDerived
+      (المحرك لا يقرؤه) **ولا يُكتب في costToIncome إطلاقاً** — legacy تبقى المحتسبة.
+      جدول مقارنة العشرة (legacy | مشتق | الفرق) يُطبع كل تشغيلة أساسيات وفي تقرير
+      الظلية الأسبوعي — القرار النهائي (اعتماد بوسم تعريفي / معايرة عتبات موسومة /
+      بقاء legacy لبند 27) يُتخذ على فروق أول تشغيلة الفعلية.
+    - سلطة الإنذارات (شرط الناقد — الخيار الموثق: صياغة تطابق الواقع، لا سلطات جديدة):
+      فقد adjusted_close الكامل لسهم = تخطٍّ معدود (weekly_fail) والكتلة القديمة باقية —
+      لا تغيير اصطلاح يقع فلا سلطة إيقاف؛ وغياب current_price الواسع = «تحذير جسيم
+      بتدهور آمن» (تجميد P/B محافظ) — إسقاط التشغيلة له عقوبة غير متناسبة.
     - ratios: التركيبة المؤكدة حصراً history=latest&period=annual&metrics=all —
       history=3y أُسقط نهائياً (HTTP 400 مؤكد إنتاجياً)؛ فشل التفكيك يُعدّ فشلاً
       مسموعاً بأسبابه (أول 3 لكل نوع) لا عدّاداً صامتاً.
@@ -88,9 +98,9 @@ scripts/scoring-engine.py (criteria v2.1) بلا أي تعديل.
 ------------------------------------------------------------------
     - currentRatio: يبقى موروثاً نهائياً من هذا المصدر — balance_sheets إجماليات فقط
       (total_assets/total_liabilities) بلا شق متداول.
-    - Cost/Income للبنوك: إن أثبتت القوائم أيضاً operating_income == total_revenue
-      فالاشتقاق مستحيل (يُعدّ في bank_cti_flat) والقيمة القديمة (yfinance-legacy)
-      تُحفظ محتسبة (قرار المحلل بند 2).
+    - Cost/Income للبنوك: الاشتقاق **مجمد بقرار المحلل (الخيار ب)** حتى مراجعة فروق
+      العشرة من أول تشغيلة؛ والقيمة المحتسبة تبقى legacy. إن أثبتت القوائم
+      operating_income == total_revenue فالاشتقاق مستحيل أصلاً (يُعدّ في bank_cti_flat).
     - ترحيل الوسوم يجري في الذاكرة كل تشغيلة؛ إن حجبت بوابة فشل الكتابة ضاع معها —
       سلوك صحيح: يعاد آلياً في التشغيلة التالية بحكم idempotent.
     - EV/EBITDA وP/E: يُخزنان كمدخلات حية في valuationInputs فقط — خارج مقام
@@ -613,12 +623,29 @@ def parse_financials(f):
         out["fcf"] = _fs_val(lc, "free_cash_flow", *NEST_C)
         out["cfReportDate"] = _fs_val(lc, "report_date", *NEST_C)
         out["cfFiscalYear"] = _fs_val(lc, "fiscal_year", *NEST_C)
-    # نمو الإيرادات: آخر سنتين كاملتين متتاليتين من قوائم الدخل (يغني عن history=3y المرفوض)
+    # نمو الإيرادات: آخر سنتين كاملتين **متتاليتين فعلاً** من قوائم الدخل (تحسين الناقد:
+    # تحقق تتالي fiscal_year — فجوة سنة مفقودة كانت ستنتج «نمواً» على سنتين فتضلل).
+    # التتالي: fiscal_year فرقهما 1 إن توفر، وإلا سنة report_date فرقهما 1، وإلا لا نمو.
     fy_inc = sorted((e for e in inc if _fs_val(e, "is_full_year", *NEST_I) is True),
                     key=lambda e: str(_fs_val(e, "report_date", *NEST_I) or ""), reverse=True)
-    revs = [_fs_val(e, "total_revenue", *NEST_I) for e in fy_inc[:2]]
-    if len(revs) == 2 and revs[0] is not None and revs[1]:
-        out["revenueGrowth"] = round((revs[0] - revs[1]) / abs(revs[1]) * 100, 1)
+    if len(fy_inc) >= 2:
+        e0, e1 = fy_inc[0], fy_inc[1]
+        revs = (_fs_val(e0, "total_revenue", *NEST_I), _fs_val(e1, "total_revenue", *NEST_I))
+        def _year(e):
+            fy = _fs_val(e, "fiscal_year", *NEST_I)
+            if fy is not None:
+                try:
+                    return int(fy)
+                except (TypeError, ValueError):
+                    pass
+            rd = str(_fs_val(e, "report_date", *NEST_I) or "")[:4]
+            return int(rd) if rd.isdigit() else None
+        y0, y1 = _year(e0), _year(e1)
+        consecutive = (y0 is not None and y1 is not None and y0 - y1 == 1)
+        if consecutive and revs[0] is not None and revs[1]:
+            out["revenueGrowth"] = round((revs[0] - revs[1]) / abs(revs[1]) * 100, 1)
+        elif not consecutive:
+            out["revGrowthGapYears"] = (y0, y1)   # للتشخيص — سنتان غير متتاليتين
     return out
 
 
@@ -673,12 +700,18 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
             reporting_shown[0] = True
             print("  📋 reporting: cadence=%s | quarterly_convention=%s (اصطلاح OCF: آخر سنة كاملة)"
                   % (p["reporting"].get("reporting_cadence"), p["reporting"].get("quarterly_income_convention")))
-        # cashflow: إحياء OCF (3ن) — ترقية الوسم من legacy-unknown إلى sahmk بختم report_date الحقيقي
+        # cashflow: إحياء OCF (3ن) — ترقية الوسم من legacy-unknown إلى sahmk بختم report_date الحقيقي.
+        # (تحسين الناقد: لا خلط عمرين تحت وسم واحد) — netIncome يُكتب من القوائم مع ocf الجديد؛
+        # وإن غاب net_income من القوائم مع بقاء قيمة قديمة، تُوسم القديمة صراحة netIncomeSource
+        # بدل تركها توحي بأنها من sahmk بختم الكتلة الجديد. (لا تُستبدل بـnull — قاعدة الحفظ.)
         if p.get("ocf") is not None:
             cf = dict(st.get("cashflow") or {})
             cf["ocf"] = p["ocf"]
             if p.get("netIncome") is not None:
                 cf["netIncome"] = p["netIncome"]
+                cf.pop("netIncomeSource", None)   # صار من نفس المصدر والعمر
+            elif cf.get("netIncome") is not None:
+                cf["netIncomeSource"] = "legacy-unknown"   # قيمة قديمة تحت كتلة موسومة sahmk — وسم صريح
             if p.get("fcf") is not None:
                 cf["fcf"] = p["fcf"]
             cf["source"] = "sahmk /financials"
@@ -692,8 +725,11 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
             counters["revgrowth_ok"] += 1
         else:
             counters["revgrowth_miss"] += 1
-        # مصروفات البنوك: تُشتق فقط إن كان operating_income < total_revenue فعلاً
-        # (في ratios كانا متساويين — القوائم تحسمها بالقيم؛ الاشتقاق بحارس معقولية 0<C/I<100)
+        # مصروفات البنوك — **الاشتقاق مجمد بقرار المحلل (الخيار ب، 04-08)**:
+        # C/I المشتق (rev−opi)/rev يُحسب للمقارنة فقط ولا يُكتب في costToIncome إطلاقاً —
+        # القيمة القديمة legacy تبقى هي المحتسبة، والمشتق يُخزن في حقل معلوماتي مستقل
+        # (costToIncomeDerived — لا يقرؤه المحرك) ويُطبع جدول مقارنة العشرة. القرار
+        # النهائي (اعتماد بوسم / معايرة موسومة / بقاء legacy لبند 27) على فروق أول تشغيلة.
         if "Bank" in (st.get("industry") or ""):
             rev, opi = p.get("totalRevenue"), p.get("operatingIncome")
             sc = scratch.setdefault(sym, {})
@@ -701,7 +737,7 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
             if rev and opi is not None and 0 < opi < rev:
                 cti = round((rev - opi) / rev * 100, 1)
                 if 0 < cti < 100:
-                    sc["cti"] = cti
+                    sc["ctiDerived"] = cti   # للمقارنة والتخزين المعلوماتي — لا للاحتساب
                     counters["bank_cti_ok"] += 1
             elif rev and opi is not None and opi >= rev:
                 counters["bank_cti_flat"] += 1   # لا تفصيل مصروفات في القوائم أيضاً
@@ -809,8 +845,10 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
         sf = dict(old_sf)
         sf["type"] = "bank"
         written_now = []
+        # قرار المحلل (الخيار ب): costToIncome المحتسبة لا تُكتب — legacy تبقى؛
+        # المشتق يُخزن معلوماتياً في costToIncomeDerived (المحرك لا يقرؤه)
         for k, v in (("ROA", round(sc["roa"], 2) if sc.get("roa") is not None else None),
-                     ("costToIncome", sc.get("cti")),
+                     ("costToIncomeDerived", sc.get("ctiDerived")),
                      ("totalRevenue", sc.get("bankRevenue")),
                      ("operatingIncome", sc.get("bankOpIncome"))):
             if v is not None:
@@ -827,6 +865,22 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
         st["sectorFinancials"] = sf
     # debtHealth: لا تُكتب إطلاقاً (قرار المحلل بند 1) — الكتل الموسومة بالترحيل تبقى محتسبة.
 
+    # ── جدول مقارنة C/I للبنوك (قرار المحلل — الخيار ب): legacy المحتسبة مقابل المشتق ──
+    bank_rows = []
+    for st in stocks:
+        if "Bank" not in (st.get("industry") or ""):
+            continue
+        sf = st.get("sectorFinancials") or {}
+        legacy_ci = sf.get("costToIncome")
+        derived = sf.get("costToIncomeDerived")
+        diff = round(derived - legacy_ci, 1) if (derived is not None and legacy_ci is not None) else None
+        bank_rows.append((st["symbol"], legacy_ci, derived, diff))
+    if bank_rows:
+        print("🏦 مقارنة C/I البنوك (الاشتقاق مجمد بقرار المحلل — legacy هي المحتسبة):")
+        print("   %-6s | %-14s | %-22s | %s" % ("بنك", "legacy (محتسب)", "مشتق سهمك (بالمخصصات)", "الفرق"))
+        for sym, lc, dv, df in bank_rows:
+            print("   %-6s | %-14s | %-22s | %s" % (sym, lc, dv, ("%+.1f" % df) if df is not None else "—"))
+
     # تحديث وسم مصدر financials الإجمالي بعد الجولتين
     for st in stocks:
         parts = st.get("financialsParts") or {}
@@ -840,13 +894,17 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
                                   else "mixed: sahmk + موروث (%s) — انظر financialsParts" % "، ".join(legacy_left))
         st["financialsUpdated"] = today   # يصدق على حقول sahmk في financialsParts حصراً
 
-    # ── بوابة current_price (م-1): غيابه الواسع يجمد حارس P/B للسوق كله ──
+    # ── فحص current_price (م-1): غيابه الواسع يجمد حارس P/B للسوق كله ──
+    # (اتساق سلطة الإنذارات — شرط الناقد 2ب): التسمية تطابق السلوك المختار — «تحذير
+    # جسيم بتدهور آمن» لا «حاكم»: لا سلطة إيقاف له عمداً، لأن أثره الفعلي تدهور آمن
+    # (pbConsistent=None → compute-valuation يجمد P/B = الوضع المحافظ)، وإسقاط التشغيلة
+    # كلها لعطب مدخل تقييم عقوبة غير متناسبة تحرم الأسعار والفنية السليمة من النشر.
     cp_total = counters["company_cp_ok"] + counters["company_cp_miss"]
     if cp_total and counters["company_cp_miss"] / cp_total > 0.5:
-        print("⛔ تحذير حاكم: company.current_price غائب في %d/%d من الردود (>50%%) —"
+        print("⚠️ تحذير جسيم (تدهور آمن): company.current_price غائب في %d/%d من الردود (>50%%) —"
               % (counters["company_cp_miss"], cp_total))
-        print("   حارس اتساق P/B غير قابل للتحقق للسوق كله → compute-valuation سيجمد P/B للجميع.")
-        print("   pbConsistent كُتب None (غير قابل للتحقق) لا False — راجع شكل /company/ قبل الاعتماد.")
+        print("   حارس اتساق P/B غير قابل للتحقق للسوق كله → compute-valuation سيجمد P/B للجميع (محافظ).")
+        print("   pbConsistent كُتب None (غير قابل للتحقق) لا False — راجع شكل /company/ قبل اعتماد التقييم.")
 
     # ── حسم مقياس debt_to_equity — على الكون الكامل فقط (م-4) ──
     if not de_raw:
@@ -1019,11 +1077,66 @@ def migrate_legacy_tags(data):
     return n_dh + n_cf + n_fp
 
 
-def shadow_compare(path_a, path_b):
-    """معيار القبول الحاكم (قرار المحلل بند 7): مقارنة ناتج المحرك على ملفين —
-    صفر فرق في total واسم التصنيف لكل الأسهم = شرط اعتماد الجالب. أي فرق = خلل يوقف الاعتماد.
-    حارس الفراغ (درس 04-08): نجاح زائف طُبع حين حجبت البوابة كتابة الجالب فقورن الملف
-    بنفسه — الآن: هدف بلا ختم sahmk-direct نضِر أو أختام جلب متطابقة = «مقارنة فارغة» بخروج 2."""
+# القائمة المغلقة لإسناد فروق الوضع الأسبوعي (معيار المحلل المحدّث — مرحلتان)
+ATTR_FIELDS = (
+    ("ocf", lambda s: (s.get("cashflow") or {}).get("ocf")),
+    ("revenueGrowth", lambda s: (s.get("financials") or {}).get("revenueGrowth")),
+    ("profitMargins", lambda s: (s.get("financials") or {}).get("profitMargins")),
+    ("roe", lambda s: (s.get("financials") or {}).get("returnOnEquity")),
+    ("de", lambda s: (s.get("financials") or {}).get("debtToEquity")),
+    ("costToIncome", lambda s: (s.get("sectorFinancials") or {}).get("costToIncome")),
+)
+
+# مسارات مدخلات الوضع اليومي بالترتيب — لتسمية جذر أول فرق
+DAILY_INPUT_PATHS = (
+    ("currentPrice",), ("previousClose",), ("dailyChange",), ("netLiquidity",),
+    ("dailyExtra", "high52w"), ("dailyExtra", "atrPct"), ("dailyExtra", "avgVol20"),
+    ("dailyExtra", "avgVol50"), ("dailyExtra", "ema50d"), ("dailyExtra", "rsi14d"),
+    ("dailyTechnical", "macdD"), ("dailyTechnical", "macdSignalD"),
+    ("relativeStrength", "return3m"), ("relativeStrength", "return6m"),
+    ("relativeStrength", "return12m"), ("relativeStrength", "rsTasi3m"),
+    ("relativeStrength", "rsTasi6m"),
+    ("valuation", "pb"), ("valuation", "dividendYield"),
+    ("weeklyTechnical", "sma200w"), ("weeklyTechnical", "ema40w"),
+    ("weeklyTechnical", "rsi14w"), ("weeklyTechnical", "macdW"),
+    ("weeklyTechnical", "macdSignalW"), ("weeklyTechnical", "sma200wSlope"),
+    ("financials", "profitMargins"), ("financials", "returnOnEquity"),
+    ("financials", "revenueGrowth"), ("financials", "debtToEquity"),
+    ("financials", "currentRatio"), ("cashflow", "ocf"), ("cashflow", "netIncome"),
+    ("sectorFinancials", "costToIncome"), ("sectorFinancials", "ROA"),
+)
+
+
+def _path_val(stock, path):
+    v = stock
+    for k in path:
+        if not isinstance(v, dict):
+            return None
+        v = v.get(k)
+    return v
+
+
+def _first_input_diff(sa, sb):
+    for path in DAILY_INPUT_PATHS:
+        va, vb = _path_val(sa, path), _path_val(sb, path)
+        if va != vb:
+            return ".".join(path), va, vb
+    return None
+
+
+def shadow_compare(path_a, path_b, mode="daily"):
+    """معيار القبول الحاكم (قرار المحلل بند 7 + معيار الإسناد المحدّث بمرحلتين):
+      --mode daily : صفر فرق حرفي متوقع؛ أي فرق يُطبع مع جذره (أول حقل مدخلات مختلف).
+      --mode weekly: فروق النقاط تُسند حصرياً للقائمة المغلقة (ocf/revenueGrowth/
+                     profitMargins/roe/de/costToIncome) — فرق بلا إسناد = «غير مُسنَد» خروج 1.
+    بوابة المعقولية: تغير تصنيف >25% من الكون، أو انزياح أحادي الاتجاه شاذ في حقل واحد
+    (تفعيلها الرقمي الموثق: الحقل تغير عند ≥20% من الكون و≥95% من تغيراته بإشارة واحدة)
+    → «⛔ توقف وتحقيق» بخروج 3 (يعلو كل شيء).
+    حارس الفراغ (درس 04-08): يفحص **الأختام لا العمر** — الملفان بمسار واحد، أو الطرف
+    الأول بلا ختم priceSource=sahmk-direct-v1، أو lastUpdated متطابق في الطرفين =
+    «مقارنة فارغة» بخروج 2. نضارة اليوم المرجعي مسؤولية المشغل (المقارنة التاريخية
+    المتعمدة مشروعة — فحص عمرٍ ضد «اليوم» كان سيرفضها زوراً).
+    الخروج: 3 معقولية > 2 فراغ > 1 فروق/غير مُسنَد > 0 اعتماد."""
     a = json.load(open(path_a))
     b = json.load(open(path_b))
     # حارس الفراغ — قبل أي حكم
@@ -1038,28 +1151,116 @@ def shadow_compare(path_a, path_b):
         print("⚠️ مقارنة فارغة — لا حكم اعتماد منها: %s" % "؛ ".join(empty_reasons))
         print("   (جدد ناتج الجالب أولاً ثم أعد المقارنة — خروج 2 كي لا يُقرأ نجاح زائف)")
         sys.exit(2)
-    A = {s["symbol"]: s.get("investmentScore") or {} for s in a.get("stocks", [])}
-    B = {s["symbol"]: s.get("investmentScore") or {} for s in b.get("stocks", [])}
-    only_a = sorted(set(A) - set(B))
-    only_b = sorted(set(B) - set(A))
+
+    SA = {s["symbol"]: s for s in a.get("stocks", [])}
+    SB = {s["symbol"]: s for s in b.get("stocks", [])}
+    common = sorted(set(SA) & set(SB))
+    only_a = sorted(set(SA) - set(SB))
+    only_b = sorted(set(SB) - set(SA))
+    isc = lambda s: s.get("investmentScore") or {}
     diffs = []
-    for sym in sorted(set(A) & set(B)):
-        ta, tb = A[sym].get("total"), B[sym].get("total")
-        ca, cb = A[sym].get("classification"), B[sym].get("classification")
+    for sym in common:
+        ta, tb = isc(SA[sym]).get("total"), isc(SB[sym]).get("total")
+        ca, cb = isc(SA[sym]).get("classification"), isc(SB[sym]).get("classification")
         if ta != tb or ca != cb:
             diffs.append((sym, ta, tb, ca, cb))
-    print("المقارنة الظلية: %s ↔ %s" % (path_a, path_b))
+    print("المقارنة الظلية (%s): %s ↔ %s" % (mode, path_a, path_b))
     print("أسهم مشتركة: %d | في الأول فقط: %d %s | في الثاني فقط: %d %s"
-          % (len(set(A) & set(B)), len(only_a), only_a[:5], len(only_b), only_b[:5]))
+          % (len(common), len(only_a), only_a[:5], len(only_b), only_b[:5]))
+
+    # ── تعدادات العبور (بالأسماء) ──
+    BUY = ("strong_buy", "buy", "conditional_buy")
+    cc = lambda s: isc(s).get("classCode")
+    tt = lambda s: isc(s).get("total")
+    entered = [s2 for s2 in common if cc(SA[s2]) in BUY and cc(SB[s2]) not in BUY]
+    left = [s2 for s2 in common if cc(SA[s2]) not in BUY and cc(SB[s2]) in BUY]
+    def crossings(th):
+        up = [s2 for s2 in common if tt(SB[s2]) is not None and tt(SA[s2]) is not None
+              and tt(SB[s2]) < th <= tt(SA[s2])]
+        dn = [s2 for s2 in common if tt(SB[s2]) is not None and tt(SA[s2]) is not None
+              and tt(SA[s2]) < th <= tt(SB[s2])]
+        return up, dn
+    up50, dn50 = crossings(50)
+    up65, dn65 = crossings(65)
+    if diffs:
+        print("تعدادات العبور (القديم=الطرف الثاني ← الجديد=الأول):")
+        print("  عائلة الشراء: دخل %d %s | خرج %d %s" % (len(entered), entered[:8], len(left), left[:8]))
+        print("  عتبة 50 (قاعدة الإغلاق): صعد %d %s | هبط %d %s" % (len(up50), up50[:8], len(dn50), dn50[:8]))
+        print("  عتبة 65 (الظل): صعد %d %s | هبط %d %s" % (len(up65), up65[:8], len(dn65), dn65[:8]))
+
+    # ── بوابة المعقولية (خروج 3 — يعلو كل شيء) ──
+    plaus = []
+    class_changed = [d[0] for d in diffs if d[3] != d[4]]
+    if common and len(class_changed) > 0.25 * len(common):
+        plaus.append("تغير تصنيف %d/%d سهماً (>25%% من الكون)" % (len(class_changed), len(common)))
+    for fname, getter in ATTR_FIELDS:
+        deltas = []
+        for sym in common:
+            va, vb = getter(SA[sym]), getter(SB[sym])
+            if va is not None and vb is not None and va != vb:
+                deltas.append(va - vb)
+        if common and len(deltas) >= max(5, 0.2 * len(common)):
+            same_dir = max(sum(1 for d in deltas if d > 0), sum(1 for d in deltas if d < 0))
+            if same_dir >= 0.95 * len(deltas):
+                plaus.append("انزياح أحادي الاتجاه شاذ في %s: %d تغيراً %.0f%% بإشارة واحدة"
+                             % (fname, len(deltas), same_dir / len(deltas) * 100))
+    if plaus:
+        print("⛔ توقف وتحقيق — بوابة المعقولية:")
+        for p in plaus:
+            print("   • %s" % p)
+        return 3
+
+    # ── جدول البنوك العشرة (وضع أسبوعي — موحد مع جدول الجالب، قرار المحلل الخيار ب) ──
+    if mode == "weekly":
+        banks = [s2 for s2 in common if "Bank" in (SB[s2].get("industry") or SA[s2].get("industry") or "")]
+        if banks:
+            print("جدول البنوك — C/I (الاشتقاق مجمد؛ legacy هي المحتسبة):")
+            print("  %-6s | %-16s | %-16s | %-22s | %s" % ("بنك", "محتسب قديم", "محتسب جديد", "مشتق سهمك (معلوماتي)", "الفرق مشتق−محتسب"))
+            for s2 in banks:
+                old_ci = (SB[s2].get("sectorFinancials") or {}).get("costToIncome")
+                sf_new = SA[s2].get("sectorFinancials") or {}
+                new_ci = sf_new.get("costToIncome")
+                derived = sf_new.get("costToIncomeDerived")
+                diff = round(derived - new_ci, 1) if (derived is not None and new_ci is not None) else None
+                print("  %-6s | %-16s | %-16s | %-22s | %s"
+                      % (s2, old_ci, new_ci, derived, ("%+.1f" % diff) if diff is not None else "—"))
+
     if not diffs and not only_a and not only_b:
         print("✅ صفر فرق في total والتصنيف لكل الأسهم — معيار الاعتماد متحقق")
         return 0
-    print("⛔ فروق: %d سهماً — الاعتماد متوقف حتى تفسير كل فرق" % len(diffs))
-    for sym, ta, tb, ca, cb in diffs[:30]:
-        print("   %s: total %s→%s | تصنيف %s→%s" % (sym, ta, tb, ca, cb))
-    if len(diffs) > 30:
+
+    # ── تقرير الفروق حسب الوضع ──
+    exit_code = 1
+    if mode == "daily":
+        print("⛔ فروق (متوقعها صفر حرفياً في اليومي): %d سهماً — الجذر = أول حقل مدخلات مختلف" % len(diffs))
+        for sym, ta, tb, ca, cb in diffs[:30]:
+            root = _first_input_diff(SA[sym], SB[sym])
+            root_s = ("%s: %s→%s" % (root[0], root[2], root[1])) if root else "لا فرق مدخلات مرصود في المسارات المفحوصة"
+            print("   %s: total %s→%s | تصنيف %s→%s | الجذر: %s" % (sym, tb, ta, cb, ca, root_s))
+    else:   # weekly — تقرير الإسناد للقائمة المغلقة
+        unattributed = []
+        print("فروق الأسبوعي: %d سهماً — الإسناد للقائمة المغلقة (ocf/revenueGrowth/profitMargins/roe/de/costToIncome):" % len(diffs))
+        print("  %-6s | %-55s | %s" % ("سهم", "الحقول المتغيرة (قديم→جديد)", "فرق النقاط"))
+        for sym, ta, tb, ca, cb in diffs:
+            changed = []
+            for fname, getter in ATTR_FIELDS:
+                va, vb = getter(SA[sym]), getter(SB[sym])
+                if va != vb:
+                    changed.append("%s: %s→%s" % (fname, vb, va))
+            dscore = (ta - tb) if (ta is not None and tb is not None) else None
+            if changed:
+                print("  %-6s | %-55s | %+d" % (sym, "؛ ".join(changed)[:55], dscore if dscore is not None else 0))
+            else:
+                unattributed.append(sym)
+                print("  %-6s | %-55s | %+d  ⚠️ غير مُسنَد" % (sym, "—", dscore if dscore is not None else 0))
+        if unattributed:
+            print("⛔ فروق غير مُسنَدة حصرياً للقائمة المغلقة: %d %s — الاعتماد متوقف (خروج 1)"
+                  % (len(unattributed), unattributed[:10]))
+        elif diffs:
+            print("✅ كل الفروق مُسنَدة للقائمة المغلقة — راجعها يدوياً ثم قرر الاعتماد")
+    if len(diffs) > 30 and mode == "daily":
         print("   ... و%d فرقاً آخر" % (len(diffs) - 30))
-    return 1
+    return exit_code
 
 
 def probe_financials(api):
@@ -1114,11 +1315,13 @@ def main():
     ap.add_argument("--tasi-history", default="", help="مسار tasi-history.json (افتراضي بجوار --data)")
     ap.add_argument("--shadow-compare", nargs=2, metavar=("A.json", "B.json"),
                     help="معيار الاعتماد الحاكم: مقارنة total والتصنيف بين ملفين بعد المحرك — بلا شبكة ولا مفتاح")
+    ap.add_argument("--mode", choices=("daily", "weekly"), default="daily",
+                    help="وضع المقارنة الظلية: daily=صفر فرق حرفي مع جذر أول فرق مدخلات | weekly=تقرير إسناد للقائمة المغلقة")
     args = ap.parse_args()
 
     # المقارنة الظلية: محلية خالصة — قبل أي اشتراط مفتاح
     if args.shadow_compare:
-        sys.exit(shadow_compare(*args.shadow_compare))
+        sys.exit(shadow_compare(*args.shadow_compare, mode=args.mode))
 
     key = os.environ.get("SAHMK_KEY", "")
     if not key and args.key_file:
@@ -1252,10 +1455,15 @@ def main():
         if len(adj_diag["partial"]) > 10:
             print("   • ... و%d آخرين" % (len(adj_diag["partial"]) - 10))
     if adj_diag["full"]:
-        print("⛔ إنذار اصطلاح حاكم: %d سهماً فقد adjusted_close لسلسلته الأسبوعية كلها: %s"
+        # (اتساق سلطة الإنذارات — شرط الناقد 2أ): الصياغة تطابق الواقع المختار — السهم
+        # يُتخطى (يُعدّ في weekly_fail وكتلته القديمة تبقى بختمها) فلا تغيير اصطلاح يقع
+        # أصلاً، ولا سلطة إيقاف للإنذار. التصعيد لقرار وسم يلزم فقط إن أريد لاحقاً
+        # بديل خام لهذه الأسهم (ملحق 24-07).
+        print("⚠️ %d سهماً فقد adjusted_close لسلسلته الأسبوعية كلها: %s"
               % (len(adj_diag["full"]), adj_diag["full"][:10]))
-        print("   إسقاط السلسلة كلها = سهم بلا weeklyTechnical؛ وأي بديل خام = تغيير اصطلاح SMA200W")
-        print("   (ملحق 24-07: يستلزم وسم نسخة معايير) — لا اعتماد قبل قرار وسم موثق.")
+        print("   المعالجة الواقعة: تخطٍّ (ضمن عداد شموع أسبوعية الفاشلة) والكتلة القديمة باقية بختمها —")
+        print("   لا خلط ولا تغيير اصطلاح. أي بديل خام مستقبلاً لهذه الأسهم = قرار وسم (ملحق 24-07)؛")
+        print("   واستمرار الحالة أسابيع = مؤشر تحول مصدر يستحق تحقيقاً.")
     if fail_types:
         print("⛔ فشل يتجاوز 10%% في: %s — لا كتابة، الملف القديم يبقى كما هو" % "، ".join(fail_types))
         print("   (ترحيل الوسوم إن جرى هذه التشغيلة لم يُحفظ مع الحجب — سلوك صحيح: يعاد آلياً بحكم idempotent)")
