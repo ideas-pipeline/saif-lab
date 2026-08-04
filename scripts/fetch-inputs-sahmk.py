@@ -47,13 +47,34 @@ scripts/scoring-engine.py (criteria v2.1) بلا أي تعديل.
     /dividends/{sym}/: trailing_12m_yield + history بتواريخ الاستحقاق
     /market/summary/: index_value/advancing/declining/market_mood
 
+سياسة المصادر — data-source v3 (قرار المحلل ج-2، 2026-08-04): «الجالب لا يختم إلا ما جلب»
+----------------------------------------------------------------------------------------
+    - دمج حافظ دائماً: يُمنع استبدال قيمة صالحة بـnull، ويُمنع تجديد ختم على قيمة
+      لم تُجلب في التشغيلة نفسها. الانتقال متعادل النقاط تماماً (لا criteria جديد).
+    - debtHealth: لا يكتبها الجالب إطلاقاً — الكتل القائمة تبقى محتسبة، موسومة
+      بالترحيل source=yfinance-legacy + asOf (من liquidityDebtUpdated الفعلي).
+    - sectorFinancials (بنوك): دمج بمستوى الحقل — ROA/الإيرادات حية من سهمك،
+      costToIncome القديمة تُحفظ وتبقى محتسبة، sahmkFields/legacyFields يعددان المصدر.
+    - financials: خريطة financialsParts لكل حقل {source, asOf} (تعميم نمط valuationParts)؛
+      financialsSource لا يدعي سهمك لحقل لم يأت منه، وfinancialsUpdated يصدق على المجلوب فقط.
+    - cashflow: موسومة بالترحيل source=legacy-unknown, asOf=null — تبقى محتسبة.
+    - valuationInputs: دمج بمجموعات متماسكة (company/dividends) بختمي companyAsOf/divsAsOf.
+
+معيار القبول الحاكم — التشغيلة الظلية (قرار المحلل بند 7)
+--------------------------------------------------------
+    اعتماد الجالب مشروط بتشغيل المحرك على ناتجه وعلى آخر ناتج مزامنة لنفس اليوم
+    المرجعي ثم: **صفر فرق في total واسم التصنيف لكل الأسهم الـ248**. أي فرق غير
+    صفري = خلل يوقف الاعتماد حتى تفسيره. أداة الفحص مدمجة:
+        python3 scripts/fetch-inputs-sahmk.py --shadow-compare ناتج-الجالب.json ناتج-المزامنة.json
+    (محلية خالصة — بلا شبكة ولا مفتاح؛ خروج 0 = متطابق، 1 = فروق مطبوعة)
+
 ما يبقى مفتوحاً (لا يُختلق — الغياب null والمحرك يتعامل معه كعادته)
 ------------------------------------------------------------------
     - /financials 400: يمنع currentRatio وcashflow.ocf ومصروفات البنوك — بعد حل
       التركيبة بوضع --probe-financials تُضاف خطوة جلبها.
     - Cost/Income للبنوك: operating_income == total_revenue في ratios (لا تفصيل
-      مصروفات) → sectorFinancials.costToIncome = null (المفتاح حاضر لمسار البنوك
-      في المحرك، والقيمة الغائبة = 0 نقاط كقاعدة الغياب).
+      مصروفات) → لا يُجلب من سهمك حالياً؛ القيمة القديمة (yfinance-legacy) تُحفظ
+      وتبقى محتسبة (قرار المحلل بند 2)، والمفتاح يُنشأ null فقط لمن لا قيمة قديمة له.
     - EV/EBITDA وP/E: يُخزنان كمدخلات حية في valuationInputs فقط — خارج مقام
       المحرك (criteria v2.1) حتى قرار تفعيل موسوم من المالك. P/B وعائد التوزيعات
       يمران عبر المسار القائم: valuationInputs ← compute-valuation.py (بحارس الاتساق).
@@ -486,48 +507,63 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
             latest = periods[0]
             rat = latest.get("ratios") or {}
             km = latest.get("key_metrics") or {}
+            # ── financials: دمج حافظ بخريطة حقول (قرار المحلل ج-2، نمط valuationParts معمماً) ──
+            # «الجالب لا يختم إلا ما جلب»: الحقل المجلوب يُكتب ويُوسم sahmk بتاريخ اليوم؛
+            # الحقل القائم غير المجلوب لا يُمس ويحتفظ بوسمه الموروث (من الترحيل) — لا ختم زور.
             fin = st.setdefault("financials", {})
-            if rat.get("net_margin") is not None:
-                fin["profitMargins"] = round(rat["net_margin"], 1)
-            if rat.get("roe") is not None:
-                fin["returnOnEquity"] = round(rat["roe"], 1)
-            if rat.get("roa") is not None:
-                fin["returnOnAssets"] = round(rat["roa"], 2)
+            parts = st.setdefault("financialsParts", {})
+            def setf(key, val):
+                if val is not None:
+                    fin[key] = val
+                    parts[key] = {"source": "sahmk analytics/ratios", "asOf": today}
+            setf("profitMargins", round(rat["net_margin"], 1) if rat.get("net_margin") is not None else None)
+            setf("returnOnEquity", round(rat["roe"], 1) if rat.get("roe") is not None else None)
+            setf("returnOnAssets", round(rat["roa"], 2) if rat.get("roa") is not None else None)
             if rat.get("debt_to_equity") is not None:
-                de_raw[sym] = rat["debt_to_equity"]   # الحسم المقطعي بعد الجمع
-            # نمو الإيرادات من فترتين سنويتين إن توفرتا
+                de_raw[sym] = rat["debt_to_equity"]   # الحسم المقطعي بعد الجمع (يوسم عند التطبيق)
+            # نمو الإيرادات من فترتين سنويتين إن توفرتا — فشله يُبقي القديم بوسمه الموروث
             revs = []
             for p in periods[:2]:
                 tr = (p.get("key_metrics") or {}).get("total_revenue")
                 if tr:
                     revs.append(tr)
             if len(revs) == 2 and revs[1]:
-                fin["revenueGrowth"] = round((revs[0] - revs[1]) / abs(revs[1]) * 100, 1)
+                setf("revenueGrowth", round((revs[0] - revs[1]) / abs(revs[1]) * 100, 1))
                 counters["revgrowth_ok"] += 1
             else:
                 counters["revgrowth_miss"] += 1
-            st["financialsSource"] = "sahmk analytics/ratios"
-            st["financialsUpdated"] = today
+            legacy_left = sorted(k for k, v in parts.items()
+                                 if isinstance(v, dict) and v.get("source") != "sahmk analytics/ratios")
+            st["financialsSource"] = ("sahmk analytics/ratios" if not legacy_left
+                                      else "mixed: sahmk + موروث (%s) — انظر financialsParts" % "، ".join(legacy_left))
+            st["financialsUpdated"] = today   # يصدق على حقول sahmk في financialsParts حصراً
             counters["ratios_ok"] += 1
-            # بنوك: sectorFinancials بلا اختلاق — ROA متاح، Cost/Income غير متاح (عقد الفحص)
+            # ── sectorFinancials للبنوك: دمج بمستوى الحقل (قرار المحلل بند 2) ──
+            # ROA/الإيرادات تُكتب حية من سهمك؛ costToIncome القديمة (yfinance) تُحفظ ولا تُمس
+            # وتبقى محتسبة في النقاط؛ الحقول الموروثة تُعدَّد صراحة في الوسم.
             if "Bank" in (st.get("industry") or ""):
-                st["sectorFinancials"] = {
-                    "type": "bank", "source": "sahmk analytics/ratios",
-                    "ROA": round(rat["roa"], 2) if rat.get("roa") is not None else None,
-                    "costToIncome": None,   # لا تفصيل مصروفات في الواجهة — لا يُختلق
-                    "totalRevenue": km.get("total_revenue"),
-                    "operatingIncome": km.get("operating_income"),
-                    "updatedAt": today,
-                }
-                st.setdefault("debtHealth", {})
-                st["debtHealth"] = {"type": "bank", "costToIncome": None,
-                                    "color": "gray", "label": "غير متوفر"}
-            else:
-                st["debtHealth"] = {"type": "company",
-                                    "totalDebt": km.get("total_debt"),
-                                    "totalCash": None, "netDebt": None, "ebitda": None,
-                                    "netDebtToEbitda": None,   # يحتاج نقد/EBITDA — /financials معلق
-                                    "color": "gray", "label": "غير متوفر"}
+                old_sf = st.get("sectorFinancials") or {}
+                sf = dict(old_sf)
+                sf["type"] = "bank"
+                written_now = []
+                for k, v in (("ROA", round(rat["roa"], 2) if rat.get("roa") is not None else None),
+                             ("totalRevenue", km.get("total_revenue")),
+                             ("operatingIncome", km.get("operating_income"))):
+                    if v is not None:
+                        sf[k] = v
+                        written_now.append(k)
+                sf.setdefault("costToIncome", None)   # المفتاح لازم لمسار البنوك في المحرك — القيمة القديمة إن وجدت تبقى
+                meta = {"type", "source", "updatedAt", "sahmkFields", "legacyFields", "error"}
+                sf["sahmkFields"] = sorted(written_now)
+                sf["legacyFields"] = sorted(k for k in old_sf
+                                            if k not in meta and k not in written_now)
+                sf["source"] = ("sahmk analytics/ratios" if not sf["legacyFields"]
+                                else "mixed: sahmk(%s) + yfinance-legacy(%s)" % (
+                                    "،".join(sf["sahmkFields"]), "،".join(sf["legacyFields"])))
+                sf["updatedAt"] = today   # يصدق على sahmkFields حصراً
+                st["sectorFinancials"] = sf
+            # debtHealth: لا تُكتب إطلاقاً (قرار المحلل بند 1) — الكتلة القائمة (yfinance-legacy
+            # الموسومة بالترحيل) تبقى كما هي محتسبة في النقاط. يُمنع استبدال صالح بـnull.
         time.sleep(0.15)
 
         # 2) company → valuationInputs (العقد القائم لـ compute-valuation.py)
@@ -549,16 +585,20 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
             cons = None                              # غير قابل للتحقق — ليس فشل اتساق
         else:
             cons = False
-        vi = {
-            "priceToBook": ptb, "bookValue": bv, "theirPrice": tp,
-            "marketCap": fn.get("market_cap"), "sharesOutstanding": fn.get("shares_outstanding"),
-            "pbConsistent": cons,
-            # مدخلات حية خارج مقام المحرك (criteria v2.1) حتى قرار تفعيل موسوم:
-            "peRatio": fn.get("pe_ratio"), "epsTtm": fn.get("eps_ttm"),
-            "forwardPe": fn.get("forward_pe"),
-            "updatedAt": today, "source": "sahmk-direct",
-        }
+        # دمج حافظ بمجموعات (قرار المحلل — قاعدة 5): مجموعة company ومجموعة dividends
+        # تُكتب كل منهما متماسكة فقط عند نجاح جلبها؛ فشل إحداهما يبقي قيمها القديمة
+        # بختمها القديم (companyAsOf/divsAsOf) — لا استبدال صالح بغائب ولا ختم زور.
+        vi = dict(st.get("valuationInputs") or {})
         if c is not None:
+            vi.update({
+                "priceToBook": ptb, "bookValue": bv, "theirPrice": tp,
+                "marketCap": fn.get("market_cap"), "sharesOutstanding": fn.get("shares_outstanding"),
+                "pbConsistent": cons,
+                # مدخلات حية خارج مقام المحرك (criteria v2.1) حتى قرار تفعيل موسوم:
+                "peRatio": fn.get("pe_ratio"), "epsTtm": fn.get("eps_ttm"),
+                "forwardPe": fn.get("forward_pe"),
+                "companyAsOf": today,
+            })
             counters["company_ok"] += 1
         else:
             counters["company_fail"] += 1
@@ -587,10 +627,13 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
                     vi["divTtm12m"], vi["divBasis"] = round(recent[0][1], 4), "last18m"
                 else:
                     vi["divTtm12m"], vi["divBasis"] = 0.0, "none"
+            vi["divsAsOf"] = today
             counters["dividends_ok"] += 1
         else:
             counters["dividends_fail"] += 1
         if c is not None or dv is not None:
+            vi["updatedAt"] = today   # يصدق على المجموعة/المجموعتين المجلوبتين (companyAsOf/divsAsOf)
+            vi["source"] = "sahmk-direct"
             st["valuationInputs"] = vi
         if (i + 1) % 25 == 0:
             print("  ... %d/%d أساسيات" % (i + 1, len(stocks)))
@@ -630,6 +673,8 @@ def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_de
         v = de_raw.get(st["symbol"])
         if v is not None:
             st.setdefault("financials", {})["debtToEquity"] = round(v * 100, 2) if as_ratio else round(v, 2)
+            st.setdefault("financialsParts", {})["debtToEquity"] = {
+                "source": "sahmk analytics/ratios", "asOf": today}
     return decision
 
 
@@ -742,6 +787,66 @@ def recompute_sector_medians(data, stamp):
     data["sectorMediansUpdated"] = stamp
 
 
+def migrate_legacy_tags(data):
+    """ترحيل وسوم المصدر لمرة واحدة (قرار المحلل ج-2 — data-source v3، idempotent):
+    - debtHealth القائمة: source=yfinance-legacy + asOf=تاريخ آخر تحديث فعلي (liquidityDebtUpdated)
+    - cashflow القائمة: source=legacy-unknown + asOf=null (كاتبها مجهول — لا يُختلق تاريخ)
+    - financials القائمة بلا خريطة: financialsParts أولية توسم كل حقوقها موروثة بمصدرها
+      وasOf الحقيقي (financialsUpdated القديم) — أساس صدق الوسم الحقلي في الدمج اللاحق.
+    لا يغير أي قيمة محتسبة — وسم مصدر خالص."""
+    lu = str(data.get("liquidityDebtUpdated") or "")[:10] or None
+    n_dh = n_cf = n_fp = 0
+    for s in data.get("stocks", []):
+        dh = s.get("debtHealth")
+        if dh and "source" not in dh:
+            dh["source"] = "yfinance-legacy"
+            dh["asOf"] = lu
+            n_dh += 1
+        cf = s.get("cashflow")
+        if cf and "source" not in cf:
+            cf["source"] = "legacy-unknown"
+            cf["asOf"] = None
+            n_cf += 1
+        if s.get("financials") and "financialsParts" not in s:
+            src = (s.get("financialsSource") or "legacy") + " (موروث)"
+            asof = str(s.get("financialsUpdated") or "")[:10] or None
+            s["financialsParts"] = {k: {"source": src, "asOf": asof} for k in s["financials"]}
+            n_fp += 1
+    if n_dh or n_cf or n_fp:
+        print("🏷 ترحيل وسوم المصدر (لمرة واحدة): debtHealth %d | cashflow %d | financialsParts %d"
+              % (n_dh, n_cf, n_fp))
+    return n_dh + n_cf + n_fp
+
+
+def shadow_compare(path_a, path_b):
+    """معيار القبول الحاكم (قرار المحلل بند 7): مقارنة ناتج المحرك على ملفين —
+    صفر فرق في total واسم التصنيف لكل الأسهم = شرط اعتماد الجالب. أي فرق = خلل يوقف الاعتماد."""
+    a = json.load(open(path_a))
+    b = json.load(open(path_b))
+    A = {s["symbol"]: s.get("investmentScore") or {} for s in a.get("stocks", [])}
+    B = {s["symbol"]: s.get("investmentScore") or {} for s in b.get("stocks", [])}
+    only_a = sorted(set(A) - set(B))
+    only_b = sorted(set(B) - set(A))
+    diffs = []
+    for sym in sorted(set(A) & set(B)):
+        ta, tb = A[sym].get("total"), B[sym].get("total")
+        ca, cb = A[sym].get("classification"), B[sym].get("classification")
+        if ta != tb or ca != cb:
+            diffs.append((sym, ta, tb, ca, cb))
+    print("المقارنة الظلية: %s ↔ %s" % (path_a, path_b))
+    print("أسهم مشتركة: %d | في الأول فقط: %d %s | في الثاني فقط: %d %s"
+          % (len(set(A) & set(B)), len(only_a), only_a[:5], len(only_b), only_b[:5]))
+    if not diffs and not only_a and not only_b:
+        print("✅ صفر فرق في total والتصنيف لكل الأسهم — معيار الاعتماد متحقق")
+        return 0
+    print("⛔ فروق: %d سهماً — الاعتماد متوقف حتى تفسير كل فرق" % len(diffs))
+    for sym, ta, tb, ca, cb in diffs[:30]:
+        print("   %s: total %s→%s | تصنيف %s→%s" % (sym, ta, tb, ca, cb))
+    if len(diffs) > 30:
+        print("   ... و%d فرقاً آخر" % (len(diffs) - 30))
+    return 1
+
+
 def probe_financials(api):
     """تجربة تركيبات معاملات /financials/ — من معاملات SDK سهمك الرسمي (v0.15.0):
     type/period/statement_period/history/metrics/result/include_partial"""
@@ -774,14 +879,20 @@ def probe_financials(api):
 # ═══════════════════════════════════════════════════════════════════
 
 def main():
-    ap = argparse.ArgumentParser(description="جالب مدخلات المختبر من سهمك (sahmk-direct-v1)")
-    ap.add_argument("--data", required=True, help="مسار stocks-data.json (إلزامي — لا افتراضي حمايةً)")
+    ap = argparse.ArgumentParser(description="جالب مدخلات المختبر من سهمك (sahmk-direct-v1 / data-source v3)")
+    ap.add_argument("--data", default="", help="مسار stocks-data.json (إلزامي لأوضاع الجلب — لا افتراضي حمايةً)")
     ap.add_argument("--weekly", action="store_true", help="جلب أسبوعي: شموع 1w + الأساسيات")
     ap.add_argument("--symbols", default="", help="رموز محددة مفصولة بفواصل (اختبار)")
     ap.add_argument("--probe-financials", action="store_true", help="فحص تركيبات /financials/ ثم خروج")
     ap.add_argument("--key-file", default="", help="ملف المفتاح (بديل SAHMK_KEY)")
     ap.add_argument("--tasi-history", default="", help="مسار tasi-history.json (افتراضي بجوار --data)")
+    ap.add_argument("--shadow-compare", nargs=2, metavar=("A.json", "B.json"),
+                    help="معيار الاعتماد الحاكم: مقارنة total والتصنيف بين ملفين بعد المحرك — بلا شبكة ولا مفتاح")
     args = ap.parse_args()
+
+    # المقارنة الظلية: محلية خالصة — قبل أي اشتراط مفتاح
+    if args.shadow_compare:
+        sys.exit(shadow_compare(*args.shadow_compare))
 
     key = os.environ.get("SAHMK_KEY", "")
     if not key and args.key_file:
@@ -795,8 +906,14 @@ def main():
         probe_financials(api)
         return
 
+    if not args.data:
+        sys.exit("⛔ --data إلزامي لأوضاع الجلب")
     with open(args.data) as f:
         data = json.load(f)
+
+    # ترحيل وسوم المصدر لمرة واحدة (قرار المحلل ج-2) — وسم خالص، صفر تغيير قيم
+    migrate_legacy_tags(data)
+
     stocks = [s for s in data.get("stocks", []) if s.get("symbol")]
     if args.symbols:
         want = {x.strip() for x in args.symbols.split(",") if x.strip()}

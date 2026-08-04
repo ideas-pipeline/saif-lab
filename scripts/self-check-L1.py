@@ -183,6 +183,44 @@ for _nm, _fn in PLAUS:
     for _f in flags:
         warn("%s: %s" % (_nm, _f))
 
+# ── 8) نضارة الكتل الموروثة الموسومة (قرار المحلل ج-2 — data-source v3)
+# إنذار (لا استبعاد آلي) عند تجاوز asOf ~15 شهراً (455 يوماً) للنسب السنوية
+print("\n[8] نضارة الكتل الموروثة (data-source v3)")
+STALE_DAYS = 455
+def _age(asof):
+    try:
+        return (datetime.now() - datetime.strptime(str(asof)[:10], "%Y-%m-%d")).days
+    except (ValueError, TypeError):
+        return None
+stale = {}; unknown = {}; tagged = {}
+for s in S:
+    checks8 = []
+    dh = s.get("debtHealth") or {}
+    if "source" in dh:
+        checks8.append(("debtHealth", dh.get("asOf")))
+    cf = s.get("cashflow") or {}
+    if "source" in cf:
+        checks8.append(("cashflow", cf.get("asOf")))
+    for fld, meta in (s.get("financialsParts") or {}).items():
+        if isinstance(meta, dict) and "sahmk" not in str(meta.get("source", "")):
+            checks8.append(("financials." + fld, meta.get("asOf")))
+    for name, asof in checks8:
+        blk = name.split(".")[0]
+        tagged[blk] = tagged.get(blk, 0) + 1
+        a = _age(asof)
+        if a is None:
+            unknown[blk] = unknown.get(blk, 0) + 1
+        elif a > STALE_DAYS:
+            stale[blk] = stale.get(blk, 0) + 1
+if not tagged:
+    print("    لا كتل موسومة بعد (الترحيل لم يجر) — تخطي")
+else:
+    for blk in sorted(tagged):
+        print("    %-12s موسوم %d | عمر مجهول %d | تجاوز %d يوماً: %d" % (
+            blk, tagged[blk], unknown.get(blk, 0), STALE_DAYS, stale.get(blk, 0)))
+    for blk, n in sorted(stale.items()):
+        warn("كتل %s موروثة تجاوز عمرها ~15 شهراً: %d — نسب سنوية بائتة تُحتسب نقاطاً" % (blk, n))
+
 # ── الخلاصة
 print("\n" + "=" * 58)
 if W:
