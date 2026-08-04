@@ -61,8 +61,18 @@ scripts/scoring-engine.py (criteria v2.1) بلا أي تعديل.
       المقطعي (وسيط < 10 → نسبة فتُضرب ×100 لعقد المحرك؛ وإلا تُعتمد ٪ كما هي)
       — القرار يُطبع بصوت عالٍ ويُختم في _labNote، ويُراجع يدوياً في أول تشغيلة.
 
-السلوك: فشل بصوت عالٍ (عدادات لكل نوع + خروج 1 إذا تجاوز فشل أي نوع 10%)،
-كتابة ذرية (tmp ثم os.replace)، لا كتابة إن فشل جلب الأسعار كلياً.
+السلوك — بوابات الفشل (مراجعة الناقد 2026-08-03):
+    - فشل TASI الحاكم (عوائد 3م/6م غير قابلة للحساب) = إجهاض بخروج 1 قبل أي كتابة
+      للملف الرئيسي — وإلا خسرت كل الأسهم rsTasi3m/6m (7/11 من الزخم) بصمت.
+    - عتبة الفشل >10% لأي نوع بيانات تُفحص قبل الكتابة — الملف لا يُكتب أصلاً عندها.
+    - سقوط adjusted_close→close معدود ومعلن؛ وقوعه في 1w = إنذار اصطلاح صريح
+      (ملحق 24-07: ترحيل السلسلة الأسبوعية إلى خام يستلزم وسم نسخة معايير).
+    - مقياس D/E يُحسم على الكون الكامل فقط ويثبَّت في data.deScaleDecision؛ وضع
+      --symbols يقرأ القرار المثبت أو يرفض التطبيق بإنذار.
+    - company.current_price غير مؤكد بالفحص: غيابه = pbConsistent=None («غير قابل
+      للتحقق» لا «فاشل») مع عدّ صريح وتحذير حاكم إن غاب في >50% من الردود.
+    - weeklyTechnical تحمل updatedAt لكل سهم — الخلط الأسبوعي الجزئي موسوم.
+    - كتابة ذرية (tmp ثم os.replace)، لا كتابة إن فشل جلب الأسعار كلياً.
 خط الإنتاج المختبري بعده: compute-valuation.py ← scoring-engine.py.
 """
 import json, os, sys, time, argparse, tempfile
@@ -324,17 +334,24 @@ def fetch_quotes(api, stocks, counters, now_str):
 
 
 def parse_candles(resp):
-    """شموع historical: date/open/high/low/close/adjusted_close/volume — مرتبة تصاعدياً"""
+    """شموع historical: date/open/high/low/close/adjusted_close/volume — مرتبة تصاعدياً.
+    يعيد (rows, adj_fallback) حيث adj_fallback = عدد الصفوف التي سقطت من adjusted_close
+    إلى close (غياب المعدل) — سقوطها في 1w يمس اصطلاح SMA200W الملزم (ملحق 24-07)
+    فيُعدّ ويُنذر به صراحة، لا صامتاً."""
     rows = rows_of(resp, "data", "candles", "history", "results")
     out = []
+    adj_fallback = 0
     for r in rows:
         if r.get("close") is None or r.get("high") is None or r.get("low") is None:
             continue
+        adj = r.get("adjusted_close")
+        if adj is None:
+            adj = r["close"]
+            adj_fallback += 1
         out.append((r.get("date", ""), r["close"], r["high"], r["low"],
-                    r.get("volume") or 0,
-                    r.get("adjusted_close") if r.get("adjusted_close") is not None else r["close"]))
+                    r.get("volume") or 0, adj))
     out.sort(key=lambda x: x[0])
-    return out
+    return out, adj_fallback
 
 
 def fetch_daily(api, stocks, counters, tasi_returns, stamp):
@@ -343,7 +360,10 @@ def fetch_daily(api, stocks, counters, tasi_returns, stamp):
     for i, st in enumerate(stocks):
         sym = st["symbol"]
         resp, err = api.get("/historical/%s/?interval=1d&from=%s&to=%s" % (sym, d420, today))
-        rows = parse_candles(resp)
+        rows, adj_fb = parse_candles(resp)
+        if adj_fb:
+            counters["adj_fb_rows_1d"] += adj_fb
+            counters["adj_fb_syms_1d"] += 1
         # نافذة سنة تداول: آخر 251 شمعة (اصطلاح fetch-daily-extra range=1y مع ضمان عائد 12م)
         rows = rows[-251:]
         if len(rows) < 60:
@@ -399,13 +419,16 @@ def fetch_daily(api, stocks, counters, tasi_returns, stamp):
         time.sleep(0.15)
 
 
-def fetch_weekly(api, stocks, counters, stamp_riyadh):
+def fetch_weekly(api, stocks, counters, stamp):
     d5y = (datetime.now(timezone.utc) - timedelta(days=1826)).strftime("%Y-%m-%d")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     for i, st in enumerate(stocks):
         sym = st["symbol"]
         resp, err = api.get("/historical/%s/?interval=1w&from=%s&to=%s" % (sym, d5y, today))
-        rows = parse_candles(resp)
+        rows, adj_fb = parse_candles(resp)
+        if adj_fb:
+            counters["adj_fb_rows_1w"] += adj_fb
+            counters["adj_fb_syms_1w"] += 1
         prices = [round(r[5], 2) for r in rows]   # adjusted_close (اصطلاح SMA200W المعتمد — ملحق 24-07)
         if len(prices) < 50:
             counters["weekly_fail"] += 1
@@ -422,6 +445,8 @@ def fetch_weekly(api, stocks, counters, stamp_riyadh):
             "sma200wSlope": calc_sma_slope(prices, 200),
             "currentPrice": prices[-1],
             "dataPoints": len(prices),
+            # ختم لكل سهم (شرط الناقد م-3): الخلط الأسبوعي الجزئي يصبح موسوماً على مستوى الكتلة
+            "updatedAt": stamp,
         }
         counters["weekly_ok"] += 1
         if (i + 1) % 25 == 0:
@@ -429,8 +454,10 @@ def fetch_weekly(api, stocks, counters, stamp_riyadh):
         time.sleep(0.15)
 
 
-def fetch_fundamentals(api, stocks, counters, today):
-    """ratios + company + dividends — أسبوعي. مقياس D/E يُحسم مقطعياً بعد الجمع."""
+def fetch_fundamentals(api, stocks, counters, today, full_universe, stored_de_decision):
+    """ratios + company + dividends — أسبوعي.
+    مقياس D/E: يُحسم مقطعياً على الكون الكامل فقط (م-4) — في وضع --symbols يُقرأ القرار
+    المثبت من تشغيلة كاملة سابقة (data.deScaleDecision) أو يُرفض التطبيق بإنذار."""
     de_raw = {}
     ratios_multi_ok = None   # هل يقبل history=3y؟ يُجرب على أول رمز
     for i, st in enumerate(stocks):
@@ -509,9 +536,19 @@ def fetch_fundamentals(api, stocks, counters, today):
         ptb = fn.get("price_to_book")
         bv = fn.get("book_value")
         tp = (c or {}).get("current_price")
-        cons = False
+        # (م-1) current_price غير مؤكد بعقد الفحص — عدّ صريح، وغيابه = «غير قابل للتحقق» (None)
+        # لا «فاشل الاتساق» (False): compute-valuation يجمد في الحالتين، لكن الوسم لا يكذب
+        if c is not None:
+            if tp is not None:
+                counters["company_cp_ok"] += 1
+            else:
+                counters["company_cp_miss"] += 1
         if ptb and bv and tp and tp > 0:
             cons = abs((ptb * bv) / tp - 1) < 0.03   # حارس الاتساق القائم (3%)
+        elif tp is None or not tp:
+            cons = None                              # غير قابل للتحقق — ليس فشل اتساق
+        else:
+            cons = False
         vi = {
             "priceToBook": ptb, "bookValue": bv, "theirPrice": tp,
             "marketCap": fn.get("market_cap"), "sharesOutstanding": fn.get("shares_outstanding"),
@@ -559,20 +596,41 @@ def fetch_fundamentals(api, stocks, counters, today):
             print("  ... %d/%d أساسيات" % (i + 1, len(stocks)))
         time.sleep(0.15)
 
-    # ── حسم مقياس debt_to_equity مقطعياً ──
-    if de_raw:
+    # ── بوابة current_price (م-1): غيابه الواسع يجمد حارس P/B للسوق كله ──
+    cp_total = counters["company_cp_ok"] + counters["company_cp_miss"]
+    if cp_total and counters["company_cp_miss"] / cp_total > 0.5:
+        print("⛔ تحذير حاكم: company.current_price غائب في %d/%d من الردود (>50%%) —"
+              % (counters["company_cp_miss"], cp_total))
+        print("   حارس اتساق P/B غير قابل للتحقق للسوق كله → compute-valuation سيجمد P/B للجميع.")
+        print("   pbConsistent كُتب None (غير قابل للتحقق) لا False — راجع شكل /company/ قبل الاعتماد.")
+
+    # ── حسم مقياس debt_to_equity — على الكون الكامل فقط (م-4) ──
+    if not de_raw:
+        return None
+    if full_universe:
         vals = sorted(de_raw.values())
         med = vals[len(vals) // 2]
         as_ratio = med < 10
-        print("⚖️ مقياس debt_to_equity: الوسيط المقطعي %.2f على %d سهماً → %s" % (
-            med, len(vals),
-            "نسبة (يُضرب ×100 لعقد المحرك)" if as_ratio else "٪ (يُعتمد كما هو)"))
-        for st in stocks:
-            v = de_raw.get(st["symbol"])
-            if v is not None:
-                st.setdefault("financials", {})["debtToEquity"] = round(v * 100, 2) if as_ratio else round(v, 2)
-        return "ratio×100" if as_ratio else "percent"
-    return None
+        decision = {
+            "scale": "ratio×100" if as_ratio else "percent",
+            "median": round(med, 3), "n": len(vals), "decidedAt": today,
+        }
+        print("⚖️ مقياس debt_to_equity (كون كامل): الوسيط %.2f على %d سهماً → %s — القرار يُثبَّت في deScaleDecision" % (
+            med, len(vals), "نسبة (يُضرب ×100 لعقد المحرك)" if as_ratio else "٪ (يُعتمد كما هو)"))
+    elif stored_de_decision and stored_de_decision.get("scale"):
+        decision = stored_de_decision
+        as_ratio = decision["scale"] == "ratio×100"
+        print("⚖️ مقياس debt_to_equity (--symbols): يُطبق القرار المثبت من تشغيلة كاملة سابقة: %s (حُسم %s على %s سهماً)" % (
+            decision["scale"], decision.get("decidedAt", "?"), decision.get("n", "?")))
+    else:
+        print("⚠️ مقياس debt_to_equity: وضع --symbols بلا قرار مثبت من تشغيلة كاملة سابقة —"
+              " يُرفض التطبيق (debtToEquity لا يُكتب لهذه العينة؛ شغّل الكون الكامل أولاً)")
+        return None
+    for st in stocks:
+        v = de_raw.get(st["symbol"])
+        if v is not None:
+            st.setdefault("financials", {})["debtToEquity"] = round(v * 100, 2) if as_ratio else round(v, 2)
+    return decision
 
 
 def fetch_tasi(api, counters, hist_file, data):
@@ -586,11 +644,15 @@ def fetch_tasi(api, counters, hist_file, data):
     last = hist[-1]["date"] if hist else (datetime.now(timezone.utc) - timedelta(days=730)).strftime("%Y-%m-%d")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     resp, err = api.get("/historical/TASI/?interval=1d&from=%s&to=%s" % (last, today))
-    rows = parse_candles(resp)
+    rows, _ = parse_candles(resp)   # للمؤشر نستخدم close الخام — عدّاد السقوط لا يعنيه
     if not rows and not hist:
         counters["tasi_fail"] += 1
-        print("  ✗ تاريخ TASI: %s — لا تاريخ محلي، نظام السوق سيتخطى" % err)
+        print("  ✗ تاريخ TASI: %s — لا تاريخ محلي: فشل حاكم (المُستدعي يجهض قبل الكتابة)" % err)
         return None
+    if not rows:
+        counters["tasi_api_stale"] += 1
+        print("  ⚠️ واجهة TASI فشلت (%s) — نُكمل بالتاريخ المحلي القائم (%d يوماً، آخره %s)"
+              % (err, len(hist), hist[-1]["date"]))
     known = {h["date"] for h in hist}
     added = 0
     for r in rows:
@@ -627,6 +689,7 @@ def fetch_tasi(api, counters, hist_file, data):
             day = str(s.get("timestamp") or today)[:10]
             if hist and hist[-1]["date"] == day:
                 hist[-1]["close"] = val
+                closes[-1] = val          # (إصلاح ت-2) تحديث القائمة الموازية — SMA200 يرى إغلاق اليوم الحي
             else:
                 hist.append({"date": day, "close": val})
                 closes.append(val)
@@ -756,8 +819,10 @@ def main():
     counters = {k: 0 for k in (
         "quotes_ok", "quotes_fail", "quotes_batch_fail", "daily_ok", "daily_fail",
         "weekly_ok", "weekly_fail", "ratios_ok", "ratios_fail", "revgrowth_ok", "revgrowth_miss",
-        "company_ok", "company_fail", "dividends_ok", "dividends_fail",
-        "tasi_ok", "tasi_fail", "regime_ok", "regime_fail")}
+        "company_ok", "company_fail", "company_cp_ok", "company_cp_miss",
+        "dividends_ok", "dividends_fail",
+        "adj_fb_rows_1d", "adj_fb_syms_1d", "adj_fb_rows_1w", "adj_fb_syms_1w",
+        "tasi_ok", "tasi_fail", "tasi_api_stale", "regime_ok", "regime_fail")}
 
     now_riyadh = datetime.now(RIYADH).strftime("%Y-%m-%d %H:%M")
     stamp_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -766,6 +831,13 @@ def main():
     # 1) TASI أولاً (القوة النسبية تحتاج عوائده)
     print("📈 TASI ونظام السوق...")
     tasi_returns = fetch_tasi(api, counters, hist_file, data) or {}
+    # (ج-1) بوابة حاكمة: فشل TASI الكامل (لا تاريخ محلي + فشل الواجهة) أو تاريخ أقصر من
+    # نافذة 6م = عوائد rsTasi3m/6m مستحيلة → كل الأسهم تخسر 7/11 من الزخم بصمت لو تابعنا.
+    # الأسلم المختار: إجهاض قبل أي كتابة للملف الرئيسي (خروج 1) — الملف القديم يبقى سليماً
+    # بأختامه القديمة. (tasi-history قد يكون تحدّث — بيانات صالحة بذاتها، أثر جانبي مشروع.)
+    if tasi_returns.get("3m") is None or tasi_returns.get("6m") is None:
+        sys.exit("⛔ فشل TASI حاكم: عوائد المؤشر 3م/6م غير قابلة للحساب (تاريخ غائب/قاصر) — "
+                 "لا كتابة إطلاقاً. عالج تاريخ TASI ثم أعد التشغيل.")
 
     # 2) الأسعار
     print("💰 الأسعار (quotes دفعات 50)...")
@@ -778,38 +850,22 @@ def main():
     fetch_daily(api, stocks, counters, tasi_returns, stamp_utc)
 
     # 4) الأسبوعي والأساسيات
-    de_scale = None
+    de_decision = None
     if args.weekly:
         print("🗓 الشموع الأسبوعية (1w)...")
-        fetch_weekly(api, stocks, counters, now_riyadh)
+        fetch_weekly(api, stocks, counters, stamp_utc)
         print("🏦 الأساسيات (ratios/company/dividends)...")
-        de_scale = fetch_fundamentals(api, stocks, counters, today)
+        de_decision = fetch_fundamentals(api, stocks, counters, today,
+                                         full_universe=not args.symbols,
+                                         stored_de_decision=data.get("deScaleDecision"))
         data["weeklyTechnicalUpdated"] = now_riyadh + " الرياض"
+        if de_decision and not args.symbols:
+            data["deScaleDecision"] = de_decision   # تثبيت القرار بين التشغيلات (م-4)
 
     # 5) وسطاء القطاعات
     recompute_sector_medians(data, stamp_utc)
 
-    # 6) أختام وكتابة ذرية
-    data["lastUpdated"] = now_riyadh + " الرياض"
-    data["priceSource"] = "sahmk-direct-v1"
-    data.setdefault("priceSourceSince", today)
-    data["_labNote"] = ("مدخلات مبنية محلياً من واجهة سهمك (fetch-inputs-sahmk.py) — "
-                        "مستقلة عن مزامنة المشروع الأصلي. P/E حي في valuationInputs فقط "
-                        "(خارج مقام المحرك — criteria v2.1). "
-                        + ("مقياس D/E: %s. " % de_scale if de_scale else "")
-                        + "الخط بعده: compute-valuation.py ثم scoring-engine.py.")
-
-    out_dir = os.path.dirname(os.path.abspath(args.data)) or "."
-    fd, tmp = tempfile.mkstemp(dir=out_dir, suffix=".tmp")
-    with os.fdopen(fd, "w") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    os.replace(tmp, args.data)
-    try:
-        os.chmod(args.data, 0o664)
-    except OSError:
-        pass
-
-    # 7) الخلاصة — فشل بصوت عالٍ
+    # 6) الخلاصة وبوابة الفشل — قبل أي كتابة (م-3: الملف لا يُكتب أصلاً عند فشل >10%)
     print("═" * 60)
     print("الطلبات المستهلكة فعلياً: %d / ميزانية ~%d" % (api.requests_made, budget))
     fail_types = []
@@ -826,12 +882,46 @@ def main():
         if pct > 10:
             fail_types.append(label)
     print("نمو الإيرادات: متاح %d | غير متاح %d" % (counters["revgrowth_ok"], counters["revgrowth_miss"]))
-    print("TASI: %s | نظام السوق: %s" % (
-        "✅" if counters["tasi_ok"] else "✗", "✅" if counters["regime_ok"] else "✗"))
-    print("كُتب: %s (ذرياً) | priceSource=sahmk-direct-v1" % args.data)
+    print("TASI: %s%s | نظام السوق: %s" % (
+        "✅" if counters["tasi_ok"] else "✗",
+        " (واجهة فشلت — تاريخ محلي)" if counters["tasi_api_stale"] else "",
+        "✅" if counters["regime_ok"] else "✗"))
+    # (م-2) السقوط adjusted_close→close معدود ومعلن — وفي 1w إنذار صريح (اصطلاح SMA200W ملزم)
+    if counters["adj_fb_rows_1d"]:
+        print("⚠️ 1d: %d شمعة بلا adjusted_close سقطت إلى close عند %d سهماً"
+              % (counters["adj_fb_rows_1d"], counters["adj_fb_syms_1d"]))
+    if counters["adj_fb_rows_1w"]:
+        print("⛔ إنذار اصطلاح: 1w فيها %d شمعة بلا adjusted_close سقطت إلى close عند %d سهماً —"
+              % (counters["adj_fb_rows_1w"], counters["adj_fb_syms_1w"]))
+        print("   هذا يمس أساس SMA200W المعدل (ملحق 24-07: ترحيل السلسلة إلى خام = وسم نسخة معايير)")
+        print("   — لا اعتماد لهذه التشغيلة قبل قرار وسم موثق.")
     if fail_types:
-        print("⛔ فشل يتجاوز 10%% في: %s — راجع قبل تشغيل المحرك" % "، ".join(fail_types))
+        print("⛔ فشل يتجاوز 10%% في: %s — لا كتابة، الملف القديم يبقى كما هو" % "، ".join(fail_types))
         sys.exit(1)
+
+    # 7) أختام وكتابة ذرية — لا تُبلغ إلا بعد عبور البوابة
+    data["lastUpdated"] = now_riyadh + " الرياض"
+    data["priceSource"] = "sahmk-direct-v1"
+    data.setdefault("priceSourceSince", today)
+    data["_labNote"] = ("مدخلات مبنية محلياً من واجهة سهمك (fetch-inputs-sahmk.py) — "
+                        "مستقلة عن مزامنة المشروع الأصلي. P/E حي في valuationInputs فقط "
+                        "(خارج مقام المحرك — criteria v2.1). "
+                        + ("مقياس D/E: %s (وسيط %s على %s سهماً، حُسم %s). " % (
+                            de_decision["scale"], de_decision.get("median", "?"),
+                            de_decision.get("n", "?"), de_decision.get("decidedAt", "?"))
+                           if de_decision else "")
+                        + "الخط بعده: compute-valuation.py ثم scoring-engine.py.")
+
+    out_dir = os.path.dirname(os.path.abspath(args.data)) or "."
+    fd, tmp = tempfile.mkstemp(dir=out_dir, suffix=".tmp")
+    with os.fdopen(fd, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, args.data)
+    try:
+        os.chmod(args.data, 0o664)
+    except OSError:
+        pass
+    print("كُتب: %s (ذرياً) | priceSource=sahmk-direct-v1" % args.data)
     print("✅ اكتمل — الخطوة التالية: python3 scripts/compute-valuation.py ثم scripts/scoring-engine.py")
 
 
