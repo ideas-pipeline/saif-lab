@@ -514,10 +514,24 @@ def build_top_drivers(s, medians):
 
 # ═══════════════ التشغيل ═══════════════
 
-def run(data_path):
+def run(data_path, activation=False):
     with open(data_path) as f:
         data = json.load(f)
     today = str(data.get("lastUpdated", ""))[:10]
+    # ش-1 (قفل التفعيل): --activation لمرة واحدة بقرار مالك — يتخطى بوابتي المعقولية
+    # (التصنيفات >25% ووسيط P/B ×5) لأن أول تشغيلة v3 على بيانات v2.1 تفجرهما حتماً
+    # (أثبته الناقد: 222/248 تغير تصنيف). الحدث يُسجل activationEvent، وإعادة التفعيل
+    # على نسخة مفعلة أصلاً تُرفض.
+    if activation:
+        ev = data.get("activationEvent") or {}
+        if ev.get("version") == "criteria-v3":
+            print("⛔ --activation مرفوض: criteria v3 مفعلة أصلاً (activationEvent بتاريخ %s) —"
+                  " البوابات تعمل عادية بدونه" % ev.get("date"))
+            sys.exit(1)
+        print("█" * 60)
+        print("█ تشغيلة تفعيل criteria v3 — قطع عينة متعمد موسوم بقرار المالك █")
+        print("█ بوابتا التصنيفات (>25%) وعناقيد P/B (×5) متخطاتان لهذه التشغيلة فقط █")
+        print("█" * 60)
     stocks = [s for s in data.get("stocks", []) if s.get("symbol") and not s.get("delisted")]
     regime = (data.get("marketRegime") or {}).get("regime", "")
 
@@ -536,8 +550,11 @@ def run(data_path):
         if old_pb and new_pb and (new_pb / old_pb >= 5 or old_pb / new_pb >= 5):
             pb_alerts.append("%s: ‏%s→%s" % (sec, old_pb, new_pb))
     if pb_alerts:
-        print("⛔ حارس عناقيد مقياس P/B (§8): %s — لا كتابة، تحقيق أولاً" % pb_alerts)
-        sys.exit(1)
+        if activation:
+            print("⚠️ حارس عناقيد P/B متخطى بالتفعيل (موسوم): %s" % pb_alerts)
+        else:
+            print("⛔ حارس عناقيد مقياس P/B (§8): %s — لا كتابة، تحقيق أولاً" % pb_alerts)
+            sys.exit(1)
 
     prev_class = {s["symbol"]: (s.get("investmentScore") or {}).get("classification") for s in stocks}
     stats = {}
@@ -587,9 +604,16 @@ def run(data_path):
                   prev_class[s["symbol"]] != s["investmentScore"]["classification"])
     with_prev = sum(1 for s in stocks if prev_class.get(s["symbol"]))
     if with_prev >= 20 and changed > 0.25 * with_prev:
-        print("⛔ بوابة التصنيفات (§8): تغير %d/%d (>25%%) — لا كتابة، تحقيق أولاً" % (changed, with_prev))
-        sys.exit(1)
+        if activation:
+            print("⚠️ بوابة التصنيفات متخطاة بالتفعيل (موسوم): تغير %d/%d" % (changed, with_prev))
+        else:
+            print("⛔ بوابة التصنيفات (§8): تغير %d/%d (>25%%) — لا كتابة، تحقيق أولاً" % (changed, with_prev))
+            sys.exit(1)
 
+    if activation:
+        data["activationEvent"] = {"version": "criteria-v3", "date": today or None,
+                                   "classChanged": "%d/%d" % (changed, with_prev),
+                                   "note": "تشغيلة تفعيل — قطع عينة متعمد موسوم بقرار المالك"}
     data["sectorMedians"] = {k2: v2 for k2, v2 in medians.items() if k2 != "_market"}
     data["marketMedians"] = medians["_market"]
     data["scoringVersion"] = "criteria-v3"
@@ -616,4 +640,7 @@ def run(data_path):
 
 
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else "/srv/ideas/stocks-data.json")
+    argv = [a for a in sys.argv[1:]]
+    activation = "--activation" in argv
+    argv = [a for a in argv if a != "--activation"]
+    run(argv[0] if argv else "/srv/ideas/stocks-data.json", activation=activation)
