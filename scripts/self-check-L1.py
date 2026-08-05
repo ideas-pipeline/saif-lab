@@ -1,24 +1,15 @@
 #!/usr/bin/env python3
-# بند 3 — حلقة الفحص الذاتي L1. تقرير فقط: لا يعدل بيانات ولا يوقف النشر.
-# يقارن اليوم بلقطة أمس ويطبع إنذارات. يخرج دائما بـ0.
-import json, gzip, glob, os, sys
+# -*- coding: utf-8 -*-
+"""حلقة الفحص الذاتي L1 — عقد criteria v3 (docs/requirements-v3.md §7-§8).
+تقرير فقط: لا يعدل بيانات ولا يوقف النشر. يخرج دائماً بـ0.
+الاستخدام: python3 scripts/self-check-L1.py [stocks-data.json]"""
+import json, sys
 from datetime import datetime
 
-DATA = "/srv/ideas/stocks-data.json"
-SNAPS = "/srv/ideas/snapshots"
-W = []          # إنذارات
-def warn(m): W.append(m)
-
-def load_prev(today_path):
-    try:
-        files = sorted(glob.glob(os.path.join(SNAPS, "stocks-data-*.json.gz")))
-        if not files:
-            return None, None
-        p = files[-1]
-        with gzip.open(p, "rt", encoding="utf-8") as f:
-            return json.load(f), os.path.basename(p)
-    except Exception as e:
-        return None, "تعذر: %s" % e
+DATA = sys.argv[1] if len(sys.argv) > 1 else "/srv/ideas/stocks-data.json"
+W = []
+def warn(m):
+    W.append(m)
 
 try:
     with open(DATA, encoding="utf-8") as f:
@@ -27,204 +18,90 @@ except Exception as e:
     print("L1: تعذر قراءة البيانات — %s" % e)
     sys.exit(0)
 
-S = cur.get("stocks", [])
+S = [s for s in cur.get("stocks", []) if not s.get("delisted")]
 N = len(S)
-prev, snapname = load_prev(DATA)
-P = {s["symbol"]: s for s in (prev or {}).get("stocks", [])} if prev else {}
-
 print("=" * 58)
-print("حلقة الفحص الذاتي L1 — %s" % datetime.now().strftime("%Y-%m-%d %H:%M"))
+print("L1 (criteria v3) — %s | أسهم: %d (+%d delisted)" % (
+    datetime.now().strftime("%Y-%m-%d %H:%M"), N,
+    sum(1 for s in cur.get("stocks", []) if s.get("delisted"))))
 print("=" * 58)
-print("الأسهم: %d | المقارنة مع: %s" % (N, snapname or "لا لقطة"))
 
-# ── 1) الجمود: حقول حية لم تتحرك رغم تحرك السعر
-if P:
-    moved = [s for s in S if s.get("symbol") in P
-             and s.get("currentPrice") and P[s["symbol"]].get("currentPrice")
-             and s["currentPrice"] != P[s["symbol"]]["currentPrice"]]
-    print("\n[1] الجمود — أسهم تحرك سعرها: %d" % len(moved))
-    if len(moved) >= 20:
-        for fld, path in [("pb", ("valuation", "pb")),
-                          ("pe", ("valuation", "pe")),
-                          ("dividendYield", ("valuation", "dividendYield"))]:
-            ch = 0
-            for s in moved:
-                a = (s.get(path[0]) or {}).get(path[1])
-                b = (P[s["symbol"]].get(path[0]) or {}).get(path[1])
-                if a != b:
-                    ch += 1
-            pct = round(ch / len(moved) * 100)
-            flag = ""
-            if fld == "pb" and pct < 50:
-                flag = "  ⚠️ متوقع أن يتحرك مع السعر"
-            print("    %-14s تحرك عند %d من %d (%d%%)%s" % (fld, ch, len(moved), pct, flag))
-            if flag:
-                warn("حقل %s لم يتحرك إلا عند %d%% من الأسهم المتحركة" % (fld, pct))
-    else:
-        print("    عينة صغيرة — تخطي")
-else:
-    print("\n[1] الجمود — لا لقطة سابقة، تخطي")
+# ── [1] تغطية الاشتقاق وبوابة الانهيار (§7) ──
+cov = cur.get("coverage") or {}
+sma_cap = sum(1 for s in S if (s.get("weeklyTechnical") or {}).get("sma200w"))
+z_cap = sum(1 for s in S if (s.get("weeklyTechnical") or {}).get("zExt") is not None)
+print("\n[1] التغطية: SMA200W ‏%d | قادرو Z ‏%d | المثبت: %s" % (sma_cap, z_cap, cov))
+if cov.get("zCapable") and z_cap < cov["zCapable"] * 0.9:
+    warn("قادرو Z انهاروا >10%%: ‏%d → %d" % (cov["zCapable"], z_cap))
+if cov.get("smaCapable") and sma_cap < cov["smaCapable"] * 0.9:
+    warn("قادرو SMA200W انهاروا >10%%: ‏%d → %d" % (cov["smaCapable"], sma_cap))
 
-# ── 2) المدخلات الناقصة
-print("\n[2] المدخلات الناقصة (من %d)" % N)
-checks = [("ROE", lambda s: (s.get("financials") or {}).get("returnOnEquity")),
-          ("OCF", lambda s: (s.get("cashflow") or {}).get("ocf")),
-          ("P/E", lambda s: (s.get("valuation") or {}).get("pe")),
-          ("P/B", lambda s: (s.get("valuation") or {}).get("pb")),
-          ("EV/EBITDA", lambda s: (s.get("valuation") or {}).get("evEbitda")),
-          ("SMA200W", lambda s: (s.get("weeklyTechnical") or {}).get("sma200w"))]
-for name, fn in checks:
-    miss = sum(1 for s in S if fn(s) is None)
-    print("    %-12s %d" % (name, miss))
-# العائد يفصل: null بلا معطيات ≠ لا يوزع حقا (divBasis=none)
-dy_none = dy_miss = 0
+# ── [2] شريحة 200-240 أسبوعاً (§3.4): مقيَّمون بلا Z — تُعد وتُطبع قراراً واعياً ──
+slice_2 = [s["symbol"] for s in S
+           if 200 <= ((s.get("weeklyTechnical") or {}).get("weeks") or 0) < 240]
+print("\n[2] شريحة 200-240 أسبوعاً (مقيَّمة بلا Z — 0/3 بقرار واعٍ): %d %s"
+      % (len(slice_2), slice_2[:10]))
+
+# ── [3] الحراس الراسبون (§8) ──
+from collections import Counter
+rej = Counter()
 for s in S:
-    if (s.get("valuation") or {}).get("dividendYield") is None:
-        if ((s.get("valuationInputs") or {}).get("divBasis")) == "none":
-            dy_none += 1
-        else:
-            dy_miss += 1
-print("    %-12s %d (+%d لا يوزع فعلا — سليم)" % ("العائد", dy_miss, dy_none))
+    for g in (s.get("guardRejected") or []):
+        rej[g.get("field")] += 1
+print("\n[3] حراس المعقولية — الرفض بالحقل: %s" % (dict(rej) or "لا رفض"))
+if sum(rej.values()) > 40:
+    warn("رفض الحراس مرتفع: %d قيمة — راجع جودة المصدر" % sum(rej.values()))
 
-# ── 3) حالة مكونات التقييم
-vp = [s.get("valuationParts") for s in S if s.get("valuationParts")]
-noin = sum(1 for s in S if not s.get("valuationInputs"))
-print("\n[3] مكونات التقييم")
-print("    عليها ختم: %d | بلا valuationInputs: %d" % (len(vp), noin))
-for k in ("pb", "dividendYield", "pe", "evEbitda"):
-    fr = sum(1 for v in vp if v.get(k) == "frozen")
-    lv = sum(1 for v in vp if v.get(k) == "live")
-    print("    %-14s حي %d | مجمد %d" % (k, lv, fr))
-if noin > 40:
-    warn("أسهم بلا مدخلات تقييم: %d (فوق المعتاد ~24)" % noin)
+# ── [4] unrated وfiltered وبوابة السيولة ──
+isc = lambda s: s.get("investmentScore") or {}
+unrated = sum(1 for s in S if isc(s).get("classCode") == "unrated")
+filtered = sum(1 for s in S if isc(s).get("filtered"))
+liq_blocked = sum(1 for s in S if not (s.get("liquidityGate") or {}).get("passed", True))
+print("\n[4] unrated: %d | filtered: %d | محجوب سيولة: %d" % (unrated, filtered, liq_blocked))
 
-# ── 4) حالة unrated (criteria v2.1 — كان: الفلتر الصامت)
-# المرجع عند التفعيل: 42±2 (بند 18، ACTION-PLAN:291). خارج النطاق = إنذار.
-unrated = [s for s in S
-           if (s.get("investmentScore") or {}).get("unrated") is True]
-silent = [s for s in S
-          if (s.get("investmentScore") or {}).get("filtered") is False
-          and (s.get("investmentScore") or {}).get("unrated") is not True
-          and not (s.get("weeklyTechnical") or {}).get("sma200w")]
-print("\n[4] unrated: %d | عبروا الفلتر بلا SMA200W دون وسم unrated: %d" % (len(unrated), len(silent)))
-if not (40 <= len(unrated) <= 44):
-    warn("عدد unrated خارج نطاق 42±2: %d" % len(unrated))
-if silent:
-    warn("أسهم عبرت الفلتر بلا SMA200W ودون وسم unrated: %d — ثغرة بند 18 عادت" % len(silent))
+# ── [5] تغير القطاع/النشاط (§7 — إنذار) ──
+chg = cur.get("sectorChanges") or []
+print("\n[5] تغيرات sector/industry المسجلة: %d" % len(chg))
+for c in chg[:5]:
+    print("    %s.%s: %s → %s (%s)" % (c.get("symbol"), c.get("field"), c.get("old"), c.get("new"), c.get("date")))
+if chg:
+    warn("تغير قطاع/نشاط لـ%d سهماً — يقلب المسار والوسطاء، راجع" % len(chg))
 
-# ── 5) انحراف مرشحي الشراء
-buy = [s for s in S if (s.get("investmentScore") or {}).get("filtered") is False
-       and "شراء" in ((s.get("investmentScore") or {}).get("classification") or "")]
-line = "\n[5] مرشحو الشراء: %d" % len(buy)
-if P:
-    pb_ = [s for s in P.values() if (s.get("investmentScore") or {}).get("filtered") is False
-           and "شراء" in ((s.get("investmentScore") or {}).get("classification") or "")]
-    d = len(buy) - len(pb_)
-    line += " (أمس %d، الفرق %+d)" % (len(pb_), d)
-    if abs(d) > 8:
-        warn("مرشحو الشراء تغيروا بمقدار %+d في يوم" % d)
-print(line)
+# ── [6] حارس تقاطع P/E (§3.5): فرق المحسوب عن المصدر >10% ──
+pe_div = [(s["symbol"], (s.get("valuation") or {}).get("peSourceDiffPct"))
+          for s in S if ((s.get("valuation") or {}).get("peSourceDiffPct") or 0) > 10]
+print("\n[6] تقاطع P/E (محسوب مقابل مصدر، فرق >10%%): %d %s" % (len(pe_div), pe_div[:6]))
+if len(pe_div) > 25:
+    warn("تباعد P/E واسع (%d سهماً) — شبهة اصطلاح eps" % len(pe_div))
 
-# ── 6) اتساق الأختام
-print("\n[6] الأختام الزمنية")
-pstamps = sorted({s.get("priceUpdatedAt") for s in S if s.get("priceUpdatedAt")})
-vstamps = sorted({s.get("valuationUpdatedAt") for s in S if s.get("valuationUpdatedAt")})
-print("    lastRunAt: %s" % cur.get("lastRunAt"))
-print("    priceUpdatedAt: %s" % (pstamps[-1] if pstamps else "—"))
-print("    valuationUpdatedAt: %s" % (vstamps[-1] if vstamps else "—"))
-if len(pstamps) > 2:
-    warn("أختام أسعار متعددة (%d) — جلب جزئي محتمل" % len(pstamps))
-# تباعد lastRunAt عن ختم الأسعار = ختم لا يقيس ما يدعيه (بند 25)
-def _mins(ts):
+# ── [7] نضارة الكتل بأختامها ──
+def age_days(stamp):
     try:
-        d, hm = ts.split()[0], ts.split()[1]
-        h, m = hm.split(":")[:2]
-        y, mo, dd = d.split("-")
-        return ((int(y) * 12 + int(mo)) * 31 + int(dd)) * 1440 + int(h) * 60 + int(m)
-    except Exception:
-        return None
-lr, pu = _mins(str(cur.get("lastRunAt") or "")), _mins(pstamps[-1] if pstamps else "")
-if lr is not None and pu is not None and abs(lr - pu) > 60:
-    warn("lastRunAt يبعد %d دقيقة عن ختم الأسعار — ختم لا يقيس الجلب (بند 25)" % abs(lr - pu))
-
-# ── 7) معقولية التوزيع — يكشف التلف الذي يحرك القيم لا الذي يجمدها (درس 29-07)
-print("\n[7] معقولية التوزيع")
-PLAUS = [("revenueGrowth", lambda s: (s.get("financials") or {}).get("revenueGrowth")),
-         ("profitMargins", lambda s: (s.get("financials") or {}).get("profitMargins")),
-         ("returnOnEquity", lambda s: (s.get("financials") or {}).get("returnOnEquity")),
-         ("pb", lambda s: (s.get("valuation") or {}).get("pb")),
-         ("dividendYield", lambda s: (s.get("valuation") or {}).get("dividendYield"))]
-for _nm, _fn in PLAUS:
-    v = [_fn(s) for s in S]
-    v = [x for x in v if isinstance(x, (int, float))]
-    if len(v) < 30:
-        print("    %-15s عينة صغيرة (%d)" % (_nm, len(v)))
-        continue
-    ints = sum(1 for x in v if float(x) == int(x))
-    negs = sum(1 for x in v if x < 0)
-    cnt = {}
-    for x in v:
-        cnt[x] = cnt.get(x, 0) + 1
-    top, topn = max(cnt.items(), key=lambda z: z[1])
-    ip = round(ints / len(v) * 100)
-    flags = []
-    if topn > len(v) * 0.10:
-        flags.append("القيمة %s تتكرر %d مرة" % (top, topn))
-    if ip > 40:
-        flags.append("أعداد صحيحة %d%%" % ip)
-    if P:
-        pv = [_fn(P[k]) for k in P]
-        pv = [x for x in pv if isinstance(x, (int, float))]
-        pn = sum(1 for x in pv if x < 0)
-        if pn >= 20 and negs < 5:
-            flags.append("السالبة انهارت من %d إلى %d" % (pn, negs))
-    print("    %-15s n=%d | صحيحة %d%% | سالبة %d | أكثرها %s×%d%s" % (
-        _nm, len(v), ip, negs, top, topn, "  ⚠️" if flags else ""))
-    for _f in flags:
-        warn("%s: %s" % (_nm, _f))
-
-# ── 8) نضارة الكتل الموروثة الموسومة (قرار المحلل ج-2 — data-source v3)
-# إنذار (لا استبعاد آلي) عند تجاوز asOf ~15 شهراً (455 يوماً) للنسب السنوية
-print("\n[8] نضارة الكتل الموروثة (data-source v3)")
-STALE_DAYS = 455
-def _age(asof):
-    try:
-        return (datetime.now() - datetime.strptime(str(asof)[:10], "%Y-%m-%d")).days
+        return (datetime.now() - datetime.strptime(str(stamp)[:10], "%Y-%m-%d")).days
     except (ValueError, TypeError):
         return None
-stale = {}; unknown = {}; tagged = {}
-for s in S:
-    checks8 = []
-    dh = s.get("debtHealth") or {}
-    if "source" in dh:
-        checks8.append(("debtHealth", dh.get("asOf")))
-    cf = s.get("cashflow") or {}
-    if "source" in cf:
-        checks8.append(("cashflow", cf.get("asOf")))
-    for fld, meta in (s.get("financialsParts") or {}).items():
-        if isinstance(meta, dict) and "sahmk" not in str(meta.get("source", "")):
-            checks8.append(("financials." + fld, meta.get("asOf")))
-    for name, asof in checks8:
-        blk = name.split(".")[0]
-        tagged[blk] = tagged.get(blk, 0) + 1
-        a = _age(asof)
-        if a is None:
-            unknown[blk] = unknown.get(blk, 0) + 1
-        elif a > STALE_DAYS:
-            stale[blk] = stale.get(blk, 0) + 1
-if not tagged:
-    print("    لا كتل موسومة بعد (الترحيل لم يجر) — تخطي")
-else:
-    for blk in sorted(tagged):
-        print("    %-12s موسوم %d | عمر مجهول %d | تجاوز %d يوماً: %d" % (
-            blk, tagged[blk], unknown.get(blk, 0), STALE_DAYS, stale.get(blk, 0)))
-    for blk, n in sorted(stale.items()):
-        warn("كتل %s موروثة تجاوز عمرها ~15 شهراً: %d — نسب سنوية بائتة تُحتسب نقاطاً" % (blk, n))
+stale_fin = sum(1 for s in S if (age_days(s.get("financialsUpdated")) or 0) > 10)
+stale_daily = sum(1 for s in S
+                  if (age_days((s.get("dailyExtra") or {}).get("updatedAt")) or 0) > 3)
+print("\n[7] النضارة: financials أقدم من 10 أيام: %d | dailyExtra أقدم من 3: %d" % (stale_fin, stale_daily))
+if stale_daily > 25:
+    warn("كتل يومية بائتة: %d" % stale_daily)
 
-# ── الخلاصة
+# ── [8] معقولية توزيع النقاط (مقام 100) ──
+totals = [isc(s).get("total") for s in S if isc(s).get("filtered") is False
+          and isc(s).get("classCode") != "unrated" and isc(s).get("total") is not None]
+if totals:
+    import statistics
+    print("\n[8] النقاط (مقام 100): n=%d | وسيط %.0f | أدنى %d | أعلى %d | ≥80: %d | ≥65: %d"
+          % (len(totals), statistics.median(totals), min(totals), max(totals),
+             sum(1 for t in totals if t >= 80), sum(1 for t in totals if t >= 65)))
+    bad = [t for t in totals if not (0 <= t <= 100)]
+    if bad:
+        warn("نقاط خارج [0،100]: %s" % bad[:5])
+
 print("\n" + "=" * 58)
 if W:
-    print("⚠️  إنذارات: %d" % len(W))
+    print("⚠️ إنذارات: %d" % len(W))
     for w in W:
         print("   • %s" % w)
 else:

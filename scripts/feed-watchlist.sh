@@ -56,6 +56,9 @@ for s in data.get("stocks", []):
     # المفتوحون القائمون لأسهم صارت unrated يبقون ويدارون بقواعد الإغلاق القائمة (لا إغلاق رجعي).
     if inv.get("unrated") is True or code == "unrated":
         continue
+    # (criteria v3 §2) بوابة السيولة إقصائية عن التوصيات — لا دخول بأي عينة (يشمل الظل — قرار معلن)
+    if not (s.get("liquidityGate") or {}).get("passed", True):
+        continue
     if code in ("strong_buy", "buy"):
         sample, category = "applied", code
     elif total >= 65:
@@ -79,7 +82,7 @@ for s in data.get("stocks", []):
         "timingAtEntry": inv.get("timing", ""),
         "regimeAtEntry": regime,
         "aboveSmaAtEntry": bool(cur >= sma_w) if (cur is not None and sma_w) else None,
-        "scoreScaleAtEntry": "raw90",  # (criteria v2.1) وسم السلم — القائم قبل الحد raw105، ولا مقارنة عددية عبر سلمين
+        "scoreScaleAtEntry": "criteria-v3",  # مقام 100 مباشرة — لا مقارنة عبر سلالم النسخ الأقدم
         "status": "open",
     }
     stocks_cfg.append(entry)
