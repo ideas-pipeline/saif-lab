@@ -1,761 +1,619 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-سيف تداول — نموذج التقييم الاستثماري المتوسط
-Scoring Engine v1.2 — criteria v2.1
-90 نقطة خام (تُعاير إلى 100) = 5 محاور: مالية 30 + اتجاه 25 + زخم 11 + مخاطر 17 + تقييم 7
+سيف تداول — Scoring Engine v2.0 (criteria v3)
+=============================================
+المرجع الحاكم: docs/requirements-v3.md — المقام 100 مباشرة (لا معايرة):
+جودة 30 + اتجاه 25 + قوة نسبية 15 + مخاطر 15 + تقييم 15.
 
-criteria v2.1 (مواصفة docs/urgent-fixes-spec.md — 2026-08-03):
-  - استبعاد ثابت من المقام لأربعة مكونات (rsTasi12m 4ن، Z-Score 3ن، P/E 5ن، EV/EBITDA 3ن)
-    — الأولان لا يولدهما سكربت (بند 12 مؤجل)، والأخيران مجمدان بلا كاتب حي (بند 24).
-    إعادة أي منها = وسم نسخة معايير جديد، لا تعديل صامت.
-  - حالة unrated (بند 18): اجتاز فحص المالية بلا SMA200W صالح → classCode='unrated'.
-  - إشارة توقيت MACD من dailyTechnical.macdD/macdSignalD (EMA9 حقيقية) بدل technical{} (تقريب ×0.8).
-  - العتبات (80/65/50/35، <50، ≥65) بلا أي تغيير رقمي.
+قرار معماري معلن: **منطق التقييم (compute-valuation) مدموج هنا** — P/E وP/B والعائد
+تُحسب يومياً بالسعر الحي على آخر أساسيات أسبوعية (§3.5)، ووسطاء القطاعات تُحسب هنا
+أيضاً (محور الجودة يحتاج وسيط الهامش ومحور التقييم وسطاءه والقوة النسبية وسيط 6م) —
+مكان واحد لكل الوسطاء = صفر انزياح تشغيلي بينها. compute-valuation.py صار stub.
 
-v1.1: قواعد متخصصة للبنوك (ROA + Cost-to-Income من Yahoo Finance)
-      التأمين والقطاعات الأخرى = قواعد عامة (بدون تغيير)
+الطبقات (§2): فلاتر إقصائية (مالية موجودة / بوابة سيولة ≥1م ريال / فلتر SMA200W
+باستثناء الانعكاس / unrated) ← المحاور ← طبقة الدخول (لا نقاط — §4) ← التصنيف السباعي.
+
+حالات غموض حُسمت بأقرب قراءة للنص (لا اجتهاد منهجي — موثقة للمراجعة):
+  غ-1: إشارات ≥3 لكن الإشارة 1 (سعر>EMA50) سالبة — الجدول لا يغطيها نصاً: 🟢 يشترط
+       الإشارة 1 و🔴 يشترط ≤1. حُسمت 🟡 («المستوى مستوى استعادة») — الأقرب لدلالة
+       الجدول، والمستوى المرجعي يكون فوق السعر فيصاغ استعادةً بقاعدة §4.2.
+  غ-2: قطاع بأقل من 5 قيم صالحة في P/E أو P/B — الوثيقة تنص البدائل المطلقة للهامش
+       فقط: حُسم استخدام وسيط السوق الكامل مرجعاً بديلاً (أقرب تعميم لروح «مرجع
+       تسعير سوقي»)، موسوماً في details بـ«(مرجع السوق)».
+
+بوابتا معقولية في المحرك (§8): قفزة وسيط P/B قطاعي ×5 عن المخزون، وتغير تصنيف
+>25% من الكون عن المخزون ⇒ خروج 1 بلا كتابة.
+
+الاستخدام: python3 scripts/scoring-engine.py [stocks-data.json]
 """
-import json, sys
+import json, sys, statistics
 
-def compute_risk_reasons(s):
-    # (2026-07-24) بانرات مخاطر حية بدل الحفرية الموروثة — العتبات تطابق محور المخاطر
-    reasons = []
-    wt = s.get("weeklyTechnical") or {}
-    de = s.get("dailyExtra") or {}
-    price = s.get("currentPrice")
-    sma = wt.get("sma200w")
-    if price and sma and price < sma:
-        reasons.append(f"تحت SMA200W بـ {round((sma - price) / sma * 100)}%")
-    rsi = wt.get("rsi14w")
-    if rsi is not None and rsi < 40:
-        reasons.append(f"RSI أسبوعي ضعيف ({rsi})")
-    atr = de.get("atrPct")
-    if atr is not None and atr >= 3.5:
-        reasons.append(f"تقلب مرتفع (ATR {atr}%)")
-    h52 = de.get("high52w")
-    if h52 and price and h52 > 0:
-        dist = (h52 - price) / h52 * 100
-        if dist >= 25:
-            reasons.append(f"بعد {dist:.0f}% عن القمة السنوية")
-    avg50 = de.get("avgVol50")
-    if avg50 and avg50 < 50000:
-        reasons.append("سيولة ضعيفة (متوسط 50ي تحت 50 ألفا)")
-    return reasons
-
-def score_financial_health(stock):
-    """المحور 1: الصحة المالية (30 نقطة)
-    البنوك: قواعد متخصصة (ROA + Cost-to-Income + ROE + نمو + هامش ربح)
-    الباقي: قواعد عامة (نمو + هامش + ROE + D/E + CR + OCF)
-    """
-    fin = stock.get('financials', {})
-    sf = stock.get('sectorFinancials', {})
-    industry = stock.get('industry') or ''
-    
-    is_bank = 'Bank' in industry
-    has_bank_data = sf.get('type') == 'bank' and 'ROA' in sf and 'costToIncome' in sf
-    
-    if is_bank and has_bank_data:
-        return _score_bank_financial(fin, sf)
-    else:
-        return _score_generic_financial(fin, stock)
+Q, T, R, K, V = 30, 25, 15, 15, 15   # سقوف المحاور — المجموع 100
 
 
-def _score_bank_financial(fin, sf):
-    """قواعد البنوك المتخصصة (30 نقطة)
-    ROA(7) + Cost-to-Income(7) + ROE(5) + نمو(5) + هامش(6) = 30
-    """
-    score = 0
-    details = []
-    
-    # 1. ROA (7 pts) — أهم مؤشر ربحية للبنوك
-    roa = sf.get('ROA')
-    if roa is not None:
-        if roa > 2.0: pts = 7
-        elif roa > 1.5: pts = 5
-        elif roa > 1.0: pts = 3
-        elif roa > 0.5: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"ROA {roa}% → {pts}/7")
-    
-    # 2. Cost-to-Income / Efficiency Ratio (7 pts) — كفاءة التشغيل
-    cti = sf.get('costToIncome')
-    if cti is not None:
-        if cti < 30: pts = 7
-        elif cti < 35: pts = 5
-        elif cti < 45: pts = 3
-        elif cti < 55: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"Cost/Income {cti}% → {pts}/7")
-    
-    # 3. ROE (5 pts)
-    roe = fin.get('returnOnEquity')
-    if roe is not None:
-        if roe > 18: pts = 5
-        elif roe > 14: pts = 4
-        elif roe > 10: pts = 3
-        elif roe > 5: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"ROE {roe}% → {pts}/5")
-    
-    # 4. Revenue Growth (5 pts)
-    rg = fin.get('revenueGrowth')
-    if rg is not None:
-        if rg > 15: pts = 5
-        elif rg > 8: pts = 4
-        elif rg > 3: pts = 3
-        elif rg >= 0: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"نمو الإيرادات {rg}% → {pts}/5")
-    
-    # 5. Net Profit Margin (6 pts) — بنوك سعودية عادة 40-70%
-    pm = fin.get('profitMargins')
-    if pm is not None:
-        if pm > 50: pts = 6
-        elif pm > 40: pts = 5
-        elif pm > 30: pts = 3
-        elif pm > 20: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"Net Profit Margin {pm}% → {pts}/6")
-    
-    return score, 30, details
+# ═══════════════ الوسطاء (§6-7) ═══════════════
 
-
-def _score_generic_financial(fin, stock):
-    """القواعد العامة — لكل القطاعات ما عدا البنوك (30 نقطة)
-    نمو(6) + هامش(6) + ROE(6) + D/E(6) + CR(3) + OCF(3) = 30
-    """
-    cf = stock.get('cashflow', {})
-    sector = stock.get('sector', '')
-    score = 0
-    details = []
-    
-    # Revenue Growth (6 pts)
-    rg = fin.get('revenueGrowth')
-    if rg is not None:
-        if rg > 15: pts = 6
-        elif rg > 8: pts = 5
-        elif rg > 3: pts = 4
-        elif rg >= 0: pts = 2
-        else: pts = 0
-        score += pts
-        details.append(f"نمو الإيرادات {rg}% → {pts}/6")
-    
-    # Profit Margin (6 pts)
-    pm = fin.get('profitMargins')
-    if pm is not None:
-        if pm > 20: pts = 6
-        elif pm > 12: pts = 5
-        elif pm > 5: pts = 3
-        elif pm >= 0: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"هامش الربح {pm}% → {pts}/6")
-    
-    # ROE (6 pts)
-    roe = fin.get('returnOnEquity')
-    if roe is not None:
-        if roe > 18: pts = 6
-        elif roe > 12: pts = 5
-        elif roe > 8: pts = 3
-        elif roe >= 0: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"ROE {roe}% → {pts}/6")
-    
-    # D/E (6 pts)
-    de = fin.get('debtToEquity')
-    if de is not None:
-        if de < 30: pts = 6
-        elif de < 80: pts = 5
-        elif de < 150: pts = 3
-        elif de < 300: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"D/E {de}% → {pts}/6")
-    
-    # Current Ratio (3 pts)
-    cr = fin.get('currentRatio')
-    if cr is not None:
-        if cr > 1.5: pts = 3
-        elif cr >= 1.0: pts = 2
-        elif cr >= 0.7: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"CR {cr} → {pts}/3")
-    
-    # OCF (3 pts)
-    ocf = cf.get('ocf')
-    ni = cf.get('netIncome')
-    if ocf is not None and ocf != 0:
-        if ocf > 0 and (ni is None or ni <= 0 or ocf > ni):
-            pts = 3
-        elif ocf > 0:
-            pts = 2
-        else:
-            pts = 0
-        score += pts
-        details.append(f"OCF → {pts}/3")
-    
-    return score, 30, details
-
-
-def score_weekly_trend(stock):
-    """المحور 2: الاتجاه الفني الاستثماري (25 نقطة)"""
-    wt = stock.get('weeklyTechnical', {})
-    if not wt:
-        return 0, 25, ["لا توجد بيانات أسبوعية"]
-    
-    price = wt.get('currentPrice', stock.get('currentPrice', 0))
-    score = 0
-    details = []
-    
-    # SMA 200W (8 pts)
-    sma200 = wt.get('sma200w')
-    slope = wt.get('sma200wSlope', 0)
-    if sma200 and price:
-        if price > sma200:
-            if slope and slope > 1: pts = 8
-            elif slope and slope > -1: pts = 6
-            else: pts = 3
-        else:
-            dist = (price - sma200) / sma200 * 100
-            if dist > -3: pts = 2
-            else: pts = 0
-        score += pts
-        details.append(f"SMA200W {sma200} (slope {slope}%) → {pts}/8")
-    
-    # EMA 40W (7 pts)
-    ema40 = wt.get('ema40w')
-    if ema40 and sma200 and price:
-        if price > ema40 and ema40 > sma200: pts = 7
-        elif price > ema40: pts = 4
-        elif price > sma200: pts = 2
-        else: pts = 0
-        score += pts
-        details.append(f"EMA40W {ema40} → {pts}/7")
-    
-    # RSI 14W (5 pts)
-    rsi = wt.get('rsi14w')
-    if rsi is not None:
-        if 55 <= rsi <= 70: pts = 5
-        elif 50 <= rsi < 55: pts = 4
-        elif 70 < rsi <= 80: pts = 3
-        elif 40 <= rsi < 50: pts = 2
-        else: pts = 1
-        score += pts
-        details.append(f"RSI-W {rsi} → {pts}/5")
-    
-    # MACD Weekly (5 pts)
-    macd = wt.get('macdW')
-    signal = wt.get('macdSignalW')
-    if macd is not None and signal is not None:
-        if macd > signal and macd > 0: pts = 5
-        elif macd > signal and macd <= 0: pts = 4
-        elif macd <= signal and macd > 0: pts = 2
-        else: pts = 0
-        score += pts
-        details.append(f"MACD-W {macd} vs Signal {signal} → {pts}/5")
-    
-    return score, 25, details
-
-
-def score_relative_strength(stock, sector_medians):
-    """المحور 3: الزخم النسبي (11 نقطة)
-    criteria v2.1: أُخرج مكوّن RS-TASI 12M (كان 4 ن) من المقام استبعاداً ثابتاً —
-    rsTasi12m لا يولده أي سكربت (بند 12 مؤجل). إعادته = وسم نسخة معايير جديد."""
-    rs = stock.get('relativeStrength', {})
-    if not rs:
-        return 0, 11, ["لا توجد بيانات"]
-
-    score = 0
-    details = []
-
-    # RS vs TASI 6M (4 pts)
-    rs6m = rs.get('rsTasi6m', rs.get('rs6m'))
-    if rs6m is not None:
-        if rs6m > 10: pts = 4
-        elif rs6m > 3: pts = 3
-        elif rs6m > -3: pts = 2
-        elif rs6m > -10: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"RS-TASI 6M: {rs6m:+.1f}% → {pts}/4")
-
-    # RS vs Sector 6M (4 pts)
-    sec = stock.get('sector')
-    ret6m = rs.get('return6m', rs.get('ret6m'))
-    if sec and ret6m is not None and sec in sector_medians:
-        sec_ret = sector_medians[sec].get('ret6mMedian', 0)
-        if sec_ret is not None:
-            rs_sec = ret6m - sec_ret
-            if rs_sec > 10: pts = 4
-            elif rs_sec > 3: pts = 3
-            elif rs_sec > -3: pts = 2
-            elif rs_sec > -10: pts = 1
-            else: pts = 0
-            score += pts
-            details.append(f"RS-Sector 6M: {rs_sec:+.1f}% → {pts}/4")
-    
-    # RS vs TASI 3M (3 pts)
-    rs3m = rs.get('rsTasi3m', rs.get('rs3m'))
-    if rs3m is not None:
-        if rs3m > 5: pts = 3
-        elif rs3m > 1: pts = 2
-        elif rs3m > -5: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"RS-TASI 3M: {rs3m:+.1f}% → {pts}/3")
-
-    return score, 11, details
-
-
-def score_risk(stock):
-    """المحور 4: المخاطر (17 نقطة)
-    ATR% (4) + 52W Distance (4) + Volume (4) + Net Debt/EBITDA (5)
-    criteria v2.1: أُخرج مكوّن SMA200W Z-Score (كان 3 ن) من المقام استبعاداً ثابتاً —
-    sma200w-zscores.json لا يولده أي سكربت (بند 12 مؤجل). إعادته = وسم نسخة معايير جديد.
-    """
-    de = stock.get('dailyExtra', {})
-    if not de:
-        return 0, 17, ["لا توجد بيانات"]
-    
-    price = stock.get('currentPrice', 0)
-    score = 0
-    details = []
-    
-    # ATR% (4 pts) — تقلب يومي
-    atr_pct = de.get('atrPct')
-    if atr_pct is not None:
-        if atr_pct < 1.5: pts = 4
-        elif atr_pct < 2.5: pts = 3
-        elif atr_pct < 4: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"ATR% {atr_pct}% → {pts}/4")
-    
-    # Distance from 52W High (4 pts)
-    h52 = de.get('high52w')
-    if h52 and price and h52 > 0:
-        dist = (h52 - price) / h52 * 100
-        if dist < 5: pts = 4
-        elif dist < 15: pts = 3
-        elif dist < 25: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"البعد عن قمة 52أ {dist:.1f}% → {pts}/4")
-    
-    # Volume trend (4 pts)
-    avg20 = de.get('avgVol20')
-    avg50 = de.get('avgVol50')
-    if avg20 and avg50 and avg50 > 0:
-        ratio = avg20 / avg50
-        if avg50 < 50000:
-            pts = 1  # Low liquidity warning
-        elif ratio > 1.2: pts = 4
-        elif ratio > 0.8: pts = 3
-        else: pts = 1
-        score += pts
-        details.append(f"Vol20/50: {ratio:.2f} → {pts}/4")
-    
-    # Net Debt/EBITDA (5 pts) — ملاءة مالية
-    dh = stock.get('debtHealth', {})
-    dh_type = dh.get('type', '')
-    if dh_type == 'bank':
-        # Banks: Cost-to-Income
-        cti = dh.get('costToIncome')
-        if cti is not None:
-            if cti < 35: pts = 5
-            elif cti < 40: pts = 4
-            elif cti < 45: pts = 3
-            elif cti < 55: pts = 1
-            else: pts = 0
-            score += pts
-            details.append(f"C/I {cti}% (بنك) → {pts}/5")
-    elif dh_type == 'company':
-        nde = dh.get('netDebtToEbitda')
-        net_debt = dh.get('netDebt')
-        if nde is not None:
-            if nde < 0:  # فوائض نقدية
-                pts = 5
-                details.append(f"فوائض نقدية (ND/EBITDA {nde}x) → {pts}/5")
-            elif nde <= 1:
-                pts = 4
-                details.append(f"ND/EBITDA {nde}x (مريح) → {pts}/5")
-            elif nde <= 2:
-                pts = 3
-                details.append(f"ND/EBITDA {nde}x (معقول) → {pts}/5")
-            elif nde <= 3:
-                pts = 1
-                details.append(f"ND/EBITDA {nde}x (مرتفع) → {pts}/5")
-            else:
-                pts = 0
-                details.append(f"ND/EBITDA {nde}x (خطر) → {pts}/5")
-            score += pts
-        elif net_debt is not None and net_debt < 0:
-            pts = 5
-            score += pts
-            details.append(f"فوائض نقدية → {pts}/5")
-    
-    return score, 17, details
-
-
-def score_valuation(stock, sector_medians):
-    """المحور 5: التقييم / القيمة الحقيقية (7 نقاط)
-    criteria v2.1: أُخرج مكوّنا P/E مقابل القطاع (كان 5 ن) وEV/EBITDA (كان 3 ن) من المقام
-    استبعاداً ثابتاً — مجمدان بلا كاتب حي منذ ~03-07 (بند 24). يبقى P/B (حي بحارس اتساق —
-    ولكل الأسهم بما فيها ساقطو الحارس، توحيداً للمقام) وعائد التوزيعات (حي).
-    زال معهما استثناء «الغائب = 1/3 حياد» — قاعدة «الغياب = صفر والمقام ثابت» تعم بلا استثناء.
-    إعادة أي منهما = وسم نسخة معايير جديد."""
-    val = stock.get('valuation', {})
-    sec = stock.get('sector')
-    if not val:
-        return 0, 7, ["لا توجد بيانات تقييم"]
-
-    sm = sector_medians.get(sec, {}) if sec else {}
-    score = 0
-    details = []
-
-    # P/B vs Sector (4 pts)
-    pb = val.get('pb')
-    pb_med = sm.get('pbMedian')
-    if pb and pb > 0 and pb_med and pb_med > 0:
-        ratio = pb / pb_med
-        if ratio < 0.6: pts = 4
-        elif ratio < 0.8: pts = 3
-        elif ratio < 1.1: pts = 2
-        elif ratio < 1.4: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"P/B {pb:.2f} vs قطاع {pb_med:.2f} ({ratio:.2f}x) → {pts}/4")
-    
-    # Dividend Yield (3 pts)
-    dy = val.get('dividendYield')
-    if dy and dy > 0:
-        dy_pct = dy * 100
-        if dy_pct > 4: pts = 3
-        elif dy_pct > 2: pts = 2
-        elif dy_pct > 0.5: pts = 1
-        else: pts = 0
-        score += pts
-        details.append(f"Yield {dy_pct:.1f}% → {pts}/3")
-
-    return score, 7, details
-
-
-
-def build_top_drivers(s, sector_medians):
-    """البند 5: أبرز المحركات من البيانات الحية — بدل النسخ البائد"""
-    pos, neg = [], []
-    fin = s.get('financials', {}) or {}
-    price = s.get('currentPrice')
-    # مالية
-    roe = fin.get('returnOnEquity')
-    if roe is not None and roe >= 18: pos.append(f"ROE قوي {roe}%")
-    roa = fin.get('returnOnAssets')
-    if roa is not None and roa >= 1.5: pos.append(f"ROA {roa}%")
-    pm = fin.get('profitMargins')
-    if pm is not None and pm >= 20: pos.append(f"هامش ربح {pm}%")
-    rg = fin.get('revenueGrowth')
-    if rg is not None and rg >= 15: pos.append(f"نمو إيرادات {rg}%")
-    # اتجاه
-    wt = s.get('weeklyTechnical', {}) or {}
-    sma = wt.get('sma200w')
-    if price and sma:
-        (pos if price > sma else neg).append("فوق SMA200W" if price > sma else "تحت SMA200W")
-    # زخم نسبي
-    rs6 = (s.get('relativeStrength', {}) or {}).get('rsTasi6m')
-    if rs6 is not None:
-        if rs6 > 10: pos.append(f"يتفوق على TASI {rs6:+.0f}% (6م)")
-        elif rs6 < -10: neg.append(f"أضعف من TASI {rs6:+.0f}% (6م)")
-    # تقييم نسبي
-    v = s.get('valuation', {}) or {}
-    sm = sector_medians.get(s.get('sector', ''), {}) or {}
-    pe, pem = v.get('pe'), sm.get('peMedian')
-    if pe and pem and pe > 0:
-        r = pe / pem
-        if r < 0.7: pos.append("أرخص من قطاعه (P/E)")
-        elif r > 1.3: neg.append("أغلى من قطاعه (P/E)")
-    # مخاطر
-    nde = (s.get('debtHealth', {}) or {}).get('netDebtToEbitda')
-    if nde is not None and nde > 3: neg.append(f"دين مرتفع ND/EBITDA {nde}")
-    atr = (s.get('dailyExtra', {}) or {}).get('atrPct')
-    if atr is not None and atr > 4: neg.append(f"تذبذب مرتفع ATR {atr}%")
-    # تركيب: حتى محرّكين إيجابيين + سلبي واحد إن وجد (سقف 3)
-    out = [{'text': t, 'type': 'positive'} for t in pos[:2]]
-    if neg: out.append({'text': neg[0], 'type': 'negative'})
-    elif len(pos) > 2: out.append({'text': pos[2], 'type': 'positive'})
+def compute_medians(stocks):
+    """من الكون المدرج الكامل (غير المشطوب) — P/E وP/B والعائد من الموجبة فقط،
+    الهامش وعائد 6م من كل القيم موجبها وسالبها (قواعد الإشارة المنصوصة)"""
+    secs = {}
+    market = {"pe": [], "pb": [], "dy": [], "margin": [], "r6": []}
+    for s in stocks:
+        sec = s.get("sector")
+        v = s.get("valuation") or {}
+        fin = s.get("financials") or {}
+        agg = secs.setdefault(sec, {"pe": [], "pb": [], "dy": [], "margin": [], "r6": [], "n": 0}) if sec else None
+        if agg is not None:
+            agg["n"] += 1
+        def push(key, val, positive_only):
+            if val is None:
+                return
+            if positive_only and val <= 0:
+                return
+            market[key].append(val)
+            if agg is not None:
+                agg[key].append(val)
+        push("pe", v.get("pe"), True)
+        push("pb", v.get("pb"), True)
+        push("dy", v.get("dividendYield"), True)
+        push("margin", fin.get("profitMargins"), False)
+        push("r6", (s.get("relativeStrength") or {}).get("return6m"), False)
+    def med(lst, dp=4):
+        return round(statistics.median(lst), dp) if lst else None
+    out = {}
+    for sec, a in secs.items():
+        out[sec] = {"peMedian": med(a["pe"], 2), "pePool": len(a["pe"]),
+                    "pbMedian": med(a["pb"], 2), "pbPool": len(a["pb"]),
+                    "divYieldMedian": med(a["dy"], 4), "dyPool": len(a["dy"]),
+                    "marginMedian": med(a["margin"], 1), "marginPool": len(a["margin"]),
+                    "ret6mMedian": med(a["r6"], 2), "r6Pool": len(a["r6"]),
+                    "count": a["n"]}
+    out["_market"] = {"peMedian": med(market["pe"], 2), "pbMedian": med(market["pb"], 2),
+                      "marginMedian": med(market["margin"], 1)}
     return out
 
-def timing_signal(stock):
-    """الطبقة 3: توقيت الدخول
-    criteria v2.1: إشارة MACD تُقرأ من dailyTechnical.macdD/macdSignalD (خط إشارة EMA9
-    حقيقي من fetch-daily-extra.sh) بدل technical{} القديمة (إشارتها تقريب ×0.8).
-    غياب الحقلين = الإشارة غير متاحة (لا تدخل العدد ولا المتاح) — لا صفر مفروض."""
-    de = stock.get('dailyExtra', {})
-    dt = stock.get('dailyTechnical', {})
-    price = stock.get('currentPrice', 0)
-    
-    positives = 0
-    total = 0
-    details = []
-    
-    # EMA 50D
-    ema50 = de.get('ema50d')
-    if ema50 and price:
-        total += 1
-        if price > ema50:
-            positives += 1
-            details.append("✅ فوق EMA50D")
+
+def compute_valuation(s, today_ref):
+    """P/E وP/B يومياً بالسعر الحي على آخر أساسيات أسبوعية + العائد (§3.5 مدموجاً)"""
+    vi = s.get("valuationInputs") or {}
+    price = s.get("currentPrice")
+    v = {}
+    rejects = []
+    eps = vi.get("eps")
+    if price and eps and eps > 0:
+        pe = round(price / eps, 2)
+        if 0 < pe <= 500:
+            v["pe"] = pe
         else:
-            details.append("⚠️ تحت EMA50D")
-    
-    # RSI 14D
-    rsi = de.get('rsi14d')
-    if rsi is not None:
-        total += 1
-        if 40 <= rsi <= 65:
-            positives += 1
-            details.append(f"✅ RSI-D {rsi}")
-        else:
-            details.append(f"⚠️ RSI-D {rsi}")
-    
-    # MACD Daily — من dailyTechnical (criteria v2.1)
-    macd = dt.get('macdD')
-    signal = dt.get('macdSignalD')
-    if macd is not None and signal is not None:
-        total += 1
-        if macd > signal:
-            positives += 1
-            details.append("✅ MACD-D إيجابي")
-        else:
-            details.append("⚠️ MACD-D سلبي")
-    
-    # Volume
-    avg20 = de.get('avgVol20')
-    avg50 = de.get('avgVol50')
-    if avg20 and avg50 and avg50 > 0:
-        total += 1
-        if avg20 > avg50:
-            positives += 1
-            details.append("✅ حجم متزايد")
-        else:
-            details.append("⚠️ حجم متراجع")
-    
-    if total == 0:
-        return "محايد", "🟡", details
-    
-    if positives >= 3:
-        return "ممتاز", "🟢", details
-    elif positives >= 2:
-        return "مقبول", "🟡", details
+            rejects.append(("pe", pe, "خارج (0،500]"))
+            v["pe"] = None
     else:
-        return "انتظر", "🔴", details
+        v["pe"] = None    # خاسرة/بلا eps → صفر P/E عمداً (§3.5 — حسم فرضية 2)
+    bv = vi.get("bookValue")
+    if price and bv and bv > 0:
+        pb = round(price / bv, 3)
+        if 0.05 <= pb <= 50:
+            v["pb"] = pb
+        else:
+            rejects.append(("pb", pb, "خارج [0.05،50]"))
+            v["pb"] = None
+    else:
+        v["pb"] = None
+    dv = vi.get("divTtm12m")
+    v["dividendYield"] = round(dv / price, 6) if (price and dv and dv > 0) else (0.0 if dv == 0.0 else None)
+    # حارس تقاطع pe المصدر (§3.5): فرق >10% → يعد لإنذار L1
+    pe_src = vi.get("peSource")
+    if v.get("pe") and pe_src and pe_src > 0:
+        diff = abs(v["pe"] - pe_src) / pe_src * 100
+        v["peSourceDiffPct"] = round(diff, 1)
+    s["valuation"] = v
+    for fld, val, why in rejects:
+        s.setdefault("guardRejected", []).append({"field": fld, "value": val, "reason": why, "date": today_ref})
+    return v
 
 
-def investment_filter(stock):
-    """الطبقة 1: الفلتر الاستثماري"""
-    wt = stock.get('weeklyTechnical', {})
-    de = stock.get('dailyExtra', {})
-    fin = stock.get('financials', {})
-    price = wt.get('currentPrice', stock.get('currentPrice', 0))
-    
-    # Check: has financial data?
+# ═══════════════ التصنيف البنكي ═══════════════
+
+def is_bank(s):
+    sec = (s.get("sector") or "").lower()
+    ind = (s.get("industry") or "").lower()
+    sec_fin = ("financ" in sec) or ("مالية" in sec) or ("مصارف" in sec) or ("بنوك" in sec)
+    ind_bank = ("bank" in ind) or ("بنك" in ind) or ("مصرف" in ind)
+    return (sec_fin and ind_bank) if sec else ind_bank
+
+
+# ═══════════════ المحاور (§3) ═══════════════
+
+def axis_quality(s, medians):
+    """الجودة 30: عام = نمو6+هامش6(نسبي قطاعياً)+ROE6+D/E6+جودة نقد6
+                 بنوك = ROA10+ROE8+هامش6(مطلق)+نمو6"""
+    fin = s.get("financials") or {}
+    d = []
+    sc = 0
+    if is_bank(s):
+        roa = fin.get("returnOnAssets")
+        if roa is not None:
+            p = 10 if roa > 2.2 else 7 if roa > 1.8 else 4 if roa > 1.4 else 2 if roa > 0.8 else 0
+            sc += p; d.append("ROA %s%% → %d/10" % (roa, p))
+        else:
+            d.append("ROA غير متوفر → 0/10")
+        roe = fin.get("returnOnEquity")
+        if roe is not None:
+            p = 8 if roe > 18 else 6 if roe > 14 else 4 if roe > 10 else 2 if roe > 5 else 0
+            sc += p; d.append("ROE %s%% → %d/8" % (roe, p))
+        else:
+            d.append("ROE غير متوفر → 0/8")
+        pm = fin.get("profitMargins")
+        if pm is not None:
+            p = 6 if pm > 50 else 5 if pm > 40 else 3 if pm > 30 else 1 if pm > 20 else 0
+            sc += p; d.append("هامش %s%% (مطلق بنوك) → %d/6" % (pm, p))
+        else:
+            d.append("هامش غير متوفر → 0/6")
+        rg = fin.get("revenueGrowth")
+        if rg is not None:
+            p = 6 if rg > 15 else 5 if rg > 8 else 3 if rg > 3 else 1 if rg >= 0 else 0
+            sc += p; d.append("نمو %s%% → %d/6" % (rg, p))
+        else:
+            d.append("نمو غير متوفر/راسب الحارس → 0/6")
+        return sc, d
+    # المسار العام
+    rg = fin.get("revenueGrowth")
+    if rg is not None:
+        p = 6 if rg > 15 else 5 if rg > 8 else 4 if rg > 3 else 2 if rg >= 0 else 0
+        sc += p; d.append("نمو %s%% → %d/6" % (rg, p))
+    else:
+        d.append("نمو غير متوفر → 0/6")
+    pm = fin.get("profitMargins")
+    sm = medians.get(s.get("sector")) or {}
+    if pm is not None:
+        if (sm.get("marginPool") or 0) >= 5 and sm.get("marginMedian") is not None:
+            diff = pm - sm["marginMedian"]
+            p = 6 if diff > 10 else 5 if diff > 3 else 3 if diff > -3 else 1 if diff > -10 else 0
+            sc += p; d.append("هامش %s%% مقابل وسيط قطاعه %s%% (%+.1f ن.م) → %d/6" % (pm, sm["marginMedian"], diff, p))
+        else:
+            p = 6 if pm > 20 else 5 if pm > 12 else 3 if pm > 5 else 1 if pm >= 0 else 0
+            sc += p; d.append("هامش %s%% (سلم مطلق — قطاع <5 مؤهلين) → %d/6" % (pm, p))
+    else:
+        d.append("هامش غير متوفر → 0/6")
+    roe = fin.get("returnOnEquity")
+    if roe is not None:
+        p = 6 if roe > 18 else 5 if roe > 12 else 3 if roe > 8 else 1 if roe >= 0 else 0
+        sc += p; d.append("ROE %s%% → %d/6" % (roe, p))
+    else:
+        d.append("ROE غير متوفر/راسب → 0/6")
+    de = fin.get("debtToEquity")
+    if de is not None:
+        p = 6 if de < 30 else 5 if de < 80 else 3 if de < 150 else 1 if de < 300 else 0
+        sc += p; d.append("D/E %s%% → %d/6" % (de, p))
+    else:
+        d.append("D/E غير متوفر/راسب → 0/6")
+    ocf, ni = fin.get("ocf"), fin.get("netIncome")
+    if ocf is not None and ocf > 0:
+        p = 6 if (ni is not None and ocf >= ni) or ni is None else 4
+        sc += p; d.append("جودة نقد: OCF %s %s → %d/6" % (
+            ocf, "≥ صافي الربح" if p == 6 else "> 0", p))
+    else:
+        d.append("OCF ≤ 0 أو غائب → 0/6")
+    return sc, d
+
+
+def axis_trend(s):
+    """الاتجاه 25 — بنية v2.1 بحذافيرها على المشتقة (§3.2)؛ السعر = آخر إغلاق يومي"""
+    wt = s.get("weeklyTechnical") or {}
+    price = wt.get("priceRef") or (s.get("dailyExtra") or {}).get("lastClose") or s.get("currentPrice")
+    d = []
+    sc = 0
+    sma, slope = wt.get("sma200w"), wt.get("sma200wSlope")
+    if sma and price:
+        if price > sma:
+            p = 8 if (slope or 0) > 1 else 6 if (slope or 0) > -1 else 3
+        else:
+            p = 2 if (price - sma) / sma * 100 > -3 else 0
+        sc += p; d.append("SMA200W %s (ميل %s%%) → %d/8" % (sma, slope, p))
+    else:
+        d.append("SMA200W غير متوفر → 0/8")
+    ema40 = wt.get("ema40w")
+    if ema40 and sma and price:
+        p = 7 if (price > ema40 and ema40 > sma) else 4 if price > ema40 else 2 if price > sma else 0
+        sc += p; d.append("EMA40W %s → %d/7" % (ema40, p))
+    else:
+        d.append("EMA40W/تسلسل غير متوفر → 0/7")
+    rsi = wt.get("rsi14w")
+    if rsi is not None:
+        p = 5 if 55 <= rsi <= 70 else 4 if 50 <= rsi < 55 else 3 if 70 < rsi <= 80 else 2 if 40 <= rsi < 50 else 1
+        sc += p; d.append("RSI-W %s → %d/5" % (rsi, p))
+    else:
+        d.append("RSI-W غير متوفر → 0/5")
+    m, sig = wt.get("macdW"), wt.get("macdSignalW")
+    if m is not None and sig is not None:
+        p = 5 if (m > sig and m > 0) else 4 if (m > sig) else 2 if m > 0 else 0
+        sc += p; d.append("MACD-W %s/%s → %d/5" % (m, sig, p))
+    else:
+        d.append("MACD-W غير متوفر → 0/5")
+    return sc, d
+
+
+def axis_rs(s, medians):
+    """القوة النسبية 15 (§3.3): 12-1(4) + 6م(4) + قطاع 6م(4) + 3م(3)"""
+    rs = s.get("relativeStrength") or {}
+    d = []
+    sc = 0
+    LADDER4 = lambda x: 4 if x > 10 else 3 if x > 3 else 2 if x > -3 else 1 if x > -10 else 0
+    v = rs.get("rsTasi12_1")
+    if v is not None:
+        p = LADDER4(v); sc += p; d.append("مقابل تاسي 12-1: %+.1f%% → %d/4" % (v, p))
+    else:
+        d.append("12-1 غير متوفر → 0/4")
+    v = rs.get("rsTasi6m")
+    if v is not None:
+        p = LADDER4(v); sc += p; d.append("مقابل تاسي 6م: %+.1f%% → %d/4" % (v, p))
+    else:
+        d.append("6م غير متوفر → 0/4")
+    r6 = rs.get("return6m")
+    sm = medians.get(s.get("sector")) or {}
+    if r6 is not None and sm.get("ret6mMedian") is not None:
+        v = r6 - sm["ret6mMedian"]
+        p = LADDER4(v); sc += p; d.append("مقابل قطاعه 6م: %+.1f%% → %d/4" % (v, p))
+    else:
+        d.append("قطاع 6م غير متوفر → 0/4")
+    v = rs.get("rsTasi3m")
+    if v is not None:
+        p = 3 if v > 5 else 2 if v > 1 else 1 if v > -5 else 0
+        sc += p; d.append("مقابل تاسي 3م: %+.1f%% → %d/3" % (v, p))
+    else:
+        d.append("3م غير متوفر → 0/3")
+    return sc, d
+
+
+def axis_risk(s):
+    """المخاطر 15 (§3.4): ATR%4 + Z3 + قيمة تداول3 + اتجاه حجم2 + ملاءة3"""
+    de = s.get("dailyExtra") or {}
+    fin = s.get("financials") or {}
+    d = []
+    sc = 0
+    atr = de.get("atrPct")
+    if atr is not None:
+        p = 4 if atr < 1.5 else 3 if atr < 2.5 else 1 if atr < 4 else 0
+        sc += p; d.append("ATR%% ‏%s → %d/4" % (atr, p))
+    else:
+        d.append("ATR غير متوفر → 0/4")
+    z = (s.get("weeklyTechnical") or {}).get("zExt")
+    if z is not None:
+        az = abs(z)
+        p = 3 if az < 1 else 2 if az < 2 else 1 if az < 3 else 0
+        sc += p; d.append("Z-امتداد %+.1f → %d/3" % (z, p))
+    else:
+        d.append("Z غير متوفر (تاريخ < 240 أسبوعاً) → 0/3")
+    tv = de.get("tradingValueMedian20")
+    if tv is not None:
+        p = 3 if tv > 20e6 else 2 if tv > 5e6 else 1 if tv > 1e6 else 0
+        sc += p; d.append("قيمة تداول %s ريال → %d/3" % (f"{tv:,.0f}", p))
+    else:
+        d.append("قيمة التداول غير متوفرة → 0/3")
+    a20, a50 = de.get("avgVol20"), de.get("avgVol50")
+    if a20 and a50:
+        r = a20 / a50
+        p = 2 if r > 1.2 else 1 if r > 0.8 else 0
+        sc += p; d.append("حجم 20/50: %.2f → %d/2" % (r, p))
+    else:
+        d.append("اتجاه الحجم غير متوفر → 0/2")
+    if is_bank(s):
+        ea = fin.get("equityAssets")
+        if ea is not None:
+            p = 3 if ea > 13 else 2 if ea > 10 else 1 if ea > 8 else 0
+            sc += p; d.append("رفع رأسمالي (ملكية/أصول) %s%% → %d/3" % (ea, p))
+        else:
+            d.append("رفع رأسمالي غير متوفر → 0/3")
+    else:
+        ol = fin.get("ocfLiabilities")
+        if ol is not None and (fin.get("ocf") or 0) > 0:
+            p = 3 if ol > 0.20 else 2 if ol > 0.10 else 1 if ol > 0.05 else 0
+            sc += p; d.append("‏Beaver ‏OCF/مطلوبات %.2f → %d/3" % (ol, p))
+        else:
+            d.append("‏Beaver غير متوفر أو OCF≤0 → 0/3")
+    return sc, d
+
+
+def axis_valuation(s, medians):
+    """التقييم 15 (§3.5): P/E قطاعي6 + P/B قطاعي5 + عائد4 — الخاسرة صفر P/E عمداً"""
+    v = s.get("valuation") or {}
+    sm = medians.get(s.get("sector")) or {}
+    mkt = medians.get("_market") or {}
+    d = []
+    sc = 0
+    pe = v.get("pe")
+    ref, tag = (sm.get("peMedian"), "قطاعه") if (sm.get("pePool") or 0) >= 5 else (mkt.get("peMedian"), "السوق (غ-2)")
+    if pe and ref:
+        r = pe / ref
+        p = 6 if r < 0.7 else 5 if r < 0.9 else 3 if r < 1.1 else 1 if r < 1.5 else 0
+        sc += p; d.append("P/E %.1f مقابل وسيط %s %.1f (%.2fx) → %d/6" % (pe, tag, ref, r, p))
+    elif pe is None:
+        d.append("P/E غير معرف (خاسرة/بلا eps) → 0/6 — تحفظ مقصود")
+    else:
+        d.append("لا وسيط مرجعي → 0/6")
+    pb = v.get("pb")
+    ref, tag = (sm.get("pbMedian"), "قطاعه") if (sm.get("pbPool") or 0) >= 5 else (mkt.get("pbMedian"), "السوق (غ-2)")
+    if pb and ref:
+        r = pb / ref
+        p = 5 if r < 0.6 else 4 if r < 0.8 else 2 if r < 1.1 else 1 if r < 1.4 else 0
+        sc += p; d.append("P/B %.2f مقابل وسيط %s %.2f (%.2fx) → %d/5" % (pb, tag, ref, r, p))
+    else:
+        d.append("P/B غير متوفر → 0/5")
+    dy = v.get("dividendYield")
+    if dy is not None and dy > 0:
+        pct = dy * 100
+        p = 4 if pct > 4 else 3 if pct > 2 else 1 if pct > 0.5 else 0
+        sc += p; d.append("عائد %.1f%% → %d/4" % (pct, p))
+    elif dy == 0.0:
+        d.append("لا يوزع → 0/4")
+    else:
+        d.append("عائد غير متوفر → 0/4")
+    return sc, d
+
+
+# ═══════════════ طبقة الدخول (§4 — لا نقاط) ═══════════════
+
+def entry_layer(s, regime):
+    de = s.get("dailyExtra") or {}
+    price = de.get("lastClose") or s.get("currentPrice")
+    sigs, avail = 0, 0
+    det = []
+    sig1 = None
+    ema50 = de.get("ema50d")
+    if ema50 is not None and price:
+        avail += 1
+        sig1 = price > ema50
+        sigs += 1 if sig1 else 0
+        det.append(("✅" if sig1 else "⚠️") + " سعر مقابل EMA50")
+    rsi = de.get("rsi14d")
+    if rsi is not None:
+        avail += 1
+        ok = 40 <= rsi <= 65
+        sigs += 1 if ok else 0
+        det.append(("✅" if ok else "⚠️") + " RSI-D %s" % rsi)
+    m, sg = de.get("macdD"), de.get("macdSignalD")
+    if m is not None and sg is not None:
+        avail += 1
+        ok = m > sg
+        sigs += 1 if ok else 0
+        det.append(("✅" if ok else "⚠️") + " MACD-D")
+    a20, a50 = de.get("avgVol20"), de.get("avgVol50")
+    if a20 and a50:
+        avail += 1
+        ok = a20 > a50
+        sigs += 1 if ok else 0
+        det.append(("✅" if ok else "⚠️") + " حجم 20>50")
+    # المستوى المرجعي (§4.2): الأعلى من EMA50 وأدنى إغلاق 20 جلسة — «تقريبي» ملزم
+    lvl = None
+    cand = [x for x in (ema50, de.get("low20Close")) if x is not None]
+    if cand:
+        lvl = round(max(cand), 2)
+    lvl_type = None
+    if lvl is not None and price:
+        lvl_type = "entry" if lvl <= price else "reclaim"   # دلالة الموقع (§4.2)
+    atr = de.get("atr14")
+    ext = round((price - lvl) / atr, 2) if (lvl is not None and price and atr) else None
+    hi52 = de.get("high52wClose")
+    near_high = bool(hi52 and price and price >= 0.98 * hi52 and rsi is not None and rsi > 65)
+    # الحالة الثلاثية (§4.3)
+    if avail == 0:
+        state, phrase = "neutral", "بيانات التوقيت غير كافية"
+    elif sigs >= 3 and sig1 and ext is not None and ext <= 2 and not near_high:
+        state = "green"
+        phrase = "السعر مناسب والتوقيت مناسب — الدخول قرب %s تقريباً" % lvl
+    elif sigs >= 3 and not sig1:
+        # غ-1 المحسومة: قوي الإشارات لكنه تحت متوسطه الخمسيني — لا «دخول الآن»
+        state = "yellow"
+        phrase = "سهم جيد لكنه تحت متوسطه — راقب استعادة السعر فوق %s تقريباً" % lvl
+    elif sigs == 2 or (sigs >= 3 and (ext is None or ext > 2 or near_high)):
+        state = "yellow"
+        if ext is None and sigs >= 3:
+            phrase = "سهم جيد لكن بيانات التذبذب ناقصة — الأفضل الدخول على دفعات قرب %s تقريباً" % lvl
+        elif near_high and sigs >= 3:
+            phrase = "قرب القمة — لا تطارد؛ الأفضل الدخول على دفعات أو انتظار تراجع نحو %s تقريباً" % lvl
+        else:
+            phrase = "سهم جيد لكن السعر متقدم — الأفضل الدخول على دفعات أو انتظار تراجع نحو %s تقريباً" % lvl
+    else:
+        state = "red"
+        phrase = ("سهم جيد لكن التوقيت غير مناسب الآن — راقبه فوق %s تقريباً" % lvl) if lvl else \
+                 "التوقيت غير مناسب الآن"
+    # تكييف النظام (§4.3): 🔴 هابط → 🟢 تهبط صياغة إلى 🟡 دون مساس بالتصنيف
+    display = state
+    if regime == "هابط" and state == "green":
+        display = "yellow"
+        phrase = "البيئة العامة ضاغطة — تدرّج: %s" % phrase
+    timing = {"green": "ممتاز", "yellow": "مقبول", "red": "انتظر", "neutral": "محايد"}[state]
+    return {"state": state, "displayState": display, "phrase": phrase,
+            "signals": sigs, "signalsAvailable": avail, "signalDetails": det,
+            "referenceLevel": lvl, "referenceLevelType": lvl_type,
+            "extensionAtr": ext, "nearHighWarning": near_high,
+            "timing": timing}
+
+
+# ═══════════════ الفلاتر والتصنيف ═══════════════
+
+REVERSAL = "تحت SMA200W لكن إشارات انعكاس"
+
+def investment_filter(s):
+    fin = s.get("financials") or {}
     if not fin:
         return False, "لا توجد بيانات مالية"
-    
-    # Check: SMA 200W filter
-    sma200 = wt.get('sma200w')
-    if sma200 and price:
-        if price < sma200:
-            # Check exception: reversal signals
-            ema40 = wt.get('ema40w')
-            rsi = wt.get('rsi14w')
-            macd = wt.get('macdW')
-            signal = wt.get('macdSignalW')
-            
-            if (ema40 and price > ema40 and 
-                rsi and rsi > 50 and 
-                macd is not None and signal is not None and macd > signal):
-                return True, "تحت SMA200W لكن إشارات انعكاس"
-            else:
-                return False, "تحت SMA200W بدون إشارات انعكاس"
-    
+    wt = s.get("weeklyTechnical") or {}
+    price = wt.get("priceRef") or (s.get("dailyExtra") or {}).get("lastClose") or s.get("currentPrice")
+    sma = wt.get("sma200w")
+    if sma and price and price < sma:
+        ema40, rsi = wt.get("ema40w"), wt.get("rsi14w")
+        m, sg = wt.get("macdW"), wt.get("macdSignalW")
+        if (ema40 and price > ema40 and rsi and rsi > 50
+                and m is not None and sg is not None and m > sg):
+            return True, REVERSAL
+        return False, "تحت SMA200W بدون إشارات انعكاس"
     return True, "عدّى الفلتر"
 
 
-def classify(total_score, timing_label):
-    """التصنيف النهائي"""
-    if total_score >= 80:
-        if timing_label == "ممتاز":
-            return "شراء قوي", "⭐⭐⭐", "strong_buy"
-        elif timing_label == "مقبول":
-            return "شراء", "⭐⭐", "buy"
-        else:
-            return "شراء — انتظر توقيت", "⭐⭐", "buy_wait"
-    elif total_score >= 65:
-        if timing_label == "ممتاز":
-            return "شراء", "⭐⭐", "buy"
-        elif timing_label == "مقبول":
-            return "شراء مشروط", "⭐", "conditional_buy"
-        else:
-            return "انتظار", "⏳", "hold"
-    elif total_score >= 50:
-        return "انتظار", "⏳", "hold"
-    elif total_score >= 35:
-        return "بيع", "🔻", "sell"
-    else:
-        return "بيع قوي", "🔻🔻", "strong_sell"
+def classify(total, timing):
+    if total >= 80:
+        return ("شراء قوي", "strong_buy") if timing == "ممتاز" else \
+               ("شراء", "buy") if timing == "مقبول" else ("شراء — انتظر توقيت", "buy_wait")
+    if total >= 65:
+        return ("شراء", "buy") if timing == "ممتاز" else \
+               ("شراء مشروط", "conditional_buy") if timing == "مقبول" else ("انتظار", "hold")
+    if total >= 50:
+        return "انتظار", "hold"
+    if total >= 35:
+        return "بيع", "sell"
+    return "بيع قوي", "strong_sell"
 
 
-def run_scoring():
-    # (criteria v2.1) مسار البيانات يقبل معاملاً اختيارياً للتحقق في المختبر — الافتراضي الإنتاجي كما هو
-    data_path = sys.argv[1] if len(sys.argv) > 1 else '/srv/ideas/stocks-data.json'
+def build_top_drivers(s, medians):
+    pos, neg = [], []
+    fin = s.get("financials") or {}
+    wt = s.get("weeklyTechnical") or {}
+    price = (s.get("dailyExtra") or {}).get("lastClose") or s.get("currentPrice")
+    roe = fin.get("returnOnEquity")
+    if roe is not None and roe >= 18:
+        pos.append("ROE قوي %s%%" % roe)
+    rg = fin.get("revenueGrowth")
+    if rg is not None and rg >= 15:
+        pos.append("نمو إيرادات %s%%" % rg)
+    ocf = fin.get("ocf")
+    ni = fin.get("netIncome")
+    if ocf is not None and ni is not None and ocf > 0 and ocf >= ni:
+        pos.append("نقد تشغيلي يغطي الأرباح")
+    sma = wt.get("sma200w")
+    if price and sma:
+        (pos if price > sma else neg).append("فوق SMA200W" if price > sma else "تحت SMA200W")
+    rs6 = (s.get("relativeStrength") or {}).get("rsTasi6m")
+    if rs6 is not None:
+        if rs6 > 10:
+            pos.append("يتفوق على تاسي %+.0f%% (6م)" % rs6)
+        elif rs6 < -10:
+            neg.append("أضعف من تاسي %+.0f%% (6م)" % rs6)
+    v = s.get("valuation") or {}
+    sm = medians.get(s.get("sector")) or {}
+    if v.get("pe") and sm.get("peMedian"):
+        r = v["pe"] / sm["peMedian"]
+        if r < 0.7:
+            pos.append("أرخص من قطاعه (P/E)")
+        elif r > 1.3:
+            neg.append("أغلى من قطاعه (P/E)")
+    z = wt.get("zExt")
+    if z is not None and abs(z) >= 2:
+        neg.append("ممتد عن متوسطه (Z %+.1f)" % z)
+    atr = (s.get("dailyExtra") or {}).get("atrPct")
+    if atr is not None and atr > 4:
+        neg.append("تذبذب مرتفع ATR %s%%" % atr)
+    out = [{"text": t, "type": "positive"} for t in pos[:2]]
+    if neg:
+        out.append({"text": neg[0], "type": "negative"})
+    elif len(pos) > 2:
+        out.append({"text": pos[2], "type": "positive"})
+    return out
+
+
+# ═══════════════ التشغيل ═══════════════
+
+def run(data_path):
     with open(data_path) as f:
         data = json.load(f)
+    today = str(data.get("lastUpdated", ""))[:10]
+    stocks = [s for s in data.get("stocks", []) if s.get("symbol") and not s.get("delisted")]
+    regime = (data.get("marketRegime") or {}).get("regime", "")
 
-    # (criteria v2.1) أُزيل تحميل sma200w-zscores.json — المكوّن خارج المقام استبعاداً ثابتاً
-
-    sector_medians = data.get('sectorMedians', {})
-    stats = {'strong_buy': 0, 'buy': 0, 'buy_wait': 0, 'conditional_buy': 0, 'hold': 0, 'sell': 0, 'strong_sell': 0, 'filtered': 0, 'unrated': 0}
-    
-    for s in data['stocks']:
-        # Filter
-        passed, filter_reason = investment_filter(s)
-        
-        if not passed:
-            old_sc = s.get('investmentScore', {})
-            s['investmentScore'] = {
-                'total': 0,
-                'filtered': True, 'filterReason': filter_reason,
-                'classification': 'انتظار', 'classCode': 'filtered',
-                'timing': 'N/A',
-                # Preserve old fields
-                'confidence': old_sc.get('confidence', ''),
-                'confidenceCode': old_sc.get('confidenceCode', ''),
-                'confidencePct': old_sc.get('confidencePct', 0),
-                'interpretation': old_sc.get('interpretation', ''),
-                'execInterpretation': old_sc.get('execInterpretation', ''),
-                'topDrivers': build_top_drivers(s, sector_medians),
-                'riskScore': old_sc.get('riskScore', 0),
-                'riskLevel': old_sc.get('riskLevel', ''),
-                'riskLevelCode': old_sc.get('riskLevelCode', ''),
-                'riskReasons': compute_risk_reasons(s),
-            }
-            stats['filtered'] += 1
+    # 1) التقييم اليومي المحلي ثم الوسطاء (§3.5 + §6-7)
+    for s in stocks:
+        compute_valuation(s, today)
+    medians = compute_medians(stocks)
+    # بوابة عناقيد مقياس P/B (§8): قفزة وسيط قطاع ×5 عن المخزون
+    old_med = data.get("sectorMedians") or {}
+    pb_alerts = []
+    for sec, m in medians.items():
+        if sec == "_market":
             continue
-        
-        # Score all 5 axes
-        fin_score, fin_max, fin_detail = score_financial_health(s)
-        trend_score, trend_max, trend_detail = score_weekly_trend(s)
-        rs_score, rs_max, rs_detail = score_relative_strength(s, sector_medians)
-        risk_score, risk_max, risk_detail = score_risk(s)
-        val_score, val_max, val_detail = score_valuation(s, sector_medians)
-        
-        raw_total = fin_score + trend_score + rs_score + risk_score + val_score
-        max_total = fin_max + trend_max + rs_max + risk_max + val_max
-        # Normalize to 100 scale
-        total = round((raw_total / max_total) * 100) if max_total > 0 else 0
-        
-        # Timing
-        timing_label, timing_icon, timing_detail = timing_signal(s)
-        
-        # Classification
-        class_text, class_icon, class_code = classify(total, timing_label)
+        old_pb = (old_med.get(sec) or {}).get("pbMedian")
+        new_pb = m.get("pbMedian")
+        if old_pb and new_pb and (new_pb / old_pb >= 5 or old_pb / new_pb >= 5):
+            pb_alerts.append("%s: ‏%s→%s" % (sec, old_pb, new_pb))
+    if pb_alerts:
+        print("⛔ حارس عناقيد مقياس P/B (§8): %s — لا كتابة، تحقيق أولاً" % pb_alerts)
+        sys.exit(1)
 
-        # (criteria v2.1 — بند 18) حالة unrated: اجتاز فحص البيانات المالية لكن بلا SMA200W صالح
-        # — لم يُختبر بالفلتر الإقصائي الأول، فلا يُمنح تصنيف نجاح ولا رفض.
-        # النقاط والتوقيت وdetails تُحسب وتبقى كاملة (شرط بند 18: لا مساس بنقاط أي سهم)،
-        # ويُستبدل التصنيف فقط. لا يجتمع مع filtered (فحص المالية أولاً في investment_filter).
-        is_unrated = not (s.get('weeklyTechnical') or {}).get('sma200w')
-        if is_unrated:
-            class_text, class_icon, class_code = 'غير مُقيَّم', '⏸', 'unrated'
-
-        # Preserve existing fields not computed here (confidence, interpretation, etc.)
-        old_sc = s.get('investmentScore', {})
-        
-        # Count timing signals
-        timing_positive = sum(1 for d in timing_detail if d.startswith('✅'))
-        timing_total = len(timing_detail)
-        
-        s['investmentScore'] = {
-            'total': total,
-            'financial': fin_score,
-            'trend': trend_score,
-            'relativeStrength': rs_score,
-            'risk': risk_score,
-            'valuation': val_score,
-            'timing': timing_label,
-            'timingSignals': timing_positive,
-            'classification': class_text,
-            'classCode': class_code,
-            'sector': s.get('sector', ''),
-            'industry': s.get('industry', ''),
-            'filtered': False,
-            'unrated': is_unrated,  # (criteria v2.1) بولياني حصراً — عقد الواجهة sc.unrated === true
-            'filterReason': filter_reason,
-            # Preserve fields from previous scoring runs
-            'confidence': old_sc.get('confidence', ''),
-            'confidenceCode': old_sc.get('confidenceCode', ''),
-            'confidencePct': old_sc.get('confidencePct', 0),
-            'interpretation': old_sc.get('interpretation', ''),
-            'execInterpretation': old_sc.get('execInterpretation', ''),
-            'topDrivers': build_top_drivers(s, sector_medians),
-            'details': {
-                'financial': fin_detail,
-                'trend': trend_detail,
-                'relativeStrength': rs_detail,
-                'risk': risk_detail,
-                'valuation': val_detail,
-                'timing': timing_detail,
-            },
-            'riskScore': old_sc.get('riskScore', 0),
-            'riskLevel': old_sc.get('riskLevel', ''),
-            'riskLevelCode': old_sc.get('riskLevelCode', ''),
-            'riskReasons': compute_risk_reasons(s),
-            'sectorRank': old_sc.get('sectorRank', 0),
-            'sectorTotal': old_sc.get('sectorTotal', 0),
-            'sectorPercentile': old_sc.get('sectorPercentile', 0),
-            'sectorAvgScore': old_sc.get('sectorAvgScore', 0),
-            'sectorAvgRisk': old_sc.get('sectorAvgRisk', 0),
+    prev_class = {s["symbol"]: (s.get("investmentScore") or {}).get("classification") for s in stocks}
+    stats = {}
+    for s in stocks:
+        passed, reason = investment_filter(s)
+        wt = s.get("weeklyTechnical") or {}
+        unrated = passed and not wt.get("sma200w")
+        entry = entry_layer(s, regime)
+        if not passed:
+            s["investmentScore"] = {
+                "total": 0, "filtered": True, "unrated": False, "filterReason": reason,
+                "classification": "مستبعد", "classCode": "filtered",
+                "timing": entry["timing"], "timingSignals": entry["signals"],
+                "entry": entry, "riskReasons": [], "topDrivers": [],
+                "criteriaVersion": "v3",
+            }
+            stats["filtered"] = stats.get("filtered", 0) + 1
+            continue
+        q, qd = axis_quality(s, medians)
+        t, td = axis_trend(s)
+        r, rd = axis_rs(s, medians)
+        k, kd = axis_risk(s)
+        v, vd = axis_valuation(s, medians)
+        total = q + t + r + k + v          # المقام 100 مباشرة — لا معايرة (§1)
+        cls, code = classify(total, entry["timing"])
+        if unrated:
+            cls, code = "غير مُقيَّم", "unrated"
+        s["investmentScore"] = {
+            "total": total,
+            "quality": q, "trend": t, "relativeStrength": r, "risk": k, "valuation": v,
+            "classification": cls, "classCode": code,
+            "filtered": False, "unrated": unrated, "filterReason": reason,
+            "viaReversal": reason == REVERSAL,
+            "timing": entry["timing"], "timingSignals": entry["signals"],
+            "entry": entry,
+            "liquidityBlocked": not (s.get("liquidityGate") or {}).get("passed", True),
+            "details": {"quality": qd, "trend": td, "relativeStrength": rd,
+                        "risk": kd, "valuation": vd, "timing": entry["signalDetails"]},
+            "topDrivers": build_top_drivers(s, medians),
+            "criteriaVersion": "v3",
         }
-        
-        stats[class_code] = stats.get(class_code, 0) + 1
-    
-    with open(data_path, 'w') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    
+        stats[code] = stats.get(code, 0) + 1
+
+    # بوابة التصنيفات (§8): تغير >25% من الكون عن المخزون → إيقاف وتحقيق
+    changed = sum(1 for s in stocks
+                  if prev_class.get(s["symbol"]) and
+                  prev_class[s["symbol"]] != s["investmentScore"]["classification"])
+    with_prev = sum(1 for s in stocks if prev_class.get(s["symbol"]))
+    if with_prev >= 20 and changed > 0.25 * with_prev:
+        print("⛔ بوابة التصنيفات (§8): تغير %d/%d (>25%%) — لا كتابة، تحقيق أولاً" % (changed, with_prev))
+        sys.exit(1)
+
+    data["sectorMedians"] = {k2: v2 for k2, v2 in medians.items() if k2 != "_market"}
+    data["marketMedians"] = medians["_market"]
+    data["scoringVersion"] = "criteria-v3"
+    with open(data_path, "w") as f:
+        json.dump(data, f, indent=1, ensure_ascii=False)
+
     print("=" * 50)
-    print("📊 سيف تداول — نتائج التقييم الاستثماري")
-    print("=" * 50)
-    print(f"⭐⭐⭐ شراء قوي: {stats.get('strong_buy', 0)}")
-    print(f"⭐⭐ شراء: {stats.get('buy', 0)}")
-    print(f"⭐⭐ شراء (انتظر توقيت): {stats.get('buy_wait', 0)}")
-    print(f"⭐ شراء مشروط: {stats.get('conditional_buy', 0)}")
-    print(f"⏳ انتظار: {stats.get('hold', 0)}")
-    print(f"🔻 بيع: {stats.get('sell', 0)}")
-    print(f"🔻🔻 بيع قوي: {stats.get('strong_sell', 0)}")
-    print(f"⏸ غير مُقيَّم (unrated): {stats.get('unrated', 0)}")
-    print(f"⛔ لم يعدّ الفلتر: {stats.get('filtered', 0)}")
-    print()
-    
-    # Top 10
-    scored = [s for s in data['stocks'] if not s.get('investmentScore', {}).get('filtered')]
-    scored.sort(key=lambda x: x['investmentScore']['total'], reverse=True)
-    print("🏆 أعلى 10 أسهم:")
-    for s in scored[:10]:
-        sc = s['investmentScore']
-        print(f"  {s['name']} ({s['symbol']}): {sc['total']}/100 — {sc['classification']}")
-    
-    print(f"\n🔻 أدنى 5:")
-    for s in scored[-5:]:
-        sc = s['investmentScore']
-        print(f"  {s['name']} ({s['symbol']}): {sc['total']}/100 — {sc['classification']}")
+    print("📊 سيف تداول — criteria v3 (مقام 100)")
+    for code, label in (("strong_buy", "⭐⭐⭐ شراء قوي"), ("buy", "⭐⭐ شراء"),
+                        ("buy_wait", "⭐⭐ شراء-انتظر"), ("conditional_buy", "⭐ مشروط"),
+                        ("hold", "⏳ انتظار"), ("sell", "🔻 بيع"), ("strong_sell", "🔻🔻 بيع قوي"),
+                        ("unrated", "⏸ غير مُقيَّم"), ("filtered", "⛔ مستبعد")):
+        print("%s: %d" % (label, stats.get(code, 0)))
+    blocked = sum(1 for s in stocks if (s.get("investmentScore") or {}).get("liquidityBlocked"))
+    print("💧 محجوب سيولةً (معروض موسوماً): %d" % blocked)
+    rated = [s for s in stocks if s["investmentScore"]["classCode"] not in ("filtered", "unrated")]
+    rated.sort(key=lambda x: -x["investmentScore"]["total"])
+    print("🏆 أعلى 10:")
+    for s in rated[:10]:
+        sc = s["investmentScore"]
+        print("  %s (%s): %d/100 — %s | دخول: %s" % (
+            s.get("name", ""), s["symbol"], sc["total"], sc["classification"],
+            sc["entry"]["displayState"]))
 
 
-if __name__ == '__main__':
-    run_scoring()
+if __name__ == "__main__":
+    run(sys.argv[1] if len(sys.argv) > 1 else "/srv/ideas/stocks-data.json")
