@@ -314,6 +314,10 @@ def unwrap_ratios(r):
             rat = body   # شكل مسطح
     if not isinstance(rat, dict) or not rat:
         return None, "بنية غير متوقعة — مفاتيح: %s" % sorted(body.keys())[:8]
+    # (تحسين الناقد 05-08) قاموس بلا أي مفتاح نسبة معروف = شكل مجهول — فشل مسموع
+    # بدل قيم None صامتة تختم financialsUpdated بلا جديد
+    if not any(k in rat for k in ("roe", "roa", "net_margin", "operating_margin", "debt_to_equity")):
+        return None, "قاموس بلا مفاتيح نسب معروفة — مفاتيحه: %s" % sorted(rat.keys())[:8]
     return rat, None
 
 
@@ -533,7 +537,6 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
         # ── الأسبوعية المشتقة على المعدل (بلا Z — انتقل لليومي) ──
         weeks, n_weeks = derive_weekly([d for d, _ in adj_pairs], adj_series)
         last_adj = adj_pairs[-1][1] if adj_pairs else last_close
-        st["weeklyTechnical"] = None   # يُبنى أدناه
         wm, ws, wh = calc_macd(weeks, dp=3)
         st["weeklyTechnical"] = {
             "sma200w": calc_sma(weeks, 200),

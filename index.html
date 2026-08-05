@@ -64368,7 +64368,7 @@ function openModal(sym) {
       <div class="indicator ${wt.rsi14w > 50 ? 'green' : 'red'}"><div class="val">${wt.rsi14w || '—'}</div><div class="lbl">RSI 14W</div>${indDesc('rsi14w')}</div>
       <div class="indicator ${wt.macdW > 0 ? 'green' : 'red'}"><div class="val">${wt.macdW != null ? wt.macdW.toFixed(2) : '—'}</div><div class="lbl">MACD W</div>${indDesc('macdw')}</div>
       <div class="indicator"><div class="val">${wt.sma200wSlope != null ? wt.sma200wSlope+'%' : '—'}</div><div class="lbl">ميل SMA200</div>${indDesc('sma200Slope')}</div>
-      ${wt.zExt != null ? `<div class="indicator ${Math.abs(wt.zExt) < 1 ? 'green' : Math.abs(wt.zExt) < 2 ? 'yellow' : 'red'}"><div class="val" dir="ltr">${(wt.zExt > 0 ? '+' : '') + Number(wt.zExt).toFixed(1)}</div><div class="lbl">Z-الامتداد</div>${indDesc('zExt')}</div>` : '' /* مكوّن v3 الجديد — يظهر فقط حين يحسبه المحرك (تاريخ ≥240 أسبوعاً) */}
+      ${(dx.zExt != null || wt.zExt != null) ? (() => { const z = dx.zExt != null ? dx.zExt : wt.zExt; return `<div class="indicator ${Math.abs(z) < 1 ? 'green' : Math.abs(z) < 2 ? 'yellow' : 'red'}"><div class="val" dir="ltr">${(z > 0 ? '+' : '') + Number(z).toFixed(1)}</div><div class="lbl">Z-الامتداد (يومي)</div>${indDesc('zExt')}</div>`; })() : '' /* مكوّن v3 — انتقل إلى dailyExtra.zExt بقرار المحلل 05-08 (امتداد عن SMA200D، يظهر لتاريخ ≥300 جلسة) */}
     </div>
   </div>`;
   
