@@ -27,7 +27,7 @@
 
 الاستخدام: python3 scripts/scoring-engine.py [stocks-data.json]
 """
-import json, sys, statistics
+import json, os, sys, statistics
 
 Q, T, R, K, V = 30, 25, 15, 15, 15   # سقوف المحاور — المجموع 100
 
@@ -206,11 +206,18 @@ def axis_trend(s):
     sc = 0
     sma, slope = wt.get("sma200w"), wt.get("sma200wSlope")
     if sma and price:
-        if price > sma:
-            p = 8 if (slope or 0) > 1 else 6 if (slope or 0) > -1 else 3
+        if price > sma and slope is None:
+            # قرار المحلل 05-08: تاريخ 200-203 أسابيع يعطي SMA200W بلا ميل (يحتاج 204)
+            # → معاملة محايدة صريحة لا اعتماداً ضمنياً على (slope or 0)
+            p = 6
+            sc += p
+            d.append("SMA200W %s — ميل غير متوفر (تاريخ 200-203 أسبوعاً) → معاملة محايدة 6/8" % sma)
         else:
-            p = 2 if (price - sma) / sma * 100 > -3 else 0
-        sc += p; d.append("SMA200W %s (ميل %s%%) → %d/8" % (sma, slope, p))
+            if price > sma:
+                p = 8 if (slope or 0) > 1 else 6 if (slope or 0) > -1 else 3
+            else:
+                p = 2 if (price - sma) / sma * 100 > -3 else 0
+            sc += p; d.append("SMA200W %s (ميل %s%%) → %d/8" % (sma, slope, p))
     else:
         d.append("SMA200W غير متوفر → 0/8")
     ema40 = wt.get("ema40w")
@@ -278,13 +285,13 @@ def axis_risk(s):
         sc += p; d.append("ATR%% ‏%s → %d/4" % (atr, p))
     else:
         d.append("ATR غير متوفر → 0/4")
-    z = (s.get("weeklyTechnical") or {}).get("zExt")
+    z = de.get("zExt")  # قرار المحلل 05-08: ‏Z بالإطار اليومي (SMA200D، نافذة ≤756، حد أدنى 100 مشاهدة)
     if z is not None:
         az = abs(z)
         p = 3 if az < 1 else 2 if az < 2 else 1 if az < 3 else 0
         sc += p; d.append("Z-امتداد %+.1f → %d/3" % (z, p))
     else:
-        d.append("Z غير متوفر (تاريخ < 240 أسبوعاً) → 0/3")
+        d.append("Z غير متوفر (تاريخ < 300 جلسة) → 0/3")
     tv = de.get("tradingValueMedian20")
     if tv is not None:
         p = 3 if tv > 20e6 else 2 if tv > 5e6 else 1 if tv > 1e6 else 0
@@ -503,7 +510,7 @@ def build_top_drivers(s, medians):
             pos.append("أرخص من قطاعه (P/E)")
         elif r > 1.3:
             neg.append("أغلى من قطاعه (P/E)")
-    z = wt.get("zExt")
+    z = (s.get("dailyExtra") or {}).get("zExt")   # قرار المحلل 05-08: ‏Z يومي
     if z is not None and abs(z) >= 2:
         neg.append("ممتد عن متوسطه (Z %+.1f)" % z)
     atr = (s.get("dailyExtra") or {}).get("atrPct")
@@ -519,9 +526,53 @@ def build_top_drivers(s, medians):
 
 # ═══════════════ التشغيل ═══════════════
 
+def check_v3_contract(data):
+    """حارس بصمة عقد v3 — يسبق كل شيء بما فيه --activation.
+
+    درس حادثة السيرفر 05-08: المحرك v3 عمل على ملف بعقد v2.1 (الجالب انهار قبل
+    الكتابة) فاستُهلك التفعيل على بيانات فاسدة. البصمة: بين الأسهم التي لديها
+    dailyExtra غير فارغة، من يحمل مفتاحي العقد الجديد dailyExtra.lastClose
+    وrelativeStrength.return12_1 معاً. أقل من 50% → الملف بعقد قديم → رفض.
+    ترجع (ok, holders, total)."""
+    with_de = [s for s in data.get("stocks", [])
+               if s.get("symbol") and not s.get("delisted") and (s.get("dailyExtra") or {})]
+    if not with_de:
+        return False, 0, 0
+    holders = sum(1 for s in with_de
+                  if "lastClose" in (s.get("dailyExtra") or {})
+                  and "return12_1" in (s.get("relativeStrength") or {}))
+    return holders >= 0.5 * len(with_de), holders, len(with_de)
+
+
+def reset_activation(data_path):
+    """--reset-activation: إبطال حدث تفعيل مستهلَك (على بيانات فاسدة) لتمكين
+    إعادة التفعيل النظيف. كتابة ذرية."""
+    with open(data_path) as f:
+        data = json.load(f)
+    ev = data.get("activationEvent")
+    if not ev:
+        print("⛔ --reset-activation: لا يوجد activationEvent في الملف — لا شيء يُبطل")
+        sys.exit(1)
+    del data["activationEvent"]
+    tmp = data_path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=1, ensure_ascii=False)
+    os.replace(tmp, data_path)
+    print("🔄 أُبطل حدث تفعيل (بتاريخ %s، نسخة %s) بقرار مالك — يمكن الآن إعادة "
+          "التفعيل النظيف بـ--activation بعد تشغيلة جالب v3 ناجحة"
+          % (ev.get("date"), ev.get("version")))
+    sys.exit(0)
+
+
 def run(data_path, activation=False):
     with open(data_path) as f:
         data = json.load(f)
+    # حارس عقد v3 — قبل أي عمل، ولا يتخطاه --activation
+    ok, holders, total_de = check_v3_contract(data)
+    if not ok:
+        print("⛔ الملف بعقد قديم (v2.1) — بصمة v3 موجودة لدى %d/%d فقط ممن لديهم "
+              "dailyExtra (المطلوب ≥50%%) — شغّل الجالب v3 أولاً" % (holders, total_de))
+        sys.exit(1)
     today = str(data.get("lastUpdated", ""))[:10]
     # ش-1 (قفل التفعيل): --activation لمرة واحدة بقرار مالك — يتخطى بوابتي المعقولية
     # (التصنيفات >25% ووسيط P/B ×5) لأن أول تشغيلة v3 على بيانات v2.1 تفجرهما حتماً
@@ -647,5 +698,9 @@ def run(data_path, activation=False):
 if __name__ == "__main__":
     argv = [a for a in sys.argv[1:]]
     activation = "--activation" in argv
-    argv = [a for a in argv if a != "--activation"]
-    run(argv[0] if argv else "/srv/ideas/stocks-data.json", activation=activation)
+    do_reset = "--reset-activation" in argv
+    argv = [a for a in argv if a not in ("--activation", "--reset-activation")]
+    path = argv[0] if argv else "/srv/ideas/stocks-data.json"
+    if do_reset:
+        reset_activation(path)
+    run(path, activation=activation)

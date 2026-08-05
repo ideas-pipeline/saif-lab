@@ -19,15 +19,15 @@ fetch-inputs-sahmk.py — جالب المنصة القائمة بذاتها (sah
       --probe-financials / --probe-ratios   استكشاف أشكال (أبقيا عمداً: أثبتا نفعهما مرتين
                            عند تغير سلوك الواجهة — قرار معماري معلن)
 
-عمق التأسيس (محسوب ومعلن — §3.4 و§6-1 من الوثيقة)
---------------------------------------------------
-    Z يحتاج ≥40 مشاهدة نسبة أسبوعية، وكل مشاهدة تحتاج SMA200W ⇒ ‏240 أسبوعاً مكتملاً
-    كحد أدنى؛ ولنافذة Z الكاملة (156) ⇒ ‏356 أسبوعاً. أسبوع تداول ≈ 5 جلسات ⇒
-    1200-1780 جلسة ≈ 1700-2500 يوم تقويمي. **التأسيس يجلب 2600 يوماً تقويمياً (~7.1
-    سنة)** ليغطي النافذة الكاملة إن توفر العمق عند المصدر، ثم **تزايدي يومياً** من آخر
-    تاريخ مخزن (مخزن الشموع: candles/{sym}.json بجوار --data، كتابة ذرية).
-    عمق 1d الفعلي عند سهمك **بوابة تشغيلة أولى** — قصوره دون 240 أسبوعاً يفجّر بوابة
-    انهيار تغطية Z المطلوبة نصاً.
+عمق التأسيس (محدّث بقرار المحلل 05-08 بعد حقيقة العمق)
+--------------------------------------------------------
+    حقيقة مقيسة: تاريخ سهمك يبدأ ~2022-06 (~210 أسابيع) — Z الأسبوعي القديم أنتج
+    «قادرو Z: 0» فأُعيد تصميمه **يومياً** (§3.4 المحدثة): يحتاج 199+100=299 جلسة
+    كحد أدنى، ونافذته الكاملة 199+756=955 جلسة ≈ 1340 يوماً تقويمياً — ضمن المتاح.
+    **التأسيس يجلب 2600 يوم تقويمي** (سقف طموح: يخدم نمو SMA200W الأسبوعي المتزايد
+    مع السنين ونافذة Z الكاملة)، ثم **تزايدي يومياً** من آخر تاريخ مخزن
+    (مخزن الشموع: candles/{sym}.json بجوار --data، كتابة ذرية).
+    توزيع العمق الفعلي (أسابيع/جلسات) يُطبع نهاية كل تشغيلة — قرارات العتبات بالأرقام.
 
 اصطلاحات السلاسل (§6 — تغييرها = وسم نسخة)
 -------------------------------------------
@@ -38,6 +38,10 @@ fetch-inputs-sahmk.py — جالب المنصة القائمة بذاتها (sah
     - لكل غرض سلسلته: الاتجاه/الامتداد/Z على المعدل؛ القوة النسبية على **الخام** مقابل
       تاسي السعري؛ ATR وقيمة التداول على الخام.
     - dailyChange من change_percent مباشرة — لا اشتقاق previous_close (§6-5).
+    - شمعة اليوم غير النهائية (is_final/partial، واحتياطياً: تاريخ اليوم قبل 15:10
+      الرياض) تُستبعد من التخزين والمؤشرات اليومية — الأسبوعي محمي بإسقاط أسبوعه الأخير.
+    - Z يومي (قرار محلل 05-08): سعر/SMA200D−1 معايراً بسلسلة النسبة اليومية،
+      نافذة ≤756 وحد أدنى 100 مشاهدة — العتبات (|Z|<1/2/3) كما هي.
     - RSI ‏Wilder حصراً في الإطارين؛ MACD ‏12/26/9 بإشارة EMA9 (بذرة SMA9).
     - 3م=63، 6م=126، 12م=250 جلسة؛ ‏12-1 = من t−250 إلى t−21.
 
@@ -68,7 +72,9 @@ RIYADH = timezone(timedelta(hours=3))
 RATE_PER_SEC = 2.5
 FOUNDING_CAL_DAYS = 2600          # ~7.1 سنة — انظر «عمق التأسيس» أعلاه
 LIQUIDITY_GATE_SAR = 1_000_000    # §2 بوابة السيولة (وسيط قيمة تداول 20 جلسة)
-Z_MIN_OBS, Z_WINDOW = 40, 156     # §3.4 (شرط الناقد ج-1)
+Z_MIN_OBS, Z_WINDOW = 100, 756    # §3.4 بعد قرار المحلل 05-08: Z على الإطار اليومي
+                                  # (سعر/SMA200D−1؛ 100 مشاهدة ≈ 300 جلسة، نافذة 3 سنوات)
+PARTIAL_CUTOFF_RIYADH = (15, 10)  # قاعدة الشمعة الجزئية الاحتياطية (نقاش المالك 05-08)
 
 
 # ═══════════════════ دوال نقية: مؤشرات ═══════════════════
@@ -191,21 +197,24 @@ def derive_weekly(dates, values):
     return weeks, len(weeks)
 
 
-def z_extension(weekly_adj, last_close):
-    """Z-امتداد (§3.4): النسبة الحالية (آخر إغلاق يومي/SMA200W − 1) معايرة بوسط
-    وانحراف سلسلة النسبة الأسبوعية (نافذة ≤156، حد أدنى 40 وإلا None).
-    يعيد (z, obs_count, sma200w_current)"""
-    n = len(weekly_adj)
-    if n < 200 or not last_close:
+def z_extension(daily_adj):
+    """Z-امتداد — **الإطار اليومي** (قرار محلل 05-08 بعد حقيقة العمق: تاريخ سهمك يبدأ
+    ~2022-06 فالأسبوعي أنتج «قادرو Z: 0»): ‏Z = (آخر إغلاق معدل/SMA200D − 1) معايراً
+    بوسط وانحراف (pstdev) سلسلة النسبة اليومية نفسها؛ نافذة ≤756 جلسة (~3 سنوات)،
+    حد أدنى 100 مشاهدة (≈300 جلسة) وإلا null؛ العتبات في المحرك كما هي.
+    (تحسين الناقد ب باقٍ) سقف عرض ±10 — sd شبه صفري كان يسرب 2.4×10^15.
+    يعيد (z, obs_count, sma200d_current)"""
+    n = len(daily_adj)
+    if n < 200:
         return None, 0, None
     prefix = [0.0]
-    for v in weekly_adj:
+    for v in daily_adj:
         prefix.append(prefix[-1] + v)
     ratios = []
     for i in range(199, n):
         sma_i = (prefix[i + 1] - prefix[i - 199]) / 200
         if sma_i:
-            ratios.append(weekly_adj[i] / sma_i - 1)
+            ratios.append(daily_adj[i] / sma_i - 1)
     obs = ratios[-Z_WINDOW:]
     sma_now = round((prefix[n] - prefix[n - 200]) / 200, 2)
     if len(obs) < Z_MIN_OBS:
@@ -214,9 +223,7 @@ def z_extension(weekly_adj, last_close):
     sd = statistics.pstdev(obs)
     if sd == 0:
         return None, len(obs), sma_now
-    z = (last_close / sma_now - 1 - mu) / sd
-    # (تحسين الناقد ب) سقف عرض ±10: سلسلة شبه ثابتة تعطي sd شبه صفري وz فلكياً
-    # (رُصد 2.4×10^15) — الدرجات لا تفرق فوق |3| أصلاً والسقف يمنع تسرب الأرقام العبثية
+    z = (daily_adj[-1] / sma_now - 1 - mu) / sd
     return round(max(-10.0, min(10.0, z)), 2), len(obs), sma_now
 
 
@@ -268,6 +275,50 @@ class Api:
             if attempt < tries - 1:
                 time.sleep(2 * (attempt + 1))
         return None, err
+
+
+def unwrap_ratios(r):
+    """(استعادة إصلاح d36fc83 الضائع في إعادة كتابة v3 + حارس نوع نهائي)
+    نزول ratios الموحد: غلاف data/results ← قائمة جذرية ← «ratios» قد تكون
+    **قائمة فترات** (الشكل المؤكد إنتاجياً: ratios[0].ratios.roe) → أحدث فترة
+    (بreport_date/fiscal_year وإلا الأولى) → قاموس النسب المتداخل → شكل مسطح.
+    يعيد (rat_dict, None) أو (None, وصف مسموع) — لا انهيار على أي نوع."""
+    body = r
+    if isinstance(body, dict):
+        for k in ("data", "results"):
+            if isinstance(body.get(k), (dict, list)):
+                body = body[k]
+                break
+    if isinstance(body, list):
+        dicts = [e for e in body if isinstance(e, dict)]
+        if not dicts:
+            return None, "قائمة جذرية بلا عناصر قاموسية"
+        def _pd(e):
+            return str(e.get("report_date") or e.get("fiscal_year") or e.get("period") or "")
+        body = max(dicts, key=_pd) if any(_pd(e) for e in dicts) else dicts[0]
+    if not isinstance(body, dict):
+        return None, "بنية غير متوقعة (نوع %s)" % type(body).__name__
+    rat = body.get("ratios")
+    if isinstance(rat, list):
+        dicts = [e for e in rat if isinstance(e, dict)]
+        if dicts:
+            def _pd2(e):
+                return str(e.get("report_date") or e.get("fiscal_year") or "")
+            rat = max(dicts, key=_pd2) if any(_pd2(e) for e in dicts) else dicts[0]
+        else:
+            rat = None
+    if isinstance(rat, dict) and isinstance(rat.get("ratios"), dict):
+        rat = rat["ratios"]
+    if not isinstance(rat, dict) or not rat:
+        if any(k in body for k in ("roe", "roa", "net_margin", "debt_to_equity")):
+            rat = body   # شكل مسطح
+    if not isinstance(rat, dict) or not rat:
+        return None, "بنية غير متوقعة — مفاتيح: %s" % sorted(body.keys())[:8]
+    # (تحسين الناقد 05-08) قاموس بلا أي مفتاح نسبة معروف = شكل مجهول — فشل مسموع
+    # بدل قيم None صامتة تختم financialsUpdated بلا جديد
+    if not any(k in rat for k in ("roe", "roa", "net_margin", "operating_margin", "debt_to_equity")):
+        return None, "قاموس بلا مفاتيح نسب معروفة — مفاتيحه: %s" % sorted(rat.keys())[:8]
+    return rat, None
 
 
 def rows_of(resp, *keys):
@@ -348,15 +399,37 @@ def save_candles(cdir, sym, rows):
 
 def parse_candles(resp):
     """صف الشمعة المخزن: [date, close, adjusted|null, high, low, volume] —
-    المعدل الغائب يبقى null (لا خلط — يسقط من السلسلة المعدلة عند الاستهلاك)"""
+    المعدل الغائب يبقى null (لا خلط — يسقط من السلسلة المعدلة عند الاستهلاك).
+    **قاعدة الشمعة الجزئية (نقاش المالك 05-08 — تشغيلة تفعيل والسوق مفتوح):**
+    شمعة اليوم غير النهائية تُستبعد كلياً (لا تُخزن ولا تدخل المؤشرات اليومية) —
+    أولاً بعلمي العقد is_final/partial (على الصف أو غلاف الرد للشمعة الأخيرة)،
+    وإن غابا فالقاعدة الاحتياطية: شمعة بتاريخ اليوم والوقت قبل 15:10 الرياض.
+    الاستبعاد يومي فقط — الاشتقاق الأسبوعي محمي أصلاً بإسقاط الأسبوع الأخير،
+    والجلب التزايدي التالي (من آخر تاريخ مخزن) يلتقط الشمعة النهائية.
+    يعيد (rows, partial_excluded)"""
     out = []
-    for r in rows_of(resp, "data", "candles", "history", "results"):
+    env_final = resp.get("is_final") if isinstance(resp, dict) else None
+    rows = rows_of(resp, "data", "candles", "history", "results")
+    max_date = max((r.get("date", "") for r in rows if r.get("date")), default="")
+    now_r = datetime.now(RIYADH)
+    today_r = now_r.strftime("%Y-%m-%d")
+    before_cutoff = (now_r.hour, now_r.minute) < PARTIAL_CUTOFF_RIYADH
+    partial_excluded = 0
+    for r in rows:
         if r.get("close") is None or r.get("high") is None or r.get("low") is None:
             continue
-        out.append([r.get("date", ""), r["close"], r.get("adjusted_close"),
+        d = r.get("date", "")
+        row_flag = (r.get("is_final") is False) or (r.get("partial") is True)
+        env_flag = (env_final is False and d == max_date)          # علم الغلاف يخص الأخيرة
+        fallback = (r.get("is_final") is None and r.get("partial") is None
+                    and env_final is None and d == today_r and before_cutoff)
+        if row_flag or env_flag or fallback:
+            partial_excluded += 1
+            continue
+        out.append([d, r["close"], r.get("adjusted_close"),
                     r["high"], r["low"], r.get("volume") or 0])
     out.sort(key=lambda x: x[0])
-    return out
+    return out, partial_excluded
 
 
 # ═══════════════════ مراحل الجلب ═══════════════════
@@ -410,7 +483,9 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
         frm = (rows[-1][0] if rows else
                (datetime.now(timezone.utc) - timedelta(days=FOUNDING_CAL_DAYS)).strftime("%Y-%m-%d"))
         resp, err = api.get("/historical/%s/?interval=1d&from=%s&to=%s" % (sym, frm, today))
-        new = parse_candles(resp)
+        new, n_partial = parse_candles(resp)
+        if n_partial:
+            counters["partial_excluded"] += n_partial
         if resp is None and not rows:
             return False, err
         if new:
@@ -453,21 +528,24 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
         # بوابة السيولة (§2)
         st["liquidityGate"] = {"valueSar": tv_med, "threshold": LIQUIDITY_GATE_SAR,
                                "passed": bool(tv_med and tv_med >= LIQUIDITY_GATE_SAR)}
-        # ── الأسبوعية المشتقة على المعدل + Z ──
-        weeks, n_weeks = derive_weekly([d for d, _ in adj_pairs],
-                                       [round(a, 4) for _, a in adj_pairs])
+        # ── Z-الامتداد اليومي (قرار محلل 05-08) على المعدل ──
+        adj_series = [round(a, 4) for _, a in adj_pairs]
+        z, z_obs, sma200d = z_extension(adj_series)
+        st["dailyExtra"]["zExt"] = z
+        st["dailyExtra"]["zObs"] = z_obs
+        st["dailyExtra"]["sma200d"] = sma200d
+        # ── الأسبوعية المشتقة على المعدل (بلا Z — انتقل لليومي) ──
+        weeks, n_weeks = derive_weekly([d for d, _ in adj_pairs], adj_series)
         last_adj = adj_pairs[-1][1] if adj_pairs else last_close
-        z, z_obs, sma200w = z_extension(weeks, last_adj)
         wm, ws, wh = calc_macd(weeks, dp=3)
         st["weeklyTechnical"] = {
-            "sma200w": sma200w if n_weeks >= 200 else None,
+            "sma200w": calc_sma(weeks, 200),
             "ema40w": calc_ema(weeks, 40, dp=2),
             "rsi14w": calc_rsi_wilder(weeks),
             "macdW": wm, "macdSignalW": ws, "macdHistW": wh,
             "sma200wSlope": calc_sma_slope_weekly(weeks),
             "priceRef": round(last_adj, 2),   # آخر إغلاق يومي — سعر الفلتر والمحاور (§6-1)
             "weeks": n_weeks,
-            "zExt": z, "zObs": z_obs,
             "derived": True, "updatedAt": stamp,
         }
         # ── القوة النسبية على الخام مقابل تاسي السعري (§3.3) ──
@@ -574,19 +652,9 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         r, err = api.get("/analytics/ratios/%s/?history=latest&period=annual&metrics=core" % sym)
         if r is None:
             return False, err
-        body = r
-        if isinstance(body, dict):
-            for k in ("data", "results"):
-                if isinstance(body.get(k), (dict, list)):
-                    body = body[k]
-                    break
-        if isinstance(body, list):
-            body = body[0] if body and isinstance(body[0], dict) else {}
-        rat = body.get("ratios") or {}
-        if not rat and isinstance(body, dict) and any(k in body for k in ("roe", "roa", "net_margin")):
-            rat = body
-        if not rat:
-            return False, "بنية غير متوقعة — مفاتيح: %s" % sorted(body.keys() if isinstance(body, dict) else [])[:8]
+        rat, uerr = unwrap_ratios(r)   # النزول الموحد (استعادة d36fc83) — فشله مسموع لا انهيار
+        if rat is None:
+            return False, uerr
         sc = scratch.setdefault(sym, {})
         sc["ratios"] = {k: rat.get(k) for k in ("roe", "roa", "net_margin", "operating_margin", "debt_to_equity")}
         if rat.get("debt_to_equity") is not None:
@@ -818,7 +886,7 @@ def fetch_tasi(api, counters, hist_file, data):
 
     def once():
         resp, err = api.get("/historical/TASI/?interval=1d&from=%s&to=%s" % (last, today))
-        rows = parse_candles(resp)
+        rows, _ = parse_candles(resp)   # قاعدة الجزئية تسري على المؤشر أيضاً
         if rows:
             return rows, None, False
         if err:
@@ -913,10 +981,36 @@ def maintain_universe(api, data, counters, today):
     (شبهة قائمة مبتورة من نقطة غير مؤكدة). لا تكتب watchlist-config هنا —
     تعيد الإغلاقات المعلقة والكتابة تُنفذ في main **بعد** كل بوابات الفشل
     (سد الخرق الوحيد لانضباط «لا كتابة قبل البوابات»)."""
-    resp, err = api.get("/companies/")
-    rows = rows_of(resp, "companies", "data", "results")
+    # (إصلاح 05-08ب) /companies/ مصفّحة (limit افتراضي ~100 بتر الكون إلى 94/248) —
+    # نصفّح بـlimit/offset حتى النهاية (has_more/total إن وُجدا، وإلا صفحة أقصر من limit)
+    rows = []
+    err = None
+    LIMIT = 100
+    total_declared = None
+    for page in range(30):   # سقف أمان
+        resp, err = api.get("/companies/?limit=%d&offset=%d" % (LIMIT, page * LIMIT))
+        if resp is None:
+            break
+        batch = rows_of(resp, "companies", "data", "results")
+        rows.extend(batch)
+        if isinstance(resp, dict):
+            total_declared = resp.get("total") if resp.get("total") is not None else resp.get("count", total_declared)
+            if resp.get("has_more") is False:
+                break
+        if len(batch) < LIMIT:
+            break
     if not rows:
         print("  ✗ /companies/: %s — الصيانة تتخطى (بوابة تشغيلة أولى)" % (err or "شكل غير معروف"))
+        counters["universe_fail"] += 1
+        return None
+    have_n = sum(1 for s in data["stocks"] if not s.get("delisted"))
+    if total_declared is not None and len(rows) < total_declared:
+        print("  ✗ /companies/: جمعنا %d من %d معلنة — قائمة مبتورة، الصيانة تتخطى" % (len(rows), total_declared))
+        counters["universe_fail"] += 1
+        return None
+    if len(rows) < have_n:
+        print("  ✗ /companies/: العد النهائي %d < الكون %d — شبهة بتر، الصيانة تتخطى قبل أي مقارنة شطب"
+              % (len(rows), have_n))
         counters["universe_fail"] += 1
         return None
     listed = {str(r.get("symbol")): r for r in rows if r.get("symbol")}
@@ -1009,6 +1103,12 @@ def probe_ratios(api):
             print("  %-40s ✅" % (c or "(بلا معاملات)"))
             for line in key_tree(resp, 3, "    "):
                 print(line)
+            rat, uerr = unwrap_ratios(resp)   # نفس نزول do_ratios — لا افتراض شكل
+            if rat is None:
+                print("  ⚠️ النزول الموحد فشل: %s" % uerr)
+            else:
+                print("  💵 القيم: roe=%s roa=%s net_margin=%s d/e=%s"
+                      % (rat.get("roe"), rat.get("roa"), rat.get("net_margin"), rat.get("debt_to_equity")))
             break
     print("طلبات:", api.requests_made)
 
@@ -1069,7 +1169,7 @@ def main():
         "quotes_ok", "quotes_fail", "quotes_batch_fail", "daily_ok", "daily_fail",
         "ratios_ok", "ratios_fail", "financials_ok", "financials_fail",
         "company_ok", "company_fail", "dividends_ok", "dividends_fail",
-        "adj_dropped_rows", "tasi_ok", "tasi_fail", "tasi_api_stale",
+        "adj_dropped_rows", "partial_excluded", "tasi_ok", "tasi_fail", "tasi_api_stale",
         "regime_ok", "regime_fail", "universe_ok", "universe_fail")}
     now_riyadh = datetime.now(RIYADH).strftime("%Y-%m-%d %H:%M")
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1101,7 +1201,7 @@ def main():
 
     # ── التغطية وبوابة الانهيار (§7) ──
     sma_cap = sum(1 for s in stocks if (s.get("weeklyTechnical") or {}).get("sma200w"))
-    z_cap = sum(1 for s in stocks if (s.get("weeklyTechnical") or {}).get("zExt") is not None)
+    z_cap = sum(1 for s in stocks if (s.get("dailyExtra") or {}).get("zExt") is not None)
     prev_cov = data.get("coverage") or {}
     cov_fail = []
     if not args.symbols:
@@ -1125,8 +1225,21 @@ def main():
         if pct > 10:
             fail_types.append(label)
     rejected = sum(len(s.get("guardRejected") or []) for s in stocks)
-    print("تغطية: SMA200W %d | ‏Z %d | حراس رفضوا %d | شموع بلا معدل %d"
-          % (sma_cap, z_cap, rejected, counters["adj_dropped_rows"]))
+    print("تغطية: SMA200W %d | ‏Z(يومي) %d | حراس رفضوا %d | شموع بلا معدل %d | جزئية مستبعدة %d"
+          % (sma_cap, z_cap, rejected, counters["adj_dropped_rows"], counters["partial_excluded"]))
+    # (البند 4) توزيع العمق — أرضية قرارات المحلل بالأرقام، يطبع كل تشغيلة
+    wk_depths = sorted((s.get("weeklyTechnical") or {}).get("weeks") or 0
+                       for s in stocks if s.get("weeklyTechnical"))
+    ses_depths = sorted((s.get("dailyExtra") or {}).get("sessions") or 0
+                        for s in stocks if s.get("dailyExtra"))
+    if wk_depths:
+        print("عمق الأسابيع المشتقة: وسيط %d | أدنى %d | أعلى %d | ‏≥200: %d | ‏≥240: %d (من %d)"
+              % (wk_depths[len(wk_depths)//2], wk_depths[0], wk_depths[-1],
+                 sum(1 for w in wk_depths if w >= 200), sum(1 for w in wk_depths if w >= 240), len(wk_depths)))
+    if ses_depths:
+        print("عمق الجلسات: وسيط %d | أدنى %d | ‏≥300 (قادرو Z نظرياً): %d (من %d)"
+              % (ses_depths[len(ses_depths)//2], ses_depths[0],
+                 sum(1 for x in ses_depths if x >= 300), len(ses_depths)))
     if drift:
         print("⛔ حارس الانزياح الجماعي (§8): %s" % drift)
         fail_types.append("انزياح جماعي")
