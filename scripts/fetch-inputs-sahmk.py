@@ -51,6 +51,10 @@ fetch-inputs-sahmk.py — جالب المنصة القائمة بذاتها (sah
 تُحسم على الكون الكامل مرة واحدة (equitySource: الحقل الصريح إن حضر ≥90% وطابق
 الاشتقاق أصول−مطلوبات بوسيط فرق <2%، وإلا derived).
 
+تساهل موثق (تحسين الناقد ج): liquidityGate الغائبة (فشل جلب يومية السهم) تُعامل
+fail-open لدى المستهلكين (`passed`, True) — عمداً: الغياب عارض جلب لا حكم سيولة،
+وحجب سهم كان سليماً لعطل شبكة عابر أسوأ من عرضه؛ أول يومية ناجحة تعيد الحكم الفعلي.
+
 ما بقي من v2.1 (بنص §9-4): الإيقاع 2.5ط/ث + Retry-After + جولة التقاط 429، أجساد
 الأخطاء (أول 3 لكل نوع)، الكتابة الذرية، «لا كتابة عند فشل الأسعار كلياً»،
 تاسي: الفراغ المشروع (200 بلا شموع + محلي ≤4 أيام) ليس فشلاً.
@@ -210,7 +214,10 @@ def z_extension(weekly_adj, last_close):
     sd = statistics.pstdev(obs)
     if sd == 0:
         return None, len(obs), sma_now
-    return round((last_close / sma_now - 1 - mu) / sd, 2), len(obs), sma_now
+    z = (last_close / sma_now - 1 - mu) / sd
+    # (تحسين الناقد ب) سقف عرض ±10: سلسلة شبه ثابتة تعطي sd شبه صفري وz فلكياً
+    # (رُصد 2.4×10^15) — الدرجات لا تفرق فوق |3| أصلاً والسقف يمنع تسرب الأرقام العبثية
+    return round(max(-10.0, min(10.0, z)), 2), len(obs), sma_now
 
 
 # ═══════════════════ الشبكة ═══════════════════
@@ -377,6 +384,8 @@ def fetch_quotes(api, stocks, counters, now_str, today):
             continue
         st["currentPrice"] = round(price, 2)
         cp = q.get("change_percent")
+        if cp is None:
+            st["dailyChange"] = None   # (تحسين ج) لا يُترك قديم تحت سعر جديد — يُمسح صراحة
         if cp is not None:
             # حارس حد التذبذب ±10%+1 (§8) — الخرق شبهة بيانات لا حركة
             if abs(cp) > 11:
@@ -898,18 +907,28 @@ def fetch_tasi(api, counters, hist_file, data):
     return t
 
 
-def maintain_universe(api, data, counters, today, config_path):
-    """صيانة الكون من /companies/ (§7) — بوابة تشغيلة أولى: الشكل غير مؤكد بالفحص"""
+def maintain_universe(api, data, counters, today):
+    """صيانة الكون من /companies/ (§7) — بوابة تشغيلة أولى: الشكل غير مؤكد بالفحص.
+    (ش-3) عتبة أمان: شطب >10% من الكون في تشغيلة واحدة = تخطٍّ كامل بإنذار صارخ
+    (شبهة قائمة مبتورة من نقطة غير مؤكدة). لا تكتب watchlist-config هنا —
+    تعيد الإغلاقات المعلقة والكتابة تُنفذ في main **بعد** كل بوابات الفشل
+    (سد الخرق الوحيد لانضباط «لا كتابة قبل البوابات»)."""
     resp, err = api.get("/companies/")
     rows = rows_of(resp, "companies", "data", "results")
     if not rows:
         print("  ✗ /companies/: %s — الصيانة تتخطى (بوابة تشغيلة أولى)" % (err or "شكل غير معروف"))
         counters["universe_fail"] += 1
-        return
+        return None
     listed = {str(r.get("symbol")): r for r in rows if r.get("symbol")}
     have = {s["symbol"] for s in data["stocks"]}
     added = [s for s in listed if s not in have]
     gone = [s for s in have if s not in listed]
+    if have and len(gone) > 0.10 * len(have):
+        print("⛔⛔ عتبة الشطب الجماعي (ش-3): /companies/ تسقط %d من %d (%.0f%% > 10%%) —"
+              % (len(gone), len(have), len(gone) / len(have) * 100))
+        print("   شبهة قائمة مبتورة — الصيانة تتخطى كلياً بلا أي وسم أو إغلاق. تحقق يدوياً.")
+        counters["universe_fail"] += 1
+        return None
     for sym in added:
         r = listed[sym]
         data["stocks"].append({"symbol": sym, "name": r.get("name", sym),
@@ -919,25 +938,31 @@ def maintain_universe(api, data, counters, today, config_path):
         if s["symbol"] in gone and not s.get("delisted"):
             s["delisted"] = True
             s["delistedAt"] = today
-    closed = []
-    if gone and os.path.exists(config_path):
-        cfg = json.load(open(config_path))
-        price = {s["symbol"]: s.get("currentPrice") for s in data["stocks"]}
-        for e in cfg.get("stocks", []):
-            if e.get("symbol") in gone and e.get("status", "open") == "open":
-                e["status"] = "closed"
-                e["closeDate"] = today
-                e["closePrice"] = price.get(e["symbol"])
-                e["closeReason"] = "delisted"   # قاعدة الإغلاق ج (§6-10)
-                closed.append(e["symbol"])
-        if closed:
-            tmp = config_path + ".tmp"
-            json.dump(cfg, open(tmp, "w"), ensure_ascii=False, indent=1)
-            os.replace(tmp, config_path)
     data["universeUpdated"] = today
     counters["universe_ok"] += 1
-    print("  🌐 الكون: مدرج %d | أضيف %d %s | delisted ‏%d %s | أُغلق %s"
-          % (len(listed), len(added), added[:5], len(gone), gone[:5], closed))
+    print("  🌐 الكون: مدرج %d | أضيف %d %s | delisted ‏%d %s | إغلاق التوصيات مؤجل لما بعد البوابات"
+          % (len(listed), len(added), added[:5], len(gone), gone[:5]))
+    return gone
+
+
+def close_delisted_recs(config_path, gone, price_map, today):
+    """كتابة إغلاقات delisted في watchlist-config — تُستدعى بعد اجتياز كل البوابات فقط (ش-3)"""
+    if not gone or not os.path.exists(config_path):
+        return []
+    cfg = json.load(open(config_path))
+    closed = []
+    for e in cfg.get("stocks", []):
+        if e.get("symbol") in gone and e.get("status", "open") == "open":
+            e["status"] = "closed"
+            e["closeDate"] = today
+            e["closePrice"] = price_map.get(e["symbol"])
+            e["closeReason"] = "delisted"   # قاعدة الإغلاق ج (§6-10)
+            closed.append(e["symbol"])
+    if closed:
+        tmp = config_path + ".tmp"
+        json.dump(cfg, open(tmp, "w"), ensure_ascii=False, indent=1)
+        os.replace(tmp, config_path)
+    return closed
 
 
 # ═══════════════════ الاستكشاف ═══════════════════
@@ -1069,9 +1094,10 @@ def main():
                                    full_universe=not args.symbols)
         print("  🏦 بنوك مكتشفة بالتعريف الموحد: %d (المتوقع ~10 — بوابة تشغيلة أولى)"
               % sum(1 for s in stocks if is_bank(s)))
+    gone_pending = None
     if args.maintain_universe:
         print("🌐 صيانة الكون...")
-        maintain_universe(api, data, counters, today, cfg_path)
+        gone_pending = maintain_universe(api, data, counters, today)
 
     # ── التغطية وبوابة الانهيار (§7) ──
     sma_cap = sum(1 for s in stocks if (s.get("weeklyTechnical") or {}).get("sma200w"))
@@ -1111,6 +1137,11 @@ def main():
         print("⛔ لا كتابة — فشل حاكم في: %s" % "، ".join(fail_types))
         sys.exit(1)
 
+    # (ش-3) إغلاقات delisted تُكتب الآن فقط — بعد اجتياز كل بوابات الفشل
+    if gone_pending:
+        closed = close_delisted_recs(cfg_path, gone_pending,
+                                     {s["symbol"]: s.get("currentPrice") for s in data["stocks"]}, today)
+        print("  🌐 أُغلقت توصيات المشطوبين (بعد البوابات): %s" % closed)
     data["coverage"] = {"smaCapable": sma_cap, "zCapable": z_cap, "at": today}
     for s in stocks:
         s.pop("_prevFinancials", None)
