@@ -64,12 +64,38 @@ if [ "$MODE" = "weekly" ]; then
     || echo "⚠️ ALERT: lab-digest فشل — التشغيلة تكمل"
 fi
 
-# النشر: إيداع ودفع نتائج التشغيلة (يغذي GitHub Pages)
+# تحقق نشر Pages (مقتبس من نمط stocks-push.sh المجرب — حادثة فشل Pages الصامت 06-08)
+verify_pages() {
+  local sha rsha status concl res i
+  sha=$(git rev-parse HEAD)
+  for i in $(seq 1 9); do
+    sleep 10
+    res=$(curl -s -m 20 "https://api.github.com/repos/ideas-pipeline/saif-lab/actions/runs?per_page=1" \
+      | python3 -c "import json,sys; r=json.load(sys.stdin)['workflow_runs'][0]; print(r['head_sha'], r['status'], r['conclusion'])" 2>/dev/null || true)
+    rsha=$(echo "$res" | cut -d' ' -f1); status=$(echo "$res" | cut -d' ' -f2); concl=$(echo "$res" | cut -d' ' -f3)
+    if [ "$rsha" = "$sha" ] && [ "$status" = "completed" ]; then echo "$concl"; return; fi
+  done
+  echo "timeout"
+}
+
+# النشر: إيداع ودفع نتائج التشغيلة (يغذي GitHub Pages) + تأكيد النشر
 git add -A
 if ! git diff --cached --quiet; then
   git -c user.email="server@saif" -c user.name="server" commit -qm "lab: تشغيلة $MODE آلية"
   git push -q origin main
-  echo "✅ نُشر"
+  RESULT=$(verify_pages)
+  if [ "$RESULT" = "success" ]; then
+    echo "✅ نُشر ونشر Pages مؤكد"
+  elif [ "$RESULT" = "failure" ]; then
+    echo "⚠️ نشر Pages فشل — إعادة إطلاق تلقائية (إيداع فارغ)"
+    git -c user.email="server@saif" -c user.name="server" commit -q --allow-empty -m "retrigger pages deploy"
+    git push -q origin main
+    RESULT2=$(verify_pages)
+    if [ "$RESULT2" = "success" ]; then echo "✅ نشر Pages نجح بعد إعادة الإطلاق"
+    else echo "❌ ALERT: نشر Pages فشل نهائياً ($RESULT2) — تدخل يدوي"; fi
+  else
+    echo "⚠️ لم يُحسم فحص Pages ($RESULT) — راجع يدوياً"
+  fi
 else
   echo "ℹ️ لا تغييرات للنشر"
 fi
