@@ -24,6 +24,15 @@ today = datetime.now().strftime("%Y-%m-%d")
 
 with open(STOCKS) as f:
     data = json.load(f)
+
+# قاعدة الإقفال الحصرية (شرط المحلل 2 — اعتماد 05-08ب): المغذي وقاعدتا الإغلاق
+# لا تعمل إلا على تشغيلة إقفال. ختم غائب = ملف جالب أقدم → رفض مسموع لا افتراض.
+rt = data.get("runType")
+if rt != "close":
+    print("⛔ feed-watchlist: تشغيلة سوق مفتوح (runType=%s) — لا مدخلات ولا إغلاقات،"
+          " دخول وخروج العينة بأسعار إقفال حصراً (شرط المحلل 2)" % rt)
+    raise SystemExit(0)
+
 with open(CONFIG) as f:
     cfg = json.load(f)
 stocks_cfg = cfg.setdefault("stocks", [])

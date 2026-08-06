@@ -1,8 +1,8 @@
 import json, os, shutil
 from datetime import datetime
-CONFIG = "/srv/ideas/watchlist-config.json"
-DATA = "/srv/ideas/stocks-data.json"
-ARCHIVE = "/srv/ideas/archive"
+CONFIG = os.environ.get("CONFIG_JSON", "/srv/ideas/watchlist-config.json")
+DATA = os.environ.get("STOCKS_JSON", "/srv/ideas/stocks-data.json")
+ARCHIVE = os.environ.get("ARCHIVE_DIR", "/srv/ideas/archive")
 DRY = os.environ.get("DRY_RUN") == "1"
 today = datetime.now().strftime("%Y-%m-%d")
 data = json.load(open(DATA))
@@ -10,6 +10,14 @@ lu = str(data.get("lastUpdated", ""))
 if today not in lu and not DRY:
     print(f"⛔ بيانات غير محدثة اليوم ({lu}) — لا إغلاق")
     raise SystemExit(0)
+# قاعدة الإقفال الحصرية (شرط المحلل 2 — اعتماد 05-08ب): الإغلاق على تشغيلة إقفال حصراً
+rt = data.get("runType")
+if rt != "close" and not DRY:
+    print(f"⛔ إغلاق SMA200W: تشغيلة سوق مفتوح (runType={rt}) — لا إغلاقات،"
+          " خروج العينة بأسعار إقفال حصراً (شرط المحلل 2)")
+    raise SystemExit(0)
+if rt != "close" and DRY:
+    print(f"[DRY] تنبيه: runType={rt} — التشغيلة الفعلية كانت سترفض (DRY يتجاهل الختم)")
 wt = {}
 for s in data.get("stocks", []):
     w = s.get("weeklyTechnical") or {}

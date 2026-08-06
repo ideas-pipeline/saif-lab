@@ -3,7 +3,7 @@
 """حلقة الفحص الذاتي L1 — عقد criteria v3 (docs/requirements-v3.md §7-§8).
 تقرير فقط: لا يعدل بيانات ولا يوقف النشر. يخرج دائماً بـ0.
 الاستخدام: python3 scripts/self-check-L1.py [stocks-data.json]"""
-import json, sys
+import json, os, sys
 from datetime import datetime
 
 DATA = sys.argv[1] if len(sys.argv) > 1 else "/srv/ideas/stocks-data.json"
@@ -18,13 +18,34 @@ except Exception as e:
     print("L1: تعذر قراءة البيانات — %s" % e)
     sys.exit(0)
 
-S = [s for s in cur.get("stocks", []) if not s.get("delisted")]
+# تعريف S موحد مع كون المحرك حرفياً (symbol + غير مشطوب) — درس عدم التطابق 05-08ب
+S = [s for s in cur.get("stocks", []) if s.get("symbol") and not s.get("delisted")]
 N = len(S)
 print("=" * 58)
 print("L1 (criteria v3) — %s | أسهم: %d (+%d delisted)" % (
     datetime.now().strftime("%Y-%m-%d %H:%M"), N,
     sum(1 for s in cur.get("stocks", []) if s.get("delisted"))))
+print("الملف: %s" % os.path.abspath(DATA))
+print("أختامه: lastUpdated=%s | priceSource=%s | scoringVersion=%s | runType=%s" % (
+    cur.get("lastUpdated"), cur.get("priceSource"),
+    cur.get("scoringVersion"), cur.get("runType")))
 print("=" * 58)
+
+# ── [0] هوية الملف — حارس «الملف الآخر» (جذر إنذارات 05-08ب الكاذبة الثلاثة:
+# ‏L1 قرأ ملفاً بائتاً في مساره الافتراضي بينما التشغيلة كتبت ملفاً آخر) ──
+has_scores = any(s.get("investmentScore") for s in S)
+if has_scores and (not cur.get("coverage") or cur.get("priceSource") != "sahmk-direct-v3"):
+    warn("🚨 صارخ: الملف المقروء ليس ناتج تشغيلة جالب v3 (coverage=%s، priceSource=%s) — "
+         "شبهة مسار خاطئ/ملف بائت؛ كل ما يلي يصف هذا الملف لا التشغيلة"
+         % (bool(cur.get("coverage")), cur.get("priceSource")))
+lu_age = None
+try:
+    lu_age = (datetime.now() - datetime.strptime(str(cur.get("lastUpdated", ""))[:10], "%Y-%m-%d")).days
+except (ValueError, TypeError):
+    pass
+if lu_age is None or lu_age > 3:
+    warn("الملف بائت: lastUpdated=%s (عمره %s يوماً) — تحقق من المسار وترتيب الخط"
+         % (cur.get("lastUpdated"), lu_age))
 
 # ── [1] تغطية الاشتقاق وبوابة الانهيار (§7) + أرضيات مطلقة ──
 cov = cur.get("coverage") or {}
@@ -47,8 +68,14 @@ if cov.get("smaCapable") and sma_cap < cov["smaCapable"]:
 if rated_n > 0 and z_cap == 0:
     warn("🚨 صارخ: قادرو Z = 0 مع %d مقيَّماً — محور المخاطر يفقد بنده Z للجميع "
          "(هكذا مرّت تشغيلة التفعيل العمياء)" % rated_n)
-if with_de > 0 and sma_cap < 0.8 * with_de:
-    warn("قادرو SMA200W ‏%d < 80%% ممن لديهم dailyExtra (%d) — عمق أسبوعي منهار"
+# اتساق دقيق (معايرة 05-08ب: العتبة الخام 80% كانت ستنذر كاذباً على التشغيلة السليمة
+# ‏198/248=79.8% — الـ50 حديثة التاريخ بلا SMA مشروعة): من عمقه ≥200 أسبوعاً يجب أن يملك SMA
+exp_sma = sum(1 for s in S if ((s.get("weeklyTechnical") or {}).get("weeks") or 0) >= 200)
+if sma_cap < exp_sma:
+    warn("🚨 صارخ: قادرو SMA200W ‏%d < ذوي ≥200 أسبوعاً (%d) — اشتقاق أسبوعي مكسور"
+         % (sma_cap, exp_sma))
+if with_de > 0 and sma_cap < 0.6 * with_de:
+    warn("قادرو SMA200W ‏%d < 60%% ممن لديهم dailyExtra (%d) — عمق أسبوعي منهار"
          % (sma_cap, with_de))
 if rated_n > 0 and not (cur.get("deScaleDecision")):
     warn("deScaleDecision غير محسوم مع وجود %d مقيَّماً — مقياس D/E غير موثوق" % rated_n)
@@ -75,11 +102,22 @@ print("\n[3] حراس المعقولية — الرفض بالحقل: %s" % (dic
 if sum(rej.values()) > 40:
     warn("رفض الحراس مرتفع: %d قيمة — راجع جودة المصدر" % sum(rej.values()))
 
-# ── [4] unrated وfiltered وبوابة السيولة ──
+# ── [4] unrated وfiltered وبوابة السيولة + مطابقة عدّ المحرك (عقد 05-08ب) ──
 unrated = sum(1 for s in S if isc(s).get("classCode") == "unrated")
 filtered = sum(1 for s in S if isc(s).get("filtered"))
 liq_blocked = sum(1 for s in S if not (s.get("liquidityGate") or {}).get("passed", True))
 print("\n[4] unrated: %d | filtered: %d | محجوب سيولة: %d" % (unrated, filtered, liq_blocked))
+# عقد الإحصاء الموحد: المحرك خزّن عدّه في scoringStats — إعادة العدّ المستقلة تطابقه
+# وإلا فالعقد منكسر (مفتاح تغيّر) أو الملف غير ملف تشغيلة المحرك
+eng = (cur.get("scoringStats") or {}).get("counts")
+if eng is not None:
+    eng_filtered = eng.get("filtered", 0)
+    eng_unrated = eng.get("unrated", 0)
+    if filtered != eng_filtered or unrated != eng_unrated:
+        warn("🚨 صارخ: عدّ L1 ‏(filtered=%d، unrated=%d) ≠ إحصاء المحرك (%d، %d) — "
+             "عقد مفاتيح منكسر أو ملف آخر" % (filtered, unrated, eng_filtered, eng_unrated))
+elif has_scores:
+    warn("scoringStats غائب مع وجود investmentScore — محرك أقدم من عقد 05-08ب أو ملف آخر")
 
 # ── [5] تغير القطاع/النشاط (§7 — إنذار) ──
 chg = cur.get("sectorChanges") or []
@@ -117,6 +155,11 @@ if totals:
     print("\n[8] النقاط (مقام 100): n=%d | وسيط %.0f | أدنى %d | أعلى %d | ≥80: %d | ≥65: %d"
           % (len(totals), statistics.median(totals), min(totals), max(totals),
              sum(1 for t in totals if t >= 80), sum(1 for t in totals if t >= 65)))
+    if eng is not None:
+        eng_rated = sum(v for k, v in eng.items() if k not in ("filtered", "unrated"))
+        if len(totals) != eng_rated:
+            warn("🚨 صارخ: n المصنفين في [8] ‏(%d) ≠ مجموع فئات المحرك (%d) — عقد منكسر أو ملف آخر"
+                 % (len(totals), eng_rated))
     bad = [t for t in totals if not (0 <= t <= 100)]
     if bad:
         warn("نقاط خارج [0،100]: %s" % bad[:5])

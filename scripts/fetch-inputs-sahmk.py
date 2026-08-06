@@ -1261,6 +1261,17 @@ def main():
     data["lastUpdated"] = now_riyadh + " الرياض"
     data["priceSource"] = "sahmk-direct-v3"
     data["criteriaVersion"] = "v3"
+    # ── ختم نوع التشغيلة (شرط المحلل 2 — قاعدة الإقفال الحصرية، اعتماد 05-08ب):
+    # ‏close = بعد ~15:10 الرياض في يوم تداول، أو يوم غير تداولي (أسعار الملف أسعار إقفال)
+    # ‏intraday = سوق مفتوح — المغذي وسكربتا الإغلاق يرفضان العمل عليه
+    now_r_dt = datetime.now(RIYADH)
+    trading_day = now_r_dt.weekday() in (6, 0, 1, 2, 3)   # الأحد-الخميس
+    after_close = (now_r_dt.hour, now_r_dt.minute) >= PARTIAL_CUTOFF_RIYADH
+    data["runType"] = "close" if (after_close or not trading_day) else "intraday"
+    data["runTypeAt"] = now_riyadh
+    print("🏷️ نوع التشغيلة: %s (%s)" % (data["runType"],
+          "أسعار إقفال — العينة تعمل" if data["runType"] == "close"
+          else "سوق مفتوح — لا مدخلات ولا إغلاقات للعينة"))
     out_dir = os.path.dirname(os.path.abspath(args.data)) or "."
     fd, tmp = tempfile.mkstemp(dir=out_dir, suffix=".tmp")
     with os.fdopen(fd, "w") as f:
