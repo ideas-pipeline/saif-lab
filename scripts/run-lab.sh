@@ -47,6 +47,14 @@ STOCKS_JSON="$DATA" CONFIG_JSON="$LAB/watchlist-config.json" ARCHIVE_DIR="$LAB/a
 python3 build.py
 python3 scripts/self-check-L1.py "$DATA"
 
+# الطبقة 2 (أسبوعي): التقرير الوصفي — فشله يُنبه ولا يُسقط السلسلة (قرار مقر 05-08ب)،
+# ويسبق النشر كي يُدفع docs/weekly-digest.md مع التشغيلة
+if [ "$MODE" = "weekly" ]; then
+  python3 scripts/lab-digest.py --data "$DATA" \
+    --config "$LAB/watchlist-config.json" --out "$LAB/docs/weekly-digest.md" \
+    || echo "⚠️ ALERT: lab-digest فشل — التشغيلة تكمل"
+fi
+
 # النشر: إيداع ودفع نتائج التشغيلة (يغذي GitHub Pages)
 git add -A
 if ! git diff --cached --quiet; then
