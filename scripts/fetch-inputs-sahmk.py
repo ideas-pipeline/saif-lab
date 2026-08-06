@@ -1269,9 +1269,8 @@ def main():
     after_close = (now_r_dt.hour, now_r_dt.minute) >= PARTIAL_CUTOFF_RIYADH
     data["runType"] = "close" if (after_close or not trading_day) else "intraday"
     data["runTypeAt"] = now_riyadh
-    # (06-08) أختام الواجهة — «الوسم لا يكذب»: كانت بائتة من الحقبة القديمة لأن جالب v3
-    # لم يكن يختمها، فعرضت «آخر تحديث» و«أسبوعية» أعماراً كاذبة رغم حداثة البيانات
-    data["lastUpdated"] = now_riyadh                    # مصدر «آخر تحديث» في الواجهة
+    # (06-08) ختما الحقبة القديمة البائتان — «الوسم لا يكذب»: lastUpdated كان يُختم
+    # أصلاً (أعلاه)، أما هذان فبقيا بقيم 04-08 فعرضت الواجهة «أسبوعية» بعمر كاذب
     data["lastRunAt"] = now_riyadh + " الرياض"          # الدلالة التاريخية للحقل
     data["weeklyTechnicalUpdated"] = now_riyadh         # الاشتقاق الأسبوعي يجري كل تشغيلة
     print("🏷️ نوع التشغيلة: %s (%s)" % (data["runType"],
