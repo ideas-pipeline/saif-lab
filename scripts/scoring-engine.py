@@ -31,6 +31,18 @@ import json, os, sys, statistics
 
 Q, T, R, K, V = 30, 25, 15, 15, 15   # سقوف المحاور — المجموع 100
 
+# قائمة unrated المعروفة من حقبة v2.1/تشغيلة الظل (شرط المحلل 3 — مساعد رؤية انتقالي):
+# 42 عابرة صامتة (الـ46 بلا SMA200W ناقص 4 مفلترة مالياً: 2315/4035/5113/5114)
+# + 5 اكتشفها الظل (docs/shadow-forensics-2026-08-04.md §3). ‏🆕 في المخرجات = خارجها.
+V21_UNRATED_KNOWN = {
+    "1323", "1833", "1834", "2083", "2084", "2223", "2283", "2284", "2285", "2286",
+    "2287", "2288", "2381", "2382", "4015", "4016", "4017", "4018", "4019", "4072",
+    "4082", "4083", "4084", "4142", "4143", "4147", "4165", "4192", "4193", "4194",
+    "4262", "4263", "4264", "4265", "4325", "4326", "4327", "6015", "6018", "6019",
+    "7204", "8313",
+    "4144", "4145", "4324", "6016", "6017",   # الخمسة من تشغيلة الظل
+}
+
 
 # ═══════════════ الوسطاء (§6-7) ═══════════════
 
@@ -670,6 +682,9 @@ def run(data_path, activation=False):
         data["activationEvent"] = {"version": "criteria-v3", "date": today or None,
                                    "classChanged": "%d/%d" % (changed, with_prev),
                                    "note": "تشغيلة تفعيل — قطع عينة متعمد موسوم بقرار المالك"}
+    # عقد الإحصاء الموحد (درس إنذارات L1 الكاذبة 05-08ب): المحرك يخزن عدّه في الملف
+    # وL1 يعيد العدّ مستقلاً ويقارن — أي اختلاف = عقد مفاتيح منكسر أو ملف آخر (صارخ)
+    data["scoringStats"] = {"counts": stats, "universe": len(stocks), "at": today}
     data["sectorMedians"] = {k2: v2 for k2, v2 in medians.items() if k2 != "_market"}
     data["marketMedians"] = medians["_market"]
     data["scoringVersion"] = "criteria-v3"
@@ -693,6 +708,26 @@ def run(data_path, activation=False):
         print("  %s (%s): %d/100 — %s | دخول: %s" % (
             s.get("name", ""), s["symbol"], sc["total"], sc["classification"],
             sc["entry"]["displayState"]))
+    # ── الكشف الاسمي لقائمة unrated (شرط المحلل 3 — اعتماد 05-08ب) ──
+    un_list = sorted((s["symbol"], s.get("name", ""),
+                      (s.get("weeklyTechnical") or {}).get("weeks") or 0)
+                     for s in stocks if s["investmentScore"].get("classCode") == "unrated")
+    if un_list:
+        new_ones = [u for u in un_list if u[0] not in V21_UNRATED_KNOWN]
+        print("⏸ قائمة unrated بالاسم (شرط المحلل 3) — السبب الموحد: أسابيع مشتقة < 200:")
+        line = []
+        for sym, _, wk in un_list:
+            line.append("%s%s(%dأ)" % ("🆕" if sym not in V21_UNRATED_KNOWN else "", sym, wk))
+            if len(line) == 8:
+                print("   " + " ".join(line)); line = []
+        if line:
+            print("   " + " ".join(line))
+        if new_ones:
+            print("   🆕 جديدة عن قائمة v2.1 المعروفة (42+5): %d —" % len(new_ones))
+            for sym, name, wk in new_ones:
+                print("      %s %s: ‏%d أسبوعاً مشتقاً (< 200) — تعليل: عمق سلسلة سهمك لهذا الرمز" % (sym, name, wk))
+        else:
+            print("   لا جديد عن قائمة v2.1 المعروفة (42+5)")
 
 
 if __name__ == "__main__":
