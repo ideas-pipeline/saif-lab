@@ -13,6 +13,13 @@
   2. اتجاه عدادات الحراس لا أعدادها: رفض كل حقل مقارناً بالأسبوع السابق
      (من اللقطة) — أي تصاعد يُبرز إنذاراً مبكراً لعلل المصدر.
 
+شروط الناقد الملزمة (ختم 05-08ب):
+  1. توزيع النقاط: وسيط/ربيعيات/أعلى-أدنى 10 بالأسماء — نسخ وترتيب لا حساب جديد.
+  2. مدخلات العينة الجديدة (7 أيام) بالاسم والفئة وregimeAtEntry — مميزة عن المفتوحة.
+  3. تاريخ نظام السوق الأسبوعي: سجل متراكم في اللقطة (regimeLog) + أسابيع كل نظام
+     + السلسلة المتصلة + سطر «محفز م-4» الصريح (غير هابط مستقر ≥4 أسابيع).
+  4. قسم شذوذ بعنوان صريح (البند 6)، وتشغيلة معادة لليوم نفسه لا تستبدل لقطة الدلتا.
+
 فشل مسموع (خروج 1 قبل أي كتابة): ملف بلا بصمة تشغيلة v3 (scoringStats/
 coverage/priceSource=sahmk-direct-v3) — التقرير يقرأ ناتج الخط ولا يعيد حسابه.
 ملف المختبر الحالي بعقد v2.1 → الفشل عليه هو السلوك الصحيح الموثق حتى أول
@@ -125,6 +132,27 @@ def main():
         prev.get("universe", "—") if has_prev else "—"))
     L.append("")
 
+    # توزيع النقاط (شرط الناقد 1): نسخ وترتيب لا حساب جديد — totals المقيَّمين من الملف
+    rated_sc = sorted(((s.get("investmentScore") or {}).get("total"), s["symbol"], s.get("name", ""))
+                      for s in S
+                      if (s.get("investmentScore") or {}).get("filtered") is False
+                      and (s.get("investmentScore") or {}).get("classCode") != "unrated"
+                      and (s.get("investmentScore") or {}).get("total") is not None)
+    L.append("### توزيع النقاط (المقيَّمون، n=%d)" % len(rated_sc))
+    if rated_sc:
+        arr = [x[0] for x in rated_sc]
+        n = len(arr)
+        L.append("- وسيط %s | ‏Q1 (الربيع الأدنى) %s | ‏Q3 (الربيع الأعلى) %s | المدى %s-%s"
+                 % (arr[n // 2] if n % 2 else round((arr[n//2 - 1] + arr[n//2]) / 2, 1),
+                    arr[n // 4], arr[(3 * n) // 4], arr[0], arr[-1]))
+        top10 = list(reversed(rated_sc[-10:]))
+        bot10 = rated_sc[:10]
+        L.append("- **أعلى 10:** " + "، ".join("%s %s (%s)" % (sym, name, sc) for sc, sym, name in top10))
+        L.append("- **أدنى 10:** " + "، ".join("%s %s (%s)" % (sym, name, sc) for sc, sym, name in bot10))
+    else:
+        L.append("- لا مقيَّمين في الملف.")
+    L.append("")
+
     # عائلة الشراء بالأسماء + الاستقرار
     fam = [(s["symbol"], s.get("name", ""),
             (s.get("investmentScore") or {}).get("classCode"),
@@ -164,6 +192,16 @@ def main():
         len(opens),
         "، ".join("%s/%s: %d" % (k[0], k[1], v) for k, v in sorted(oc.items())) or "لا شيء",
         len(closed)))
+    # مدخلات العينة الجديدة هذا الأسبوع (شرط الناقد 2) — تُميز عن المفتوحة الإجمالية
+    new_entries = [e for e in auto if (age_days(e.get("entryDate")) or 99) <= 7]
+    if new_entries:
+        L.append("- **مدخلات جديدة هذا الأسبوع (%d):**" % len(new_entries))
+        for e in new_entries:
+            L.append("  - %s %s — فئة %s، النظام عند الدخول: %s (نقاط %s)" % (
+                e.get("symbol"), e.get("name", ""), e.get("category"),
+                e.get("regimeAtEntry", "غير مسجل"), e.get("scoreAtEntry")))
+    else:
+        L.append("- لا مدخلات جديدة خلال 7 أيام.")
     new_closed = [e for e in closed if (age_days(e.get("closeDate")) or 99) <= 7]
     if new_closed:
         L.append("- إغلاقات الأسبوع (%d):" % len(new_closed))
@@ -238,7 +276,37 @@ def main():
                  % ec["بلا طبقة دخول"])
     L.append("")
 
-    # ═══ 4) عدادات الصحة ═══
+    # ── تاريخ النظام الأسبوعي (شرط الناقد 3 — مصدر محفز م-4) ──
+    same_day_rerun = prev.get("at") == today
+    regime_log = list(prev.get("regimeLog") or [])
+    cur_regime = mr.get("regime") or "غير متوفر"
+    if same_day_rerun and regime_log and regime_log[-1].get("date") == today:
+        pass   # تشغيلة معادة — السجل ثابت
+    else:
+        regime_log.append({"date": today, "regime": cur_regime})
+    L.append("### تاريخ نظام السوق الأسبوعي (مصدر محفز م-4)")
+    rc = Counter(e.get("regime") for e in regime_log)
+    L.append("- النظام الحالي: %s | أسابيع كل نظام منذ التفعيل (بعدد تشغيلات digest): %s"
+             % (cur_regime, "، ".join("%s: %d" % kv for kv in sorted(rc.items())) or "—"))
+    streak = 0
+    for e in reversed(regime_log):
+        if e.get("regime") == cur_regime:
+            streak += 1
+        else:
+            break
+    L.append("- طول السلسلة الحالية المتصلة: %d أسبوعاً (%s)" % (streak, cur_regime))
+    nonbear = 0
+    for e in reversed(regime_log):
+        if e.get("regime") and e["regime"] != "هابط":
+            nonbear += 1
+        else:
+            break
+    m4 = nonbear >= 4
+    L.append("- **محفز م-4: %s** (نظام غير هابط مستقر ≥4 أسابيع — الحالي: %d متصلة غير هابطة)"
+             % ("محقق ✅" if m4 else "غير محقق", nonbear))
+    L.append("")
+
+    # ═══ 4) عدادات الصحة والشذوذ ═══
     L.append("## 4. عدادات الصحة")
     L.append("")
     n_unrated = stats.get("unrated", 0)
@@ -249,7 +317,19 @@ def main():
                  % (n_unrated, delta))
     else:
         L.append("- unrated: ‏%d — الانكماش الرتيب متوقع (نمو التاريخ الأسبوعي)؛ أي زيادة تستحق نظرة." % n_unrated)
-    # الحراس بالحقل + اتجاههم (بند المحلل 4)
+    cov = data.get("coverage") or {}
+    L.append("- التغطية (من data.coverage حرفياً): SMA200W=%s | قادرو Z=%s | بتاريخ %s"
+             % (cov.get("smaCapable"), cov.get("zCapable"), cov.get("at")))
+    stale_fin = sum(1 for s in S if (age_days(s.get("financialsUpdated")) or 0) > 10)
+    stale_daily = sum(1 for s in S
+                      if (age_days((s.get("dailyExtra") or {}).get("updatedAt")) or 0) > 3)
+    L.append("- أعمار الكتل: financials أقدم من 10 أيام: %d | dailyExtra أقدم من 3 أيام: %d"
+             % (stale_fin, stale_daily))
+    L.append("")
+
+    # ═══ 5) الشذوذ — عنوان صريح (شرط الناقد 4-أ، البند 6 من عقد الطبقة 2) ═══
+    L.append("## 5. الشذوذ (البند 6 من عقد الطبقة 2)")
+    L.append("")
     rej = Counter()
     for s in S:
         for g in (s.get("guardRejected") or []):
@@ -271,14 +351,9 @@ def main():
                      % "، ".join("%s ‏%d→%d" % r for r in rising))
     else:
         L.append("- الحراس الراسبون: لا رفض هذا الأسبوع%s." % (" ولا السابق" if has_prev else ""))
-    cov = data.get("coverage") or {}
-    L.append("- التغطية (من data.coverage حرفياً): SMA200W=%s | قادرو Z=%s | بتاريخ %s"
-             % (cov.get("smaCapable"), cov.get("zCapable"), cov.get("at")))
-    stale_fin = sum(1 for s in S if (age_days(s.get("financialsUpdated")) or 0) > 10)
-    stale_daily = sum(1 for s in S
-                      if (age_days((s.get("dailyExtra") or {}).get("updatedAt")) or 0) > 3)
-    L.append("- أعمار الكتل: financials أقدم من 10 أيام: %d | dailyExtra أقدم من 3 أيام: %d"
-             % (stale_fin, stale_daily))
+    if has_prev and prev.get("unrated") is not None and n_unrated > prev["unrated"]:
+        L.append("- ⚠️ **شذوذ:** unrated زاد (%d→%d) والمتوقع انكماش رتيب — راجع عمق السلاسل"
+                 % (prev["unrated"], n_unrated))
     L.append("")
     L.append("---")
     L.append("*مولد آلياً من scripts/lab-digest.py — قراءة فقط من stocks-data.json"
@@ -290,13 +365,20 @@ def main():
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
     atomic_write(args.out, "\n".join(L))
-    snap = {"at": today, "counts": dict(stats),
-            "universe": (data.get("scoringStats") or {}).get("universe"),
-            "buyFamily": fam_syms, "unrated": n_unrated,
-            "guardByField": {str(k): v for k, v in rej.items()}}
-    atomic_write(prev_path, json.dumps(snap, ensure_ascii=False, indent=1))
-    print("✅ lab-digest: كُتب %s (ذرياً) + لقطة %s | فئات المحرك: %s"
-          % (args.out, os.path.basename(prev_path), dict(stats)))
+    # شرط الناقد 4-ب: تشغيلة معادة لليوم نفسه لا تستبدل لقطة الدلتا (أساس المقارنة
+    # الأسبوعي يبقى) — وسجل الأنظمة المتراكم محفوظ كما هو في هذه الحالة
+    if same_day_rerun:
+        print("ℹ️ lab-digest: تشغيلة معادة لليوم نفسه (%s) — لقطة الدلتا محفوظة بلا استبدال" % today)
+    else:
+        snap = {"at": today, "counts": dict(stats),
+                "universe": (data.get("scoringStats") or {}).get("universe"),
+                "buyFamily": fam_syms, "unrated": n_unrated,
+                "guardByField": {str(k): v for k, v in rej.items()},
+                "regimeLog": regime_log}
+        atomic_write(prev_path, json.dumps(snap, ensure_ascii=False, indent=1))
+    print("✅ lab-digest: كُتب %s (ذرياً)%s | فئات المحرك: %s"
+          % (args.out, "" if same_day_rerun else " + لقطة " + os.path.basename(prev_path),
+             dict(stats)))
 
 
 if __name__ == "__main__":
