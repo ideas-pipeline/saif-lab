@@ -16,6 +16,15 @@ LAB="/srv/ideas/lab-mirror"
 KEYFILE="/srv/ideas/.sahmk.key"
 MODE="${1:-daily}"
 
+# تحصين ضد التحديث الذاتي (06-08): git pull الداخلي قد يحدّث هذا الملف أثناء تنفيذه،
+# وbash يقرأ السكربتات تزايدياً — لذا التنفيذ الفعلي يجري دائماً من نسخة مؤقتة تحذف نفسها.
+if [ -z "$RUNLAB_EXEC_COPY" ]; then
+  cp -- "$0" "$LAB/.run-lab.exec.$$"
+  export RUNLAB_EXEC_COPY="$LAB/.run-lab.exec.$$"
+  exec bash "$RUNLAB_EXEC_COPY" "$@"
+fi
+trap 'rm -f -- "$RUNLAB_EXEC_COPY"' EXIT
+
 cd "$LAB"
 exec 200>.lab.lock
 flock -w 900 200 || { echo "⛔ تشغيلة أخرى قائمة — انسحاب"; exit 1; }
