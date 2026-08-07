@@ -63,7 +63,7 @@ fail-open لدى المستهلكين (`passed`, True) — عمداً: الغي�
 الأخطاء (أول 3 لكل نوع)، الكتابة الذرية، «لا كتابة عند فشل الأسعار كلياً»،
 تاسي: الفراغ المشروع (200 بلا شموع + محلي ≤4 أيام) ليس فشلاً.
 """
-import json, os, sys, time, argparse, tempfile, statistics
+import json, math, os, sys, time, argparse, tempfile, statistics
 import urllib.request, urllib.error
 from datetime import datetime, timezone, timedelta
 
@@ -230,8 +230,7 @@ def build_series(dates, raw, adj_pairs):
     قواعد الغياب: سهم بلا مخزن كافٍ → المدد المتاحة فقط (d30≥5 جلسات، d90>30،
     ‏w52≥8 أسابيع، w156>52، mAll≥6 أشهر).
     التقريب: منزلتان، وثلاث لسهم سعره < 1 ريال."""
-    # TODO-SR: حقل `levels` (دعم/مقاومة) يُحسب هنا لاحقاً — مواصفة المحلل تصل بعد
-    # ختم الناقد لها؛ لا اجتهاد فيها الآن (تكليف المنسق 05-08ب).
+    # (كان TODO-SR): حقل `levels` نُفذ بمواصفة §4-ب المختومة — انظر build_levels أدناه.
     if not dates:
         return None
     nd = 3 if raw[-1] < 1 else 2
@@ -264,6 +263,187 @@ def build_series(dates, raw, adj_pairs):
     if len(months) >= 6:
         out["mAll"] = {"start": months[0][0], "p": R([v for _, v in months]), "iv": "M"}
     return out or None
+
+
+# ═══════════ الدعم والمقاومة الإرشادية (§4-ب المختوم — عرض إرشادي محض) ═══════════
+# حوكمة صريحة: صفر نقاط، صفر فلاتر، صفر أثر على criteria v3 — المحرك لا يقرأ levels.
+
+LEVELS_K = 5              # fractal swings (Williams)
+LEVELS_WINDOW = 500       # نافذة الكشف ~سنتان
+LEVELS_MIN_SESSIONS = 250 # دونه: الكبرى فقط أو «تاريخ غير كافٍ»
+CAPACT_THRESHOLD = 0.15   # فرق عائد خام/معدل > 15% = إجراء رأسمالي شبه يقيني (حد التذبذب ±10%)
+
+
+def derive_capadj(rows):
+    """السلسلة «الخام المعدل للإجراءات الرأسمالية فقط» (§4-ب ش-1) — مشتقة محلياً:
+    فرق العائد اليومي الخام عن المعدل > 15% بين إغلاقين = إجراء رأسمالي؛ عامل
+    التعديل = نسبة الفرق نفسها مطبقاً على كل ما قبل يوم الإجراء. التوزيعات النقدية
+    (فرق ≤ 15%) تبقى غير معدلة — السوق يتذكر السعر الاسمي.
+    الكشف الملتبس (عامل خارج [0.2، 5] أو قفزة > 15% بلا معدل للمقارنة) → يعاد
+    بفهرسه لتقييد النافذة لما بعده (الحارس ب).
+    يعيد (closes, highs, lows, vols, dates, actions[(date, factor, idx)], ambiguous[(date, idx)])"""
+    n = len(rows)
+    closes = [r[1] for r in rows]
+    highs = [r[3] for r in rows]
+    lows = [r[4] for r in rows]
+    actions, ambiguous = [], []
+    for i in range(1, n):
+        r0, r1 = rows[i - 1][1], rows[i][1]
+        a0, a1 = rows[i - 1][2], rows[i][2]
+        if not r0 or not r1:
+            continue
+        raw_ret = r1 / r0
+        if a0 and a1:
+            adj_ret = a1 / a0
+            if adj_ret and abs(raw_ret / adj_ret - 1) > CAPACT_THRESHOLD:
+                f = raw_ret / adj_ret
+                if 0.2 <= f <= 5:
+                    actions.append((rows[i][0], round(f, 4), i))
+                else:
+                    ambiguous.append((rows[i][0], i))
+        elif abs(raw_ret - 1) > CAPACT_THRESHOLD:
+            ambiguous.append((rows[i][0], i))   # قفزة فوق حد التذبذب بلا معدل يحسمها
+    for _, f, idx in actions:
+        for j in range(idx):
+            closes[j] *= f
+            highs[j] *= f
+            lows[j] *= f
+    return (closes, highs, lows, [r[5] for r in rows], [r[0] for r in rows],
+            actions, ambiguous)
+
+
+def _round_step(p):
+    """سلم الأرقام المستديرة المنصوص: ≥20→مضاعفات 5 | ‏5-20→1 | ‏<5→0.5"""
+    return 5.0 if p >= 20 else 1.0 if p >= 5 else 0.5
+
+
+def build_levels(rows, atr14, prev, stamp):
+    """§4-ب حرفياً: swings ‏k=5 على نافذة 500 + كبرى + حجم-عند-سعر على شبكة 1.01^n
+    مطلقة + دمج بسماحية max(2%، 0.5×ATR14) بسقف عرض 2×السماحية + قوة ثلاثية +
+    أرقام مستديرة توسيماً + مانع الرفرفة ضد **المعروض** المخزن (prev)."""
+    if not rows:
+        return None
+    closes, highs, lows, vols, dates, actions, ambiguous = derive_capadj(rows)
+    out = {"updatedAt": stamp, "basis": "raw-capadj", "since": dates[0]}
+    if actions:
+        out["capActions"] = [{"date": d, "factor": f} for d, f, _ in actions]
+    start = 0
+    if ambiguous:
+        start = ambiguous[-1][1] + 1
+        out["restricted"] = True
+        out["restrictedFrom"] = dates[start] if start < len(dates) else dates[-1]
+        out["since"] = dates[start] if start < len(dates) else dates[-1]
+    price = closes[-1]
+    nd = 3 if price < 1 else 2
+    R = lambda v: round(v, nd)
+    # ── الكبرى (المكوّن 3): 52أ بأعلى high/أدنى low + أقصى المتاح بوسم since الصادق ──
+    # حارس بيانات: قيم غير موجبة (صفوف معطوبة low=0 مرصودة في الخام) لا تدخل الحساب
+    h_all = [v for v in highs[start:] if v and v > 0]
+    l_all = [v for v in lows[start:] if v and v > 0]
+    if h_all and l_all:
+        out["majors"] = {"high52": R(max(h_all[-251:])), "low52": R(min(l_all[-251:])),
+                         "maxAvail": R(max(h_all)), "minAvail": R(min(l_all))}
+    n_eff = len(closes) - start
+    if n_eff < LEVELS_MIN_SESSIONS:
+        out["insufficientHistory"] = True
+        if not out.get("majors"):
+            out["note"] = "التاريخ غير كافٍ لمستويات موثوقة"
+        out["price"] = R(price)
+        return out
+    # ── نافذة العمل: آخر 500 جلسة (بعد أي تقييد) ──
+    w0 = max(start, len(closes) - LEVELS_WINDOW)
+    wH, wL, wV, wC = highs[w0:], lows[w0:], vols[w0:], closes[w0:]
+    k = LEVELS_K
+    sH = [v if (v and v > 0) else float("-inf") for v in wH]   # المعطوب لا يكون قمة
+    sL = [v if (v and v > 0) else float("inf") for v in wL]    # ولا قاعاً
+    pts = []   # (سعر، حجم الجلسة)
+    for i in range(k, len(sH) - k):
+        if sH[i] > max(sH[i - k:i]) and sH[i] > max(sH[i + 1:i + k + 1]) and sH[i] > 0:
+            pts.append((sH[i], wV[i]))
+        if sL[i] < min(sL[i - k:i]) and sL[i] < min(sL[i + 1:i + k + 1]) and sL[i] != float("inf"):
+            pts.append((sL[i], wV[i]))
+    # ── حجم-عند-سعر: سلال 1% لوغاريتمية مرساة على 1.01^n من 1 ريال ──
+    LN = math.log(1.01)
+    bins = {}
+    for i in range(len(wC)):
+        lo_, hi_ = wL[i], wH[i]
+        if not lo_ or not hi_ or lo_ <= 0:
+            continue
+        b0, b1 = int(math.log(lo_) / LN), int(math.log(hi_) / LN)
+        share = (wV[i] or 0) / (b1 - b0 + 1)
+        for b in range(b0, b1 + 1):
+            bins[b] = bins.get(b, 0) + share
+    node_bins = {b for b in bins
+                 if bins[b] > bins.get(b - 1, 0) and bins[b] > bins.get(b + 1, 0)}
+    def hits_node(lo_, hi_):
+        b0, b1 = int(math.log(lo_) / LN), int(math.log(hi_) / LN)
+        return any(b in node_bins for b in range(b0, b1 + 1))
+    # ── الدمج بوصلة مفردة مسقوفاً: سماحية max(2%، 0.5×ATR14)، عرض ≤ 2×السماحية ──
+    zones = []
+    for p, v in sorted(pts):
+        if zones:
+            z = zones[-1]
+            tol = max(0.02 * z["c"], 0.5 * (atr14 or 0))
+            if abs(p - z["c"]) <= tol and (max(z["hi"], p) - min(z["lo"], p)) <= 2 * tol:
+                z["lo"], z["hi"] = min(z["lo"], p), max(z["hi"], p)
+                z["sumv"] += (v or 1)
+                z["sumpv"] += p * (v or 1)
+                z["c"] = z["sumpv"] / z["sumv"]
+                z["t"] += 1
+                continue
+        zones.append({"lo": p, "hi": p, "c": p, "t": 1, "sumv": v or 1, "sumpv": p * (v or 1)})
+    # ── القوة والوسوم — التأكيد الأدنى للعرض: لمستان ──
+    final = []
+    for z in zones:
+        if z["t"] < 2:
+            continue
+        node = hits_node(z["lo"], z["hi"])
+        strength = ("strong" if (z["t"] >= 3 or (z["t"] >= 2 and node)) else "medium")
+        tags = []
+        step = _round_step(z["c"])
+        if abs(z["c"] - round(z["c"] / step) * step) <= 0.005 * z["c"]:
+            tags.append("round")
+        if node:
+            tags.append("volnode")
+        final.append({"lo": R(z["lo"]), "hi": R(z["hi"]), "c": R(z["c"]),
+                      "strength": strength, "touches": z["t"], "tags": tags})
+    # ── مانع الرفرفة (ش-3): الثبات ضد المعروض المخزن — استبدال فقط عند ابتعاد >1% ──
+    prev_zones = []
+    if prev:
+        for key in ("supports", "resistances"):
+            prev_zones.extend(prev.get(key) or [])
+        if prev.get("inside"):
+            prev_zones.append(prev["inside"])
+    for z in final:
+        for pz in prev_zones:
+            pc = pz.get("c")
+            if pc and abs(z["c"] - pc) <= 0.01 * pc:
+                z["lo"], z["hi"], z["c"] = pz["lo"], pz["hi"], pc
+                break
+    # ── الاختيار (ش-2): داخل المنطقة لا يُعد؛ أقرب دعمين/مقاومتين من خارجها ──
+    inside = next((z for z in final if z["lo"] <= price <= z["hi"]), None)
+    sup = sorted((z for z in final if z is not inside and z["hi"] < price),
+                 key=lambda z: -z["hi"])[:2]
+    res = sorted((z for z in final if z is not inside and z["lo"] > price),
+                 key=lambda z: z["lo"])[:2]
+    out["supports"], out["resistances"] = sup, res
+    if inside:
+        out["inside"] = inside            # «السعر داخل منطقة تقريبية الآن»
+    # الجانب الفارغ (ش-2-2) يشترط تجاوز الكبرى أيضاً — «فوق كل مستويات التاريخ المتاح».
+    # هامش 2% لأن high الجلسة الجارية نفسها يتجاوز إغلاقها دوماً («عند أعلى المتاح»)
+    mj = out.get("majors") or {}
+    if not res and (not mj or price >= mj.get("maxAvail", price) * 0.98):
+        out["noResistanceAbove"] = True   # «لا مقاومة معروفة فوق السعر (عند أعلى المتاح)»
+    if not sup and (not mj or price <= mj.get("minAvail", price) * 1.02):
+        out["noSupportBelow"] = True
+    # جملة السياق العرضية الوحيدة: سعر ضمن 1×ATR من حافة أقرب منطقة
+    if atr14:
+        if sup and price - sup[0]["hi"] <= atr14:
+            out["nearZone"] = "support"
+        elif res and res[0]["lo"] - price <= atr14:
+            out["nearZone"] = "resistance"
+    out["price"] = R(price)
+    return out
 
 
 def series_bytes(stocks):
@@ -654,8 +834,9 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
             "weeks": n_weeks,
             "derived": True, "updatedAt": stamp,
         }
-        # ── سلاسل الرسم (الموجة 1) — من المخزن وقت الجلب؛ TODO-SR: ‏levels لاحقاً ──
+        # ── سلاسل الرسم (الموجة 1) + مستويات §4-ب — من المخزن وقت الجلب ──
         st["series"] = build_series(dates, raw, adj_pairs)
+        st["levels"] = build_levels(rows, atr, st.get("levels"), stamp)
         # ── القوة النسبية على الخام مقابل تاسي السعري (§3.3) ──
         r3, r6 = period_return(raw, 63), period_return(raw, 126)
         r121 = return_12_1(raw)
@@ -1384,10 +1565,30 @@ def main():
     print("🏷️ نوع التشغيلة: %s (%s)" % (data["runType"],
           "أسعار إقفال — العينة تعمل" if data["runType"] == "close"
           else "سوق مفتوح — لا مدخلات ولا إغلاقات للعينة"))
-    # ── ميزانية سلاسل الرسم (الموجة 1): +800KB للسلاسل و≤3.3MB للملف النهائي ──
-    ser_size, ser_level = enforce_series_budget(stocks)
-    print("📈 سلاسل الرسم: %d سهماً بسلاسل | حجمها الكلي %.0fKB (سقف 800) | تقليص مستوى %d"
-          % (sum(1 for s in stocks if s.get("series")), ser_size / 1024, ser_level))
+    # ── §4-ب: بوابة تشغيلة أولى — الإجراءات الرأسمالية المكتشفة تُطبع كلها للتحقق
+    # اليدوي (سهم معروف المنحة يُقارن بإعلانات تداول)، والمقيدون يُسمّون ──
+    cap_lines, restricted_syms = [], []
+    for s in stocks:
+        lv = s.get("levels") or {}
+        for a in lv.get("capActions") or []:
+            cap_lines.append("%s: ‏%s عامل %s" % (s["symbol"], a["date"], a["factor"]))
+        if lv.get("restricted"):
+            restricted_syms.append("%s (من %s)" % (s["symbol"], lv.get("restrictedFrom")))
+    if cap_lines:
+        print("🏗️ إجراءات رأسمالية مكتشفة (%d — تحقق يدوي لسهم معروف المنحة، بوابة أولى):" % len(cap_lines))
+        for ln in cap_lines[:30]:
+            print("   " + ln)
+        if len(cap_lines) > 30:
+            print("   ... و%d أخرى" % (len(cap_lines) - 30))
+    if restricted_syms:
+        print("⚠️ مستويات مقيدة التاريخ (كشف ملتبس — مراجعة يدوية): %s" % restricted_syms[:10])
+    # ── ميزانية الرسم الشاملة (الموجة 1): series+levels ≤ +800KB والملف ≤3.3MB ──
+    lev_size = sum(len(json.dumps(s.get("levels"), separators=(",", ":"), ensure_ascii=False).encode())
+                   for s in stocks if s.get("levels"))
+    ser_size, ser_level = enforce_series_budget(stocks, cap_bytes=800 * 1024 - lev_size)
+    print("📈 سلاسل الرسم: %d سهماً بسلاسل | series ‏%.0fKB + levels ‏%.0fKB = %.0fKB (سقف شامل 800) | تقليص مستوى %d"
+          % (sum(1 for s in stocks if s.get("series")), ser_size / 1024, lev_size / 1024,
+             (ser_size + lev_size) / 1024, ser_level))
     out_dir = os.path.dirname(os.path.abspath(args.data)) or "."
     FILE_CAP = int(3.3 * 1024 * 1024)
     for attempt in range(3):

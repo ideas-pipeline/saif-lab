@@ -91,6 +91,13 @@ print("\n[2] شريحة 200-299 جلسة (SMA200D حاضر وZ غائب — 0/3 
       % (len(slice_z), slice_z[:10]))
 print("    شريحة 200-203 أسبوعاً (SMA200W بلا ميل → معاملة محايدة 6/8): %d %s"
       % (len(slice_w), slice_w[:10]))
+# §4-ب الحارس ب: مستويات مقيدة التاريخ (كشف إجراء رأسمالي ملتبس) → مراجعة يدوية
+lv_restricted = [s["symbol"] for s in S if (s.get("levels") or {}).get("restricted")]
+print("    مستويات S/R مقيدة التاريخ (كشف ملتبس §4-ب): %d %s"
+      % (len(lv_restricted), lv_restricted[:10]))
+if lv_restricted:
+    warn("مستويات %d سهماً مقيدة التاريخ (إجراء رأسمالي ملتبس) — مراجعة يدوية §4-ب: %s"
+         % (len(lv_restricted), lv_restricted[:10]))
 
 # ── [3] الحراس الراسبون (§8) ──
 from collections import Counter
