@@ -154,7 +154,20 @@ tr:hover{background:#1e293b88}
 .indicator.green .val{color:#10b981}.indicator.red .val{color:#ef4444}.indicator.yellow .val{color:#f59e0b}.indicator.blue .val{color:#60a5fa}
 .indicator.stale{cursor:help}
 .indicator.stale .val{opacity:.55}
-.chart-container{background:#0f172a;border-radius:10px;padding:16px;height:200px;position:relative;overflow:hidden}
+/* الرسم البياني التفاعلي (الموجة الثانية — بديل «آخر 30 يوم» الميت):
+   المحاور LTR كاصطلاح الرسوم المالية (سابقة levels-track)، والصفحة حوله RTL.
+   touch-action: pan-y — السحب الأفقي للصليب والرأسي يمرر الصفحة (طلب iPad) */
+.chart-ranges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chart-rbtn{min-height:44px;min-width:52px;padding:6px 14px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:10px;cursor:pointer;font-family:inherit;font-size:0.85em;transition:all .15s}
+.chart-rbtn:hover{border-color:#f59e0b}
+.chart-rbtn.active{background:#f59e0b;color:#000;border-color:#f59e0b;font-weight:700}
+.chart-box{position:relative;background:#0f172a;border-radius:10px;padding:6px 2px 2px;direction:ltr;touch-action:pan-y pinch-zoom;cursor:crosshair}
+.chart-box svg{width:100%;height:auto;display:block}
+.chart-tip{position:absolute;top:10px;background:#1e293bf2;border:1px solid #475569;border-radius:8px;padding:6px 10px;font-size:0.78em;color:#e2e8f0;pointer-events:none;white-space:nowrap;z-index:3;box-shadow:0 2px 8px #0007;direction:rtl}
+.chart-tip b{color:#fbbf24}
+.chart-tip .tip-date{color:#94a3b8;font-size:0.9em}
+.levels-note{font-size:0.75em;color:#94a3b8;margin-top:8px;line-height:1.8}
+.levels-note .ln-disc{color:#fcd34d}
 
 /* بطاقة لماذا هذا التقييم */
 .why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
@@ -81867,6 +81880,9 @@ function renderLevelsBlock(s) {
   const price = s.currentPrice;
   const num = (x) => typeof x === 'number' && isFinite(x) && x > 0;
   if (!lv || !num(price)) return '';
+  // عقد levels الجديد (§4-ب: نطاقات supports/resistances) يملكه قسم الرسم التفاعلي —
+  // هذا الشريط القديم يخدم عقد 30-07 (مصفوفتي أرقام support/resistance) فقط، لا ازدواج
+  if (lv.supports || lv.resistances || lv.majors) return '';
   const sup = Array.isArray(lv.support) ? lv.support.filter(num) : [];
   const res = Array.isArray(lv.resistance) ? lv.resistance.filter(num) : [];
   if (!sup.length || !res.length) return '';
@@ -81977,6 +81993,260 @@ function entrySection(s, sc) {
   return body;
 }
 
+// ═══════════ الرسم البياني التفاعلي (الموجة الثانية — عقد series/levels في mapping §3) ═══════════
+// بديل كامل عن «آخر 30 يوم» (كان يقرأ technical.chartPrices الميتة). SVG يدوي بلا مكتبات.
+// الصمود المرحلي: لا series ولا levels → القسم كله يختفي؛ مدة غائبة → زرها لا يُبنى.
+const RANGE_DEFS = [['d30', '30ي'], ['d90', '90ي'], ['w52', 'سنة'], ['w156', '3س'], ['mAll', 'الكل']];
+let chartStock = null, chartRange = null, chartGeom = null;
+
+// أسعار الرسم: منزلتان، وثلاث لسهم دون الريال (اصطلاح التقريب في العقد نفسه)
+const fmtP = (v) => (v == null || !isFinite(v)) ? '—' : (Math.abs(v) < 1 ? Number(v).toFixed(3) : fmtPrice(v));
+
+const seriesOf = (s) => {
+  const ser = s && s.series;
+  if (!ser) return null;
+  const avail = RANGE_DEFS.filter(([k]) => ser[k] && Array.isArray(ser[k].p) && ser[k].p.length >= 2 && ser[k].start);
+  return avail.length ? { ser, avail } : null;
+};
+
+// اشتقاق التواريخ بالفهرس التقريبي من start (العقد: بلا تواريخ لكل نقطة):
+// d30/d90 جلسات = أيام عمل سعودية (أحد-خميس، عطلة جمعة/سبت)؛ w52/w156 أسبوع لكل نقطة؛
+// mAll شهر (أو ربع iv=Q) لكل نقطة. حساب UTC صرف — لا انزياح منطقة زمنية
+function deriveDates(entry, key) {
+  const n = entry.p.length;
+  const out = [];
+  const d = new Date(entry.start + 'T00:00:00Z');
+  if (isNaN(d)) { for (let i = 0; i < n; i++) out.push(''); return out; }
+  const iso = (x) => x.toISOString().slice(0, 10);
+  if (key === 'd30' || key === 'd90') {
+    for (let i = 0; i < n; i++) {
+      out.push(iso(d));
+      do { d.setUTCDate(d.getUTCDate() + 1); } while (d.getUTCDay() === 5 || d.getUTCDay() === 6);
+    }
+  } else if (key === 'w52' || key === 'w156') {
+    for (let i = 0; i < n; i++) { const x = new Date(d); x.setUTCDate(x.getUTCDate() + i * 7); out.push(iso(x)); }
+  } else {
+    const step = entry.iv === 'Q' ? 3 : 1;
+    for (let i = 0; i < n; i++) { const x = new Date(d); x.setUTCMonth(x.getUTCMonth() + i * step); out.push(iso(x)); }
+  }
+  return out;
+}
+
+// نص نطاق المنطقة «lo–hi ر.س (قوي 🔵)» — لفظ «تقريبي» يلزم في سياق الاستدعاء
+const zoneRangeTxt = (z) => '<span dir="ltr">' + fmtP(z.lo) + '–' + fmtP(z.hi) + '</span> ر.س (' +
+  (z.strength === 'strong' ? 'قوي' : 'متوسط') +
+  ((z.tags || []).map(t => t === 'round' ? ' 🔵' : t === 'volnode' ? ' 📊' : '').join('')) + ')';
+
+// القسم النصي تحت الرسم — اللفظ الملزم + أقرب دعم/مقاومة + جمل الأعلام الصادقة
+function levelsTextHtml(s) {
+  const lv = s.levels;
+  if (!lv || !(lv.supports || lv.resistances || lv.majors || lv.insufficientHistory || lv.note)) return '';
+  const since = lv.since ? ' (منذ <span dir="ltr">' + String(lv.since).slice(0, 10) + '</span>)' : '';
+  const rows = ['<span class="ln-disc">⚠️ مستويات تقريبية إرشادية — ليست ضماناً ولا توصية</span>'];
+  const sup = (lv.supports || [])[0], res = (lv.resistances || [])[0];
+  const nearLine = [];
+  if (sup) nearLine.push('أقرب دعم تقريبي: ' + zoneRangeTxt(sup));
+  if (res) nearLine.push('أقرب مقاومة تقريبية: ' + zoneRangeTxt(res));
+  if (nearLine.length) rows.push(nearLine.join(' • '));
+  if (lv.inside) rows.push('📍 السعر داخل منطقة تقريبية الآن (' + zoneRangeTxt(lv.inside) + ')');
+  if (lv.nearZone === 'support') rows.push('🧲 السهم قرب منطقة دعم تقريبية');
+  if (lv.nearZone === 'resistance') rows.push('🧲 السهم قرب منطقة مقاومة تقريبية');
+  if (lv.noResistanceAbove) rows.push('⛰️ لا مقاومة معروفة فوق السعر — عند أعلى المتاح' + since);
+  if (lv.noSupportBelow) rows.push('لا دعم معروفاً تحت السعر — عند أدنى المتاح' + since);
+  if (lv.insufficientHistory) rows.push('⏳ ' + (lv.note || 'التاريخ غير كافٍ لمستويات موثوقة — تُعرض الكبرى فقط'));
+  return '<div class="levels-note">' + rows.join('<br>') + '</div>';
+}
+
+// قسم الرسم في المودال: أزرار المدد المتاحة فقط + صندوق الرسم + النص الإرشادي.
+// levels بلا series (حالة مرحلية) → النص وحده؛ لا شيء منهما → لا قسم
+function chartSectionHtml(s) {
+  const sv = seriesOf(s);
+  const txt = levelsTextHtml(s);
+  if (!sv && !txt) return '';
+  let html = '<div class="modal-section"><h3>📉 الرسم البياني</h3>';
+  if (sv) {
+    html += '<div class="chart-ranges" role="tablist">' + sv.avail.map(([k, lb]) =>
+      '<button type="button" class="chart-rbtn" data-range="' + k + '" aria-pressed="false" onclick="chartSetRange(\'' + k + '\')">' + lb + '</button>').join('') + '</div>';
+    html += '<div class="chart-box" id="chartBox"><div id="chartHost"></div><div class="chart-tip" id="chartTip" style="display:none"></div></div>';
+  }
+  html += txt + '</div>';
+  return html;
+}
+
+// الرسم نفسه — يعاد بناء SVG عند كل تبديل مدة. المستويات (المناطق + الكبرى + المستوى
+// المرجعي) تُرسم على المدد اليومية/الأسبوعية وتُخفى على mAll (مقياسه الشهري يشوهها).
+// التراتبية المنصوصة: المستوى المرجعي لطبقة الدخول أبرز بصرياً من S/R — يُرسم أخيراً
+// وبخط أسمك ولون العلامة الكهرماني، فهو سيد القرار والمناطق سياق
+function drawStockChart() {
+  const s = chartStock;
+  const host = document.getElementById('chartHost');
+  if (!s || !host || !s.series || !s.series[chartRange]) return;
+  const entry = s.series[chartRange];
+  const p = entry.p, n = p.length;
+  const dates = deriveDates(entry, chartRange);
+  const VBW = 820, VBH = 300, padL = 10, padR = 74, padT = 14, padB = 26;
+  const W = VBW - padL - padR, H = VBH - padT - padB;
+  const showLv = chartRange !== 'mAll';
+  const lv = showLv ? (s.levels || null) : null;
+  const ent = (showLv && entryOf(s.investmentScore)) || {};
+  const ref = (ent.referenceLevel != null && isFinite(ent.referenceLevel)) ? ent.referenceLevel : null;
+  // مجال Y: الأسعار + المستوى المرجعي + **أقرب** دعم/مقاومة وقمة/قاع 52أ إن كانت قريبة —
+  // وإلا رأى المستخدم «أقرب دعم» نصاً ولا يراه رسماً. البعيد (المنطقة الثانية، أقصى المتاح)
+  // لا يمدد المجال كي لا ينسحق المنحنى — يُقص بهدوء
+  const pLo = Math.min.apply(null, p), pHi = Math.max.apply(null, p);
+  let lo = pLo, hi = pHi;
+  const nearOk = (v) => v != null && isFinite(v) && v > pLo * 0.82 && v < pHi * 1.22;
+  const domCands = [];
+  if (ref != null && nearOk(ref)) domCands.push(ref);
+  if (lv) {
+    const s1 = (lv.supports || [])[0], r1 = (lv.resistances || [])[0], mj0 = lv.majors || {};
+    if (s1 && nearOk(s1.lo)) domCands.push(s1.lo, s1.hi);
+    if (r1 && nearOk(r1.hi)) domCands.push(r1.lo, r1.hi);
+    if (nearOk(mj0.high52)) domCands.push(mj0.high52);
+    if (nearOk(mj0.low52)) domCands.push(mj0.low52);
+  }
+  domCands.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; });
+  const vpad = (hi - lo) * 0.06 || hi * 0.02 || 1;
+  lo -= vpad; hi += vpad;
+  const X = (i) => padL + (n === 1 ? 0 : i / (n - 1) * W);
+  const Y = (v) => padT + (hi - v) / (hi - lo) * H;
+  const up = p[n - 1] >= p[0];
+  const lineCol = up ? '#10b981' : '#ef4444';
+  let svg = '<svg id="chartSvg" viewBox="0 0 ' + VBW + ' ' + VBH + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="رسم أسعار السهم">';
+  svg += '<defs><linearGradient id="chGrad" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="' + lineCol + '" stop-opacity="0.28"/>' +
+    '<stop offset="1" stop-color="' + lineCol + '" stop-opacity="0.02"/></linearGradient>' +
+    '<clipPath id="chClip"><rect x="' + padL + '" y="' + padT + '" width="' + W + '" height="' + H + '"/></clipPath></defs>';
+  // شبكة + محور الأسعار (يمين — اصطلاح المنصات المحلية)
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + (hi - lo) * i / 4;
+    const y = Y(v);
+    svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#334155" stroke-width="0.6"/>';
+    svg += '<text x="' + (padL + W + 6) + '" y="' + (y + 3.5) + '" font-size="11" fill="#64748b">' + fmtP(v) + '</text>';
+  }
+  // مناطق الدعم/المقاومة: أشرطة أفقية شفافة strong أوضح من medium + وسم نصي بلا اعتماد على اللون وحده
+  const zone = (z, kind) => {
+    if (!z || z.lo == null || z.hi == null) return '';
+    const zl = Math.max(z.lo, lo), zh = Math.min(z.hi, hi);
+    if (zh <= zl) return '';   // خارج المجال المرئي كلياً
+    const col = kind === 'sup' ? '16,185,129' : kind === 'res' ? '239,68,68' : '100,116,139';
+    const op = z.strength === 'strong' ? 0.17 : 0.09;
+    const lbl = (kind === 'sup' ? 'دعم تقريبي' : kind === 'res' ? 'مقاومة تقريبية' : 'منطقة تقريبية — داخلها الآن') +
+      (z.strength === 'strong' ? ' (قوي)' : ' (متوسط)') +
+      (z.tags || []).map(t => t === 'round' ? ' 🔵' : t === 'volnode' ? ' 📊' : '').join('');
+    const tcol = kind === 'sup' ? '#34d399' : kind === 'res' ? '#f87171' : '#94a3b8';
+    const ty = Math.min(Y(zl) - 3, Y(zh) + 11);
+    return '<rect x="' + padL + '" y="' + Y(zh) + '" width="' + W + '" height="' + (Y(zl) - Y(zh)) + '" fill="rgba(' + col + ',' + op + ')" clip-path="url(#chClip)"/>' +
+      '<text x="' + (padL + 5) + '" y="' + ty + '" font-size="10.5" fill="' + tcol + '">' + lbl + '</text>';
+  };
+  if (lv) {
+    (lv.supports || []).forEach(z => { svg += zone(z, 'sup'); });
+    (lv.resistances || []).forEach(z => { svg += zone(z, 'res'); });
+    if (lv.inside) svg += zone(lv.inside, 'in');
+    // الكبرى: خطوط منقطة — قمة/قاع 52أ (أعلى/أدنى سعر متداول — عمداً غير موحدة مع high52wClose)
+    const mj = lv.majors || {};
+    const major = (v, lbl) => {
+      if (v == null || v <= lo || v >= hi) return '';
+      const y = Y(v);
+      return '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#64748b" stroke-width="1" stroke-dasharray="2,4"/>' +
+        '<text x="' + (padL + W - 4) + '" y="' + (y - 3) + '" font-size="10" fill="#94a3b8" text-anchor="end">' + lbl + '</text>';
+    };
+    const since = lv.since ? ' منذ ' + String(lv.since).slice(0, 4) : '';
+    svg += major(mj.high52, '⛰️ قمة 52أ ' + fmtP(mj.high52));
+    svg += major(mj.low52, 'قاع 52أ ' + fmtP(mj.low52));
+    if (mj.maxAvail != null && mj.maxAvail !== mj.high52) svg += major(mj.maxAvail, 'أعلى المتاح' + since + ' ' + fmtP(mj.maxAvail));
+    if (mj.minAvail != null && mj.minAvail !== mj.low52) svg += major(mj.minAvail, 'أدنى المتاح' + since + ' ' + fmtP(mj.minAvail));
+  }
+  // المنحنى + التعبئة
+  let path = '';
+  for (let i = 0; i < n; i++) path += (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(p[i]).toFixed(1);
+  svg += '<path d="' + path + 'L' + (padL + W) + ',' + (padT + H) + 'L' + padL + ',' + (padT + H) + 'Z" fill="url(#chGrad)" stroke="none" clip-path="url(#chClip)"/>';
+  svg += '<path d="' + path + '" fill="none" stroke="' + lineCol + '" stroke-width="2" clip-path="url(#chClip)"/>';
+  // المستوى المرجعي لطبقة الدخول — يُرسم فوق كل شيء (السيد)
+  if (ref != null && ref > lo && ref < hi) {
+    const y = Y(ref);
+    const lbl = (ent.referenceLevelType === 'reclaim' ? 'مستوى الاستعادة' : 'مستوى الدخول') + ' ≈' + fmtP(ref);
+    svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#f59e0b" stroke-width="2" stroke-dasharray="7,4"/>' +
+      '<text x="' + (padL + 5) + '" y="' + (y - 5) + '" font-size="11.5" font-weight="700" fill="#fbbf24">🎯 ' + lbl + '</text>';
+  }
+  // محور التواريخ (ثلاث علامات)
+  const dLbl = (i) => (chartRange === 'mAll' || chartRange === 'w156') ? dates[i].slice(0, 7) : dates[i];
+  [[0, 'start'], [Math.floor((n - 1) / 2), 'middle'], [n - 1, 'end']].forEach(([i, anc]) => {
+    if (dates[i]) svg += '<text x="' + X(i) + '" y="' + (VBH - 6) + '" font-size="10.5" fill="#64748b" text-anchor="' + anc + '">' + dLbl(i) + '</text>';
+  });
+  // صليب اللمس (يُحدَّث بالمؤشر — مخفي ابتداءً)
+  svg += '<g id="chCross" style="display:none">' +
+    '<line id="chCrossV" x1="0" y1="' + padT + '" x2="0" y2="' + (padT + H) + '" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3"/>' +
+    '<circle id="chCrossDot" r="4.5" fill="#f59e0b" stroke="#0f172a" stroke-width="1.5"/></g>';
+  svg += '</svg>';
+  host.innerHTML = svg;
+  chartGeom = { n, p, dates, VBW, padL, W, X, Y };
+  document.querySelectorAll('.chart-rbtn').forEach(b => {
+    const on = b.dataset.range === chartRange;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  chartCrossHide();
+}
+
+function chartSetRange(k) {
+  if (!chartStock || !chartStock.series || !chartStock.series[k]) return;
+  chartRange = k;
+  drawStockChart();
+}
+
+function chartCrossHide() {
+  const g = document.getElementById('chCross');
+  if (g) g.style.display = 'none';
+  const tip = document.getElementById('chartTip');
+  if (tip) tip.style.display = 'none';
+}
+
+// صليب اللمس — Pointer Events موحدة (لمس/فأرة/قلم). الفقاعة تنقلب يساراً قرب الحافة
+// اليمنى فلا تخرج عن الرسم، وأرقامها بمنزلتين وتاريخها LTR داخل نص RTL
+function chartPointerMove(ev) {
+  const g = chartGeom;
+  const svg = document.getElementById('chartSvg');
+  const tip = document.getElementById('chartTip');
+  if (!g || !svg || !tip) return;
+  const rect = svg.getBoundingClientRect();
+  const scale = g.VBW / (rect.width || g.VBW);
+  const px = (ev.clientX - rect.left) * scale;
+  let idx = Math.round((px - g.padL) / g.W * (g.n - 1));
+  idx = Math.max(0, Math.min(g.n - 1, idx));
+  const x = g.X(idx), y = g.Y(g.p[idx]);
+  const cross = document.getElementById('chCross');
+  if (cross) {
+    cross.style.display = '';
+    const vl = document.getElementById('chCrossV');
+    vl.setAttribute('x1', x); vl.setAttribute('x2', x);
+    const dot = document.getElementById('chCrossDot');
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+  }
+  tip.style.display = '';
+  tip.innerHTML = '<b>' + fmtP(g.p[idx]) + ' ر.س</b>' +
+    (g.dates[idx] ? '<div class="tip-date" dir="ltr">' + g.dates[idx] + '</div>' : '');
+  const bw = rect.width || g.VBW;
+  const fx = x / g.VBW * bw;
+  if (fx > bw * 0.62) { tip.style.left = 'auto'; tip.style.right = Math.max(bw - fx + 8, 4) + 'px'; }
+  else { tip.style.right = 'auto'; tip.style.left = Math.max(fx + 8, 4) + 'px'; }
+}
+
+// يُستدعى بعد حقن مودال جديد: يثبت المدة الافتراضية (90ي) ويربط أحداث المؤشر الموحدة
+function initModalChart(s) {
+  chartStock = null; chartRange = null; chartGeom = null;
+  const sv = seriesOf(s);
+  const box = document.getElementById('chartBox');
+  if (!sv || !box) return;
+  chartStock = s;
+  chartRange = sv.ser.d90 ? 'd90' : sv.avail[0][0];
+  drawStockChart();
+  box.addEventListener('pointerdown', chartPointerMove);
+  box.addEventListener('pointermove', chartPointerMove);
+  box.addEventListener('pointerleave', chartCrossHide);
+  box.addEventListener('pointercancel', chartCrossHide);   // المتصفح استولى على الإيماءة (تمرير رأسي) — نخفي بأمانة
+}
+
 function openModal(sym) {
   let s = stocks.find(x => x.symbol === sym);
   if (!s) return;
@@ -82050,6 +82320,10 @@ function openModal(sym) {
 
   // طبقة الدخول — قبل «لماذا»: هي الإجابة التشغيلية الأولى بعد النقاط والتصنيف
   if (!sc.filtered && !s.delisted) body += entrySection(s, sc);
+
+  // الرسم البياني التفاعلي (الموجة الثانية) — يلي طبقة الدخول مباشرة: صورة السعر
+  // بمستوى الدخول والمناطق فوقها. يظهر لكل سهم له series/levels (حتى المفلتر — التاريخ حقيقة)
+  body += chartSectionHtml(s);
 
   // بطاقة "لماذا هذا التقييم؟" — تفسير كل محور بنقاطه من details + topDrivers
   body += `<div class="modal-section"><h3>❓ لماذا هذا التقييم؟</h3>`;
@@ -82187,15 +82461,9 @@ function openModal(sym) {
     </div>
   </div>`;
   
-  // Chart (simple)
-  let chartPrices = s.technical?.chartPrices || [];
-  if (chartPrices.length > 0) {
-    body += `<div class="modal-section">
-      <h3>📉 آخر 30 يوم</h3>
-      <div class="chart-container"><canvas id="priceChart"></canvas></div>
-    </div>`;
-  }
-  
+  // (قسم «آخر 30 يوم» القديم أُزيل نهائياً — كان يقرأ technical.chartPrices الميتة؛
+  //  بديله الكامل chartSectionHtml أعلاه بعقد series/levels الحي)
+
   // Sector comparison — من sectorStats المحسوبة عند التحميل؛ الحقول المخزَّنة المجمّدة متجاهلة.
   // st.sector من الخريطة نفسها كي لا يفترق العنوان عن مفتاح التجميع
   const st = !sc.filtered && sectorStats[s.symbol];
@@ -82242,83 +82510,16 @@ function openModal(sym) {
   
   document.getElementById('modalBody').innerHTML = body;
   document.getElementById('stockModal').classList.add('active');
-  
-  // Draw chart
-  if (chartPrices.length > 0) {
-    setTimeout(() => drawChart('priceChart', chartPrices), 100);
-  }
+
+  // ربط الرسم التفاعلي بعد الحقن (أزرار المدد + أحداث المؤشر الموحدة)
+  initModalChart(s);
 }
 
 function closeModal() {
   document.getElementById('stockModal').classList.remove('active');
 }
 
-function drawChart(id, prices) {
-  let canvas = document.getElementById(id);
-  if (!canvas) return;
-  let ctx = canvas.getContext('2d');
-  let padL = 50, padR = 10, padT = 10, padB = 24;
-  let totalW = canvas.parentElement.clientWidth - 32;
-  let totalH = canvas.parentElement.clientHeight - 32;
-  canvas.width = totalW; canvas.height = totalH;
-  let w = totalW - padL - padR;
-  let h = totalH - padT - padB;
-  
-  let min = Math.min(...prices) * 0.99;
-  let max = Math.max(...prices) * 1.01;
-  let range = max - min || 1;
-  
-  // Y-axis labels (price)
-  ctx.fillStyle = '#64748b';
-  ctx.font = '10px Segoe UI, sans-serif';
-  ctx.textAlign = 'right';
-  let ySteps = 4;
-  for (let i = 0; i <= ySteps; i++) {
-    let val = min + (range * i / ySteps);
-    let y = padT + h - (i / ySteps) * h;
-    ctx.fillText(val.toFixed(1), padL - 6, y + 3);
-    // grid line
-    ctx.beginPath();
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 0.5;
-    ctx.moveTo(padL, y);
-    ctx.lineTo(padL + w, y);
-    ctx.stroke();
-  }
-  
-  // X-axis labels (days ago)
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#64748b';
-  let xLabels = [0, Math.floor(prices.length/3), Math.floor(2*prices.length/3), prices.length-1];
-  xLabels.forEach(i => {
-    let x = padL + (i / (prices.length - 1)) * w;
-    let daysAgo = prices.length - 1 - i;
-    let label = daysAgo === 0 ? 'اليوم' : ('-' + daysAgo + 'ي');
-    ctx.fillText(label, x, totalH - 4);
-  });
-  
-  // Price line
-  ctx.beginPath();
-  ctx.strokeStyle = prices[prices.length-1] >= prices[0] ? '#10b981' : '#ef4444';
-  ctx.lineWidth = 2;
-  prices.forEach((p, i) => {
-    let x = padL + (i / (prices.length - 1)) * w;
-    let y = padT + h - ((p - min) / range) * h;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  
-  // Fill
-  ctx.lineTo(padL + w, padT + h);
-  ctx.lineTo(padL, padT + h);
-  ctx.closePath();
-  let grad = ctx.createLinearGradient(0, 0, 0, padT + h);
-  let baseColor = prices[prices.length-1] >= prices[0] ? '16,185,129' : '239,68,68';
-  grad.addColorStop(0, `rgba(${baseColor},0.3)`);
-  grad.addColorStop(1, `rgba(${baseColor},0.02)`);
-  ctx.fillStyle = grad;
-  ctx.fill();
-}
+// (drawChart القديمة على canvas أُزيلت — الرسم كله في drawStockChart أعلاه بعقد series الحي)
 
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
 init();
