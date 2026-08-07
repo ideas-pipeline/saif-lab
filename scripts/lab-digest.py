@@ -183,7 +183,10 @@ def main():
     L.append("## 2. حالة العينة (watchlist-config)")
     L.append("")
     wl = cfg.get("stocks", [])
-    auto = [e for e in wl if e.get("track") == "auto"]
+    # عينة الظل الثانية (قيمة-تحت-الفلتر) مسار مستقل — تُستثنى من عدادات العينة الرسمية
+    # وعدّاد التجويع (دخولها لا يطفئ جوع العينة الرسمية) ولها سطرها الخاص أدناه
+    vs_all = [e for e in wl if e.get("sampleType") == "value-shadow"]
+    auto = [e for e in wl if e.get("track") == "auto" and e.get("sampleType") != "value-shadow"]
     opens = [e for e in auto if e.get("status", "open") == "open"]
     closed = [e for e in auto if e.get("status") == "closed"]
     samp = lambda e: "ظل" if e.get("category") == "buy_wait" else "مطبقة"
@@ -224,6 +227,15 @@ def main():
     else:
         L.append("- العائد الزائد: حقول excessNet غير متوفرة في المدخلات — لا يُحسب بديل"
                  " (يظهر حين يكتبها خط القياس).")
+
+    # سطر عينة الظل الثانية (قيمة-تحت-الفلتر — ظل بحثي)
+    vs_open = [e for e in vs_all if e.get("status", "open") == "open"]
+    vs_ex = [e.get("excessNet") for e in vs_open if e.get("excessNet") is not None]
+    if vs_all:
+        L.append("- **ظل القيمة (بحثي — ليست توصيات):** مفتوحة %d | مغلقة %d | متوسط الزائد الجاري: %s"
+                 % (len(vs_open), len(vs_all) - len(vs_open),
+                    ("‏%+.2f%% (n=%d)" % (sum(vs_ex) / len(vs_ex), len(vs_ex))) if vs_ex
+                    else "غير متوفر بعد"))
 
     # ── بند المحلل 1: عدّاد تجويع العينة ──
     regime = (data.get("marketRegime") or {}).get("regime", "")

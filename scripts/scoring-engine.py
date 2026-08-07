@@ -632,9 +632,18 @@ def run(data_path, activation=False):
         unrated = passed and not wt.get("sma200w")
         entry = entry_layer(s, regime)
         if not passed:
+            # محاور المستبعد تُحسب وتخزن تحت "axes" (لا total ولا عرض) — يحتاجها مسار
+            # عينة الظل الثانية «قيمة تحت الفلتر» (أرضية الجودة ≥18) والبحث عموماً
+            fq, _ = axis_quality(s, medians)
+            ft, _ = axis_trend(s)
+            fr, _ = axis_rs(s, medians)
+            fk, _ = axis_risk(s)
+            fv, _ = axis_valuation(s, medians)
             s["investmentScore"] = {
                 "total": 0, "filtered": True, "unrated": False, "filterReason": reason,
                 "classification": "مستبعد", "classCode": "filtered",
+                "axes": {"quality": fq, "trend": ft, "relativeStrength": fr,
+                         "risk": fk, "valuation": fv},
                 "timing": entry["timing"], "timingSignals": entry["signals"],
                 "entry": entry, "riskReasons": [], "topDrivers": [],
                 "criteriaVersion": "v3",
