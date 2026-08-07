@@ -22,6 +22,19 @@ h1{text-align:center;color:#f59e0b;margin:20px 0 8px;font-size:1.6em}
 .card .symbol{color:#64748b;font-size:0.8em;font-family:monospace;direction:ltr;text-align:right}
 .card .price{font-size:1.6em;font-weight:bold;margin:6px 0}
 .card .price.down{color:#ef4444}.card .price.up{color:#10b981}
+/* شريحة التغير اليومي بجانب السعر: رمز ▲▼ + إشارة +/− مع اللون — ثلاث قنوات لا واحدة */
+.chg-chip{display:inline-block;font-size:0.6em;font-weight:700;padding:1px 7px;border-radius:10px;vertical-align:middle}
+.chg-chip.up{background:#10b98115;color:#10b981}
+.chg-chip.down{background:#ef444415;color:#f87171}
+.chg-chip.flat{background:#47556926;color:#94a3b8}
+/* رأس سعر المودال (طلب المالك): إقفال اليوم أول وأعلى عنصر قبل النقاط والتصنيف */
+.price-hero{text-align:center;padding:14px 12px 10px;background:#0f172a;border-radius:12px;margin-bottom:16px}
+.price-hero .ph-price{font-size:2.2em;font-weight:800;line-height:1.2;color:#e2e8f0}
+.price-hero .ph-price .cur{font-size:0.45em;font-weight:600;color:#94a3b8}
+.price-hero .ph-price.up{color:#10b981}.price-hero .ph-price.down{color:#ef4444}
+.price-hero .ph-chg{font-size:1em;font-weight:700;margin-top:2px}
+.price-hero .ph-chg.up{color:#10b981}.price-hero .ph-chg.down{color:#f87171}.price-hero .ph-chg.flat{color:#94a3b8}
+.price-hero .ph-stamp{font-size:0.72em;color:#64748b;margin-top:4px;letter-spacing:.02em}
 .card .sector-tag{font-size:0.7em;padding:2px 8px;border-radius:12px;background:#334155;color:#94a3b8;display:inline-block;margin-top:4px}
 
 /* Score bar */
@@ -211,6 +224,7 @@ tr:hover{background:#1e293b88}
   .modal{max-width:100%;max-height:95vh;border-radius:12px}
   .modal-body{padding:14px}
   .indicator-grid{grid-template-columns:1fr 1fr}
+  .price-hero .ph-price{font-size:1.9em}
   .stats{gap:6px}
   .stat{padding:6px 10px;min-width:65px}
 }
@@ -525,6 +539,25 @@ const normalizeAr = (t) => String(t).toLowerCase()
 // عزل الأرقام السالبة عن انعكاس RTL — "‎-14.4%" كانت تُرسم "14.4-%" فتُقرأ الخسارة ربحاً
 const ltrNums = (t) => String(t).replace(/-\d[\d.,]*x?%?/g, m => '<span dir="ltr">' + m + '</span>');
 
+// ═══ تنسيق موحد للسعر والتغير اليومي (الموجة الأولى — قرار المالك) ═══
+// منزلتان عشريتان دائماً وفواصل آلاف عند اللزوم؛ التغير برمز ▲▼• + إشارة +/− + لون —
+// ثلاث قنوات فلا اعتماد على اللون وحده. الغائب «—» بلا اختلاق (Number(null)===0)
+const fmtPrice = (v) => (v != null && isFinite(Number(v)))
+  ? Number(v).toLocaleString('en', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : null;
+const chgOf = (v) => (v == null || !isFinite(Number(v))) ? null : {
+  sym: v > 0 ? '▲' : v < 0 ? '▼' : '•',
+  txt: (v > 0 ? '+' : '') + Number(v).toFixed(2) + '%',
+  cls: v > 0 ? 'up' : v < 0 ? 'down' : 'flat',
+};
+// سطر السعر الموحد للبطاقات: السعر بمنزلتين + شريحة التغير اليومي
+const priceLine = (s) => {
+  const p = fmtPrice(s.currentPrice);
+  const c = chgOf(s.dailyChange);
+  return '<div class="price ' + (c ? c.cls : '') + '">' + (p != null ? p : '—') +
+    ' <span style="font-size:0.55em;color:#94a3b8">ر.س</span>' +
+    (c ? ' <span class="chg-chip ' + c.cls + '" dir="ltr">' + c.sym + ' ' + c.txt + '</span>' : '') + '</div>';
+};
+
 function init() {
   document.getElementById('lastUpdate').textContent = DATA.lastUpdated || DATA.analysisUpdated || '';
 
@@ -650,6 +683,7 @@ function renderDecisions() {
             <div class="class-badge ${sc.classCode}">${sc.classification}</div>
           </div>
         </div>
+        <div style="margin-top:6px">${priceLine(s)}</div>
         ${e ? entryStrip(sc)
             : `<div class="timing" style="margin-top:6px"><span class="dot ${timingDotCls(sc.timing)}"></span> توقيت: ${sc.timing || '—'}${sc.timingSignals != null ? ' (' + sc.timingSignals + '/4)' : ''}</div>`}
       </div>`;
@@ -676,7 +710,6 @@ function renderTopCards() {
   top.forEach(s => {
     let sc = s.investmentScore || {};
     let scClass = getScoreClass(sc.total);
-    let priceClass = (s.dailyChange||0) >= 0 ? 'up' : 'down';
     const e = entryOf(sc);
 
     html += `<div class="card" onclick="openModal('${s.symbol}')">
@@ -705,8 +738,8 @@ function renderTopCards() {
           return `<span class="pillar ${p >= 0.65 ? 'g' : p >= 0.4 ? 'y' : 'r'}">${a.short} ${a.val != null ? a.val : '—'}/${a.max}</span>`; }).join('')}
       </div>
       ${e ? entryStrip(sc) : ''}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-        <div class="price ${priceClass}">${s.currentPrice} ر.س</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:8px;flex-wrap:wrap">
+        ${priceLine(s)}
         ${e ? '' : `<div class="timing"><span class="dot ${timingDotCls(sc.timing)}"></span> توقيت: ${sc.timing} (${sc.timingSignals}/4)</div>`}
       </div>
     </div>`;
@@ -766,7 +799,7 @@ function renderReversals() {
           ${sig(wt.macdW != null && wt.macdSignalW != null ? wt.macdW > wt.macdSignalW : null, 'MACD-W', wt.macdW, 2)}
         </div>
         ${entryStrip(sc)}
-        <div class="price ${(s.dailyChange||0) >= 0 ? 'up' : 'down'}" style="margin-top:6px;font-size:1.2em">${s.currentPrice != null ? s.currentPrice + ' ر.س' : '—'}</div>
+        <div style="margin-top:6px;font-size:1.2em">${priceLine(s)}</div>
       </div>`;
     }).join('') + '</div>';
 }
@@ -803,8 +836,8 @@ function renderTable() {
       <td style="font-family:monospace;color:#64748b;text-align:center">${s.symbol}</td>
       <td style="font-weight:600">${s.name}</td>
       <td style="font-size:0.75em;color:#94a3b8">${SECTOR_AR[secOf(s)] || secOf(s) || ''}</td>
-      <td class="${chClass}">${s.currentPrice || '—'}</td>
-      <td class="${chClass}" dir="ltr">${s.dailyChange != null ? (s.dailyChange > 0 ? '+' : '') + s.dailyChange + '%' : '—'}</td>
+      <td class="${chClass}" style="font-weight:600">${fmtPrice(s.currentPrice) != null ? fmtPrice(s.currentPrice) : '—'}</td>
+      <td class="${chClass}" dir="ltr">${(() => { const c = chgOf(s.dailyChange); return c ? c.sym + ' ' + c.txt : '—'; })()}</td>
       <td>${pe}</td>
       <td>${pb}</td>
       <td>${roe}</td>
@@ -1020,7 +1053,22 @@ function openModal(sym) {
   document.getElementById('modalTitle').textContent = s.name + ' (' + s.symbol + ')';
   
   let body = '';
-  
+
+  // رأس المودال (طلب المالك نصاً — الموجة الأولى): سعر إقفال اليوم أول وأعلى عنصر، كبيراً،
+  // مع تغير اليوم ووسم «إقفال YYYY-MM-DD» بصدق الختم: تاريخ آخر شمعة (v3: lastDate) ثم
+  // ختم السعر ثم ختم اليومية ثم ختم الصفحة — أول موجود فعلاً، وبلا ختم لا وسم (لا اختلاق).
+  // الترتيب بعده: النقاط/التصنيف ← شريط الدخول (entrySection يلي القسم الأول)
+  {
+    const heroP = fmtPrice(s.currentPrice != null ? s.currentPrice : dx.lastClose);
+    const heroC = chgOf(s.dailyChange);
+    const closeDate = String(dx.lastDate || s.priceUpdatedAt || dx.updatedAt || dt.updatedAt || DATA.lastUpdated || '').slice(0, 10);
+    body += '<div class="price-hero">' +
+      '<div class="ph-price ' + (heroC ? heroC.cls : '') + '">' + (heroP != null ? heroP : '—') + ' <span class="cur">ر.س</span></div>' +
+      (heroC ? '<div class="ph-chg ' + heroC.cls + '" dir="ltr">' + heroC.sym + ' ' + heroC.txt + '</div>' : '') +
+      (closeDate ? '<div class="ph-stamp">' + (s.delisted ? 'آخر إقفال قبل الشطب ' : 'إقفال ') + closeDate + '</div>' : '') +
+      '</div>';
+  }
+
   // Score overview
   body += `<div class="modal-section">
     <h3>📊 التقييم الاستثماري</h3>
@@ -1248,9 +1296,8 @@ function openModal(sym) {
   body += `<div class="modal-section">
     <h3>معلومات</h3>
     <div style="font-size:0.85em;color:#94a3b8;line-height:1.8">
-      القطاع: ${SECTOR_AR[secOf(s)] || secOf(s) || '—'} | الصناعة: ${sc.industry || s.industry || '—'}<br>
-      السعر: ${s.currentPrice != null ? s.currentPrice + ' ر.س' : '—'} | التغير: ${s.dailyChange != null ? s.dailyChange+'%' : '—'}
-      ${sc.criteriaVersion ? '<br>نسخة المعايير: ' + sc.criteriaVersion : ''}
+      القطاع: ${SECTOR_AR[secOf(s)] || secOf(s) || '—'} | الصناعة: ${sc.industry || s.industry || '—'}
+      ${sc.criteriaVersion ? '<br>نسخة المعايير: ' + sc.criteriaVersion : '' /* سطر السعر أُزيل — صار رأس المودال (price-hero) ولا يُكرر */}
     </div>
   </div>`;
   
