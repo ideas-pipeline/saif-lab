@@ -227,6 +227,15 @@ for s in stocks_config:
         lines.append(f'    track:         "{track}",')
     if category:
         lines.append(f'    category:      "{category}",')
+    # عينة الظل الثانية (قيمة-تحت-الفلتر): أختامها البحثية تمر للصفحة
+    if s.get("sampleType"):
+        lines.append(f'    sampleType:    "{s["sampleType"]}",')
+        for jk in ("maePct", "peAtEntry", "peSectorMedianAtEntry", "priceVsSmaPct", "qualityAtEntry", "excessNet"):
+            if s.get(jk) is not None:
+                lines.append(f"    {jk}: {s[jk]},")
+        if s.get("filterCrossDate"):
+            lines.append(f'    filterCrossDate: "{s["filterCrossDate"]}",')
+            lines.append(f"    filterCrossPrice: {s.get('filterCrossPrice')},")
     lines.append(f"    currentPrice:  {price_str}")
     lines.append("  },")
 lines.append("];")

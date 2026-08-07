@@ -1070,25 +1070,42 @@ const seriesOf = (s) => {
   return avail.length ? { ser, avail } : null;
 };
 
-// اشتقاق التواريخ بالفهرس التقريبي من start (العقد: بلا تواريخ لكل نقطة):
-// d30/d90 جلسات = أيام عمل سعودية (أحد-خميس، عطلة جمعة/سبت)؛ w52/w156 أسبوع لكل نقطة؛
-// mAll شهر (أو ربع iv=Q) لكل نقطة. حساب UTC صرف — لا انزياح منطقة زمنية
-function deriveDates(entry, key) {
+// اشتقاق التواريخ بالفهرس التقريبي (العقد: بلا تواريخ لكل نقطة) — **إرساء عكسي**
+// من dailyExtra.lastDate (ملاحظة الناقد 1): آخر نقطة = آخر جلسة فعلية والعد للخلف،
+// فيزول انزياح العطل الرسمية المتراكم في العد الأمامي من start. أيام العمل أحد-خميس؛
+// w52/w156 أسبوع لكل نقطة؛ mAll شهر (أو ربع iv=Q). حساب UTC صرف. بلا lastDate: أمامي من start.
+function deriveDates(entry, key, lastDate) {
   const n = entry.p.length;
-  const out = [];
-  const d = new Date(entry.start + 'T00:00:00Z');
-  if (isNaN(d)) { for (let i = 0; i < n; i++) out.push(''); return out; }
+  const out = new Array(n).fill('');
   const iso = (x) => x.toISOString().slice(0, 10);
+  const anchor = lastDate ? new Date(String(lastDate).slice(0, 10) + 'T00:00:00Z') : null;
+  if (anchor && !isNaN(anchor)) {
+    if (key === 'd30' || key === 'd90') {
+      const d = new Date(anchor);
+      for (let i = n - 1; i >= 0; i--) {
+        out[i] = iso(d);
+        do { d.setUTCDate(d.getUTCDate() - 1); } while (d.getUTCDay() === 5 || d.getUTCDay() === 6);
+      }
+    } else if (key === 'w52' || key === 'w156') {
+      for (let i = 0; i < n; i++) { const x = new Date(anchor); x.setUTCDate(x.getUTCDate() - 7 * (n - 1 - i)); out[i] = iso(x); }
+    } else {
+      const step = entry.iv === 'Q' ? 3 : 1;
+      for (let i = 0; i < n; i++) { const x = new Date(anchor); x.setUTCMonth(x.getUTCMonth() - step * (n - 1 - i)); out[i] = iso(x); }
+    }
+    return out;
+  }
+  const d = new Date(entry.start + 'T00:00:00Z');
+  if (isNaN(d)) return out;
   if (key === 'd30' || key === 'd90') {
     for (let i = 0; i < n; i++) {
-      out.push(iso(d));
+      out[i] = iso(d);
       do { d.setUTCDate(d.getUTCDate() + 1); } while (d.getUTCDay() === 5 || d.getUTCDay() === 6);
     }
   } else if (key === 'w52' || key === 'w156') {
-    for (let i = 0; i < n; i++) { const x = new Date(d); x.setUTCDate(x.getUTCDate() + i * 7); out.push(iso(x)); }
+    for (let i = 0; i < n; i++) { const x = new Date(d); x.setUTCDate(x.getUTCDate() + i * 7); out[i] = iso(x); }
   } else {
     const step = entry.iv === 'Q' ? 3 : 1;
-    for (let i = 0; i < n; i++) { const x = new Date(d); x.setUTCMonth(x.getUTCMonth() + i * step); out.push(iso(x)); }
+    for (let i = 0; i < n; i++) { const x = new Date(d); x.setUTCMonth(x.getUTCMonth() + i * step); out[i] = iso(x); }
   }
   return out;
 }
@@ -1113,6 +1130,7 @@ function levelsTextHtml(s) {
   if (lv.nearZone === 'support') rows.push('🧲 السهم قرب منطقة دعم تقريبية');
   if (lv.nearZone === 'resistance') rows.push('🧲 السهم قرب منطقة مقاومة تقريبية');
   if (lv.noResistanceAbove) rows.push('⛰️ لا مقاومة معروفة فوق السعر — عند أعلى المتاح' + since);
+  if (lv.majors && lv.majors.high52 != null) rows.push('<span style="opacity:.75;font-size:11px">ℹ️ قمة 52أ في الرسم = أعلى سعر متداول لحظياً؛ تحذير «قرب القمة» في طبقة الدخول يقيس أعلى إغلاق — قيمتان بغرضين مختلفين</span>');
   if (lv.noSupportBelow) rows.push('لا دعم معروفاً تحت السعر — عند أدنى المتاح' + since);
   if (lv.insufficientHistory) rows.push('⏳ ' + (lv.note || 'التاريخ غير كافٍ لمستويات موثوقة — تُعرض الكبرى فقط'));
   return '<div class="levels-note">' + rows.join('<br>') + '</div>';
@@ -1144,7 +1162,7 @@ function drawStockChart() {
   if (!s || !host || !s.series || !s.series[chartRange]) return;
   const entry = s.series[chartRange];
   const p = entry.p, n = p.length;
-  const dates = deriveDates(entry, chartRange);
+  const dates = deriveDates(entry, chartRange, (s.dailyExtra || {}).lastDate);
   const VBW = 820, VBH = 300, padL = 10, padR = 74, padT = 14, padB = 26;
   const W = VBW - padL - padR, H = VBH - padT - padB;
   const showLv = chartRange !== 'mAll';
@@ -1213,7 +1231,7 @@ function drawStockChart() {
         '<text x="' + (padL + W - 4) + '" y="' + (y - 3) + '" font-size="10" fill="#94a3b8" text-anchor="end">' + lbl + '</text>';
     };
     const since = lv.since ? ' منذ ' + String(lv.since).slice(0, 4) : '';
-    svg += major(mj.high52, '⛰️ قمة 52أ ' + fmtP(mj.high52));
+    svg += major(mj.high52, '⛰️ قمة 52أ ' + fmtP(mj.high52));   // حاشية أسفل الرسم تميزها عن قمة الإغلاق
     svg += major(mj.low52, 'قاع 52أ ' + fmtP(mj.low52));
     if (mj.maxAvail != null && mj.maxAvail !== mj.high52) svg += major(mj.maxAvail, 'أعلى المتاح' + since + ' ' + fmtP(mj.maxAvail));
     if (mj.minAvail != null && mj.minAvail !== mj.low52) svg += major(mj.minAvail, 'أدنى المتاح' + since + ' ' + fmtP(mj.minAvail));

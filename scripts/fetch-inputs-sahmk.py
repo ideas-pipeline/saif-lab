@@ -281,6 +281,10 @@ def derive_capadj(rows):
     (فرق ≤ 15%) تبقى غير معدلة — السوق يتذكر السعر الاسمي.
     الكشف الملتبس (عامل خارج [0.2، 5] أو قفزة > 15% بلا معدل للمقارنة) → يعاد
     بفهرسه لتقييد النافذة لما بعده (الحارس ب).
+    **قيد معرفي معلن (ملاحظة الناقد 5):** توزيع نقدي استثنائي يفوق 15% من السعر
+    سيُقرأ هنا إجراءً رأسمالياً زوراً (الكاشف لا يفرق بنيوياً) — الحالة نادرة في
+    السوق السعودي (العوائد المعتادة 1-8%) وبوابة التشغيلة الأولى (طباعة كل
+    المكتشفين للتحقق اليدوي) هي صمام الأمان.
     يعيد (closes, highs, lows, vols, dates, actions[(date, factor, idx)], ambiguous[(date, idx)])"""
     n = len(rows)
     closes = [r[1] for r in rows]
@@ -414,11 +418,15 @@ def build_levels(rows, atr14, prev, stamp):
             prev_zones.extend(prev.get(key) or [])
         if prev.get("inside"):
             prev_zones.append(prev["inside"])
-    for z in final:
-        for pz in prev_zones:
+    used_prev = set()   # (ملاحظة الناقد 2) منطقة معروضة «تُستهلك» بأول مطابقة —
+    for z in final:     # فلا تثبّت منطقتين محسوبتين مختلفتين على المركز القديم نفسه
+        for j, pz in enumerate(prev_zones):
+            if j in used_prev:
+                continue
             pc = pz.get("c")
             if pc and abs(z["c"] - pc) <= 0.01 * pc:
                 z["lo"], z["hi"], z["c"] = pz["lo"], pz["hi"], pc
+                used_prev.add(j)
                 break
     # ── الاختيار (ش-2): داخل المنطقة لا يُعد؛ أقرب دعمين/مقاومتين من خارجها ──
     inside = next((z for z in final if z["lo"] <= price <= z["hi"]), None)

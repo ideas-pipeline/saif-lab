@@ -341,6 +341,9 @@
   <!-- ── measurement v3: المسار اليدوي legacy — جدول مستقل خارج عينة الحكم ── -->
   <div id="legacy-section"></div>
 
+  <!-- ── عينة الظل الثانية: قيمة تحت الفلتر — ظل بحثي، ليست توصيات (مواصفة المحلل 07-08) ── -->
+  <div id="value-shadow-section"></div>
+
   <!-- ── Footer ── -->
   <div class="footer">
     <span>بيانات للأغراض التعليمية فقط — لا تُعدّ نصيحة استثمارية</span>
@@ -1819,14 +1822,16 @@ const rows = WATCHLIST.map(item => {
   const ret = calcReturn(item.entryPrice, px, item.type, item.divsSince);
   const shadow = item.category === "buy_wait";     // الظل يُسجل ولا يُحاكم (وثيقة المعايير §2)
   const legacy = item.track === "legacy";          // المسار اليدوي — خارج عينة الحكم كلياً (§2)
+  const vshadow = item.sampleType === "value-shadow";  // ظل القيمة البحثي — جدول مستقل، خارج الحكم
   const early = isEarly(item);
   const ex = calcExcess(ret, item.tasiRet, item.periodDays);   // v3
-  const success = (shadow || early || legacy) ? null : isSuccess(ex.net, item.type);
-  return { ...item, ret, shadow, legacy, early, success,
+  const success = (shadow || early || legacy || vshadow) ? null : isSuccess(ex.net, item.type);
+  return { ...item, ret, shadow, legacy, vshadow, early, success,
            excessGross: ex.gross, discount: ex.discount, excessNet: ex.net };
 });
-const autoRows   = rows.filter(r => !r.legacy);   // عينة النظام (المطبقة + الظل)
+const autoRows   = rows.filter(r => !r.legacy && !r.vshadow);   // عينة النظام (المطبقة + الظل)
 const legacyRows = rows.filter(r => r.legacy);    // المسار اليدوي — جدول مستقل
+const vsRows     = rows.filter(r => r.vshadow);   // ظل القيمة — جدول بحثي مستقل
 
 /* ══════════════════════════════════════════════════════
    STATS
@@ -2040,11 +2045,46 @@ document.getElementById("footer-updated").textContent =
 /* ══════════════════════════════════════════════════════
    INIT — v3: الجدول الرئيسي عينة النظام، legacy مفصول، الإحصاءات ثابتة
    ══════════════════════════════════════════════════════ */
+function renderValueShadow() {
+  const el = document.getElementById("value-shadow-section");
+  if (!el) return;
+  if (!vsRows.length) { el.innerHTML = ""; return; }
+  const rowsHtml = vsRows.map(r => `
+    <tr>
+      <td><strong>${r.symbol}</strong><br><span style="color:var(--muted);font-size:12px">${r.name}</span></td>
+      <td>${r.entryDate || "—"}<br><span class="price">${fmt(r.entryPrice)}</span></td>
+      <td>${r.status === "closed" ? fmt(r.closePrice) + " 🔒" : (r.currentPrice !== null ? fmt(r.currentPrice) : "—")}</td>
+      <td>${fmtReturn(r.ret)}</td>
+      <td>${r.excessNet !== null ? fmtReturn(r.excessNet) : "—"}</td>
+      <td>${r.maePct !== undefined && r.maePct !== null ? fmtReturn(r.maePct) : "—"}</td>
+      <td dir="ltr">${r.peAtEntry !== undefined ? fmt(r.peAtEntry) + (r.peSectorMedianAtEntry ? " / " + fmt(r.peSectorMedianAtEntry) : "") : "—"}</td>
+      <td>${r.priceVsSmaPct !== undefined ? fmtReturn(r.priceVsSmaPct) : "—"}</td>
+      <td>${r.filterCrossDate ? r.filterCrossDate + " @ " + fmt(r.filterCrossPrice) : "—"}</td>
+      <td>${r.status === "closed" ? (r.closeReason || "مغلق") : "مفتوح"}</td>
+    </tr>`).join("");
+  el.innerHTML = `
+    <div style="margin-top:28px;border:1px dashed var(--yellow);border-radius:var(--radius-lg);padding:14px">
+      <h2 style="font-size:16px;margin-bottom:4px">🔬 عينة «قيمة تحت الفلتر» — ظل بحثي، ليست توصيات</h2>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:10px">
+        أسهم مستبعدة بفلتر SMA200W برخص نسبي وجودة كافية — تُقاس بحثياً (measurement v3 + أقصى انزلاق MAE)
+        ولا تدخل إحصاءات الدقة أعلاه ولا تُعد توصية بأي شكل. قاعدة القرار المؤرخة في accuracy-criteria.
+      </div>
+      <div style="overflow-x:auto"><table class="watchlist-table" style="width:100%">
+        <thead><tr>
+          <th>السهم</th><th>الدخول</th><th>الحالي</th><th>العائد %</th><th>زائد صافٍ</th>
+          <th>MAE %</th><th>P/E دخول/وسيط</th><th>تحت SMA200W %</th><th>عبور الفلتر</th><th>الحالة</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table></div>
+    </div>`;
+}
+
 renderStats();
 renderSegments();
 renderTable(autoRows);
 renderCards(autoRows);
 renderLegacy();
+renderValueShadow();
 
 /*
   ════════════════════════════════════════
