@@ -197,6 +197,112 @@ def derive_weekly(dates, values):
     return weeks, len(weeks)
 
 
+def derive_weekly_pairs(dates, values):
+    """كأعلاه لكن يعيد أزواج (تاريخ آخر جلسة في الأسبوع، الإغلاق) للأسابيع المكتملة —
+    لسلاسل الرسم (نحتاج تاريخ البداية)."""
+    if not dates:
+        return []
+    out = []
+    cur_key, cur_d, cur_v = None, None, None
+    for d, v in zip(dates, values):
+        k = week_key(d)
+        if k != cur_key:
+            if cur_key is not None:
+                out.append((cur_d, cur_v))
+            cur_key = k
+        cur_d, cur_v = d, v
+    return out
+
+
+def shift_months(date_str, n):
+    """يزيح YYYY-MM-DD بعدد أشهر (تقريب اليوم إلى 28 كحد — كافٍ لاشتقاق فهرسي تقريبي)"""
+    y, m, d = int(date_str[:4]), int(date_str[5:7]), int(date_str[8:10])
+    m2 = m - 1 + n
+    return "%04d-%02d-%02d" % (y + m2 // 12, m2 % 12 + 1, min(d, 28))
+
+
+def build_series(dates, raw, adj_pairs):
+    """سلاسل الرسم المضغوطة (الموجة 1 — تفعيل الرسم التفاعلي): لكل مدة {start, p[, iv]}
+    بلا تواريخ لكل نقطة — الواجهة تشتق التواريخ بالفهرس التقريبي (العقد في mapping §3):
+      d30/d90: إغلاقات يومية **خام** (جلسات تداول)
+      w52/w156: أسبوعية مشتقة **معدلة** (أسابيع مكتملة — اصطلاح §6-1 نفسه، تتسق مع SMA200W)
+      mAll: آخر إغلاق **خام** لكل شهر ميلادي للتاريخ كله (iv: M — وقد تصير Q بميزانية الحجم)
+    قواعد الغياب: سهم بلا مخزن كافٍ → المدد المتاحة فقط (d30≥5 جلسات، d90>30،
+    ‏w52≥8 أسابيع، w156>52، mAll≥6 أشهر).
+    التقريب: منزلتان، وثلاث لسهم سعره < 1 ريال."""
+    # TODO-SR: حقل `levels` (دعم/مقاومة) يُحسب هنا لاحقاً — مواصفة المحلل تصل بعد
+    # ختم الناقد لها؛ لا اجتهاد فيها الآن (تكليف المنسق 05-08ب).
+    if not dates:
+        return None
+    nd = 3 if raw[-1] < 1 else 2
+    R = lambda seq: [round(v, nd) for v in seq]
+    out = {}
+    n = len(dates)
+    if n >= 5:
+        w = min(30, n)
+        out["d30"] = {"start": dates[-w], "p": R(raw[-w:])}
+    if n > 30:
+        w = min(90, n)
+        out["d90"] = {"start": dates[-w], "p": R(raw[-w:])}
+    wk = derive_weekly_pairs([d for d, _ in adj_pairs], [v for _, v in adj_pairs])
+    if len(wk) >= 8:
+        w = min(52, len(wk))
+        out["w52"] = {"start": wk[-w][0], "p": R([v for _, v in wk[-w:]])}
+    if len(wk) > 52:
+        w = min(156, len(wk))
+        out["w156"] = {"start": wk[-w][0], "p": R([v for _, v in wk[-w:]])}
+    months = []   # (تاريخ آخر جلسة في الشهر، إغلاقها الخام)
+    cur_m, cur_d, cur_v = None, None, None
+    for d, v in zip(dates, raw):
+        if d[:7] != cur_m:
+            if cur_m is not None:
+                months.append((cur_d, cur_v))
+            cur_m = d[:7]
+        cur_d, cur_v = d, v
+    if cur_m is not None:
+        months.append((cur_d, cur_v))   # الشهر الجاري بآخر إغلاق متاح (مبسطة — معلن)
+    if len(months) >= 6:
+        out["mAll"] = {"start": months[0][0], "p": R([v for _, v in months]), "iv": "M"}
+    return out or None
+
+
+def series_bytes(stocks):
+    return sum(len(json.dumps(s.get("series"), separators=(",", ":")).encode())
+               for s in stocks if s.get("series"))
+
+
+def enforce_series_budget(stocks, cap_bytes=800 * 1024):
+    """ميزانية حجم صارمة لسلاسل الرسم: السقف الافتراضي +800KB للإضافة الكلية.
+    التقليص بالترتيب المعلن: mAll→ربع سنوي (iv=Q) ثم إسقاط w156 ثم إسقاط mAll.
+    يعيد (الحجم النهائي بالبايت، مستوى التقليص المطبق)."""
+    size = series_bytes(stocks)
+    level = 0
+    if size > cap_bytes:
+        level = 1
+        for s in stocks:
+            m = (s.get("series") or {}).get("mAll")
+            if m and m.get("iv") == "M":
+                keep = list(range(len(m["p"]) - 1, -1, -3))[::-1]
+                m["start"] = shift_months(m["start"], keep[0])
+                m["p"] = [m["p"][i] for i in keep]
+                m["iv"] = "Q"
+        size = series_bytes(stocks)
+        print("📉 ميزانية series: تجاوز — قُلّصت mAll إلى ربع سنوية (iv=Q) → %.0fKB" % (size / 1024))
+    if size > cap_bytes:
+        level = 2
+        for s in stocks:
+            (s.get("series") or {}).pop("w156", None)
+        size = series_bytes(stocks)
+        print("📉 ميزانية series: ما زال متجاوزاً — أُسقطت w156 → %.0fKB" % (size / 1024))
+    if size > cap_bytes:
+        level = 3
+        for s in stocks:
+            (s.get("series") or {}).pop("mAll", None)
+        size = series_bytes(stocks)
+        print("📉 ميزانية series: ما زال متجاوزاً — أُسقطت mAll → %.0fKB" % (size / 1024))
+    return size, level
+
+
 def z_extension(daily_adj):
     """Z-امتداد — **الإطار اليومي** (قرار محلل 05-08 بعد حقيقة العمق: تاريخ سهمك يبدأ
     ~2022-06 فالأسبوعي أنتج «قادرو Z: 0»): ‏Z = (آخر إغلاق معدل/SMA200D − 1) معايراً
@@ -548,6 +654,8 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
             "weeks": n_weeks,
             "derived": True, "updatedAt": stamp,
         }
+        # ── سلاسل الرسم (الموجة 1) — من المخزن وقت الجلب؛ TODO-SR: ‏levels لاحقاً ──
+        st["series"] = build_series(dates, raw, adj_pairs)
         # ── القوة النسبية على الخام مقابل تاسي السعري (§3.3) ──
         r3, r6 = period_return(raw, 63), period_return(raw, 126)
         r121 = return_12_1(raw)
@@ -1276,10 +1384,29 @@ def main():
     print("🏷️ نوع التشغيلة: %s (%s)" % (data["runType"],
           "أسعار إقفال — العينة تعمل" if data["runType"] == "close"
           else "سوق مفتوح — لا مدخلات ولا إغلاقات للعينة"))
+    # ── ميزانية سلاسل الرسم (الموجة 1): +800KB للسلاسل و≤3.3MB للملف النهائي ──
+    ser_size, ser_level = enforce_series_budget(stocks)
+    print("📈 سلاسل الرسم: %d سهماً بسلاسل | حجمها الكلي %.0fKB (سقف 800) | تقليص مستوى %d"
+          % (sum(1 for s in stocks if s.get("series")), ser_size / 1024, ser_level))
     out_dir = os.path.dirname(os.path.abspath(args.data)) or "."
-    fd, tmp = tempfile.mkstemp(dir=out_dir, suffix=".tmp")
-    with os.fdopen(fd, "w") as f:
-        json.dump(data, f, indent=1, ensure_ascii=False)
+    FILE_CAP = int(3.3 * 1024 * 1024)
+    for attempt in range(3):
+        fd, tmp = tempfile.mkstemp(dir=out_dir, suffix=".tmp")
+        with os.fdopen(fd, "w") as f:
+            # قرار معلن (الموجة 1): إخراج مضغوط بلا indent — قياس فعلي: ‏indent=1 يجعل
+            # كلفة series ‏1238KB والملف 3.52MB؛ الضغط الكامل: الكلفة ~554KB والملف 2.40MB
+            # (وحجم الصفحة المحقونة ينخفض عن الوضع القائم أصلاً). المحرك يكتب بالاصطلاح نفسه.
+            json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
+        fsize = os.path.getsize(tmp)
+        if fsize <= FILE_CAP or ser_level >= 3:
+            break
+        os.unlink(tmp)
+        # الملف النهائي فوق 3.3MB → نصعّد التقليص درجة ونعيد الكتابة
+        ser_size, ser_level = enforce_series_budget(stocks, cap_bytes=0 if ser_level >= 2 else ser_size - 1)
+        print("📉 الملف النهائي %.2fMB > 3.3MB — صعّدنا تقليص series إلى مستوى %d" % (fsize / 1048576, ser_level))
+    print("📦 حجم الملف النهائي: %.2fMB (سقف 3.30)" % (fsize / 1048576))
+    if fsize > FILE_CAP:
+        print("⚠️ ALERT: الملف فوق السقف حتى بعد أقصى تقليص — راجع الميزانية")
     os.replace(tmp, args.data)
     try:
         os.chmod(args.data, 0o664)

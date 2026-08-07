@@ -568,7 +568,7 @@ def reset_activation(data_path):
     del data["activationEvent"]
     tmp = data_path + ".tmp"
     with open(tmp, "w") as f:
-        json.dump(data, f, indent=1, ensure_ascii=False)
+        json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
     os.replace(tmp, data_path)
     print("🔄 أُبطل حدث تفعيل (بتاريخ %s، نسخة %s) بقرار مالك — يمكن الآن إعادة "
           "التفعيل النظيف بـ--activation بعد تشغيلة جالب v3 ناجحة"
@@ -689,7 +689,9 @@ def run(data_path, activation=False):
     data["marketMedians"] = medians["_market"]
     data["scoringVersion"] = "criteria-v3"
     with open(data_path, "w") as f:
-        json.dump(data, f, indent=1, ensure_ascii=False)
+        # اصطلاح الإخراج المضغوط (الموجة 1 — قرار معلن مع الجالب): إعادة الكتابة
+        # بـindent كانت ستعيد تضخيم series إلى ~3.5MB
+        json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
 
     print("=" * 50)
     print("📊 سيف تداول — criteria v3 (مقام 100)")
