@@ -1265,7 +1265,7 @@ function drawStockChart() {
   // المستوى المرجعي لطبقة الدخول — يُرسم فوق كل شيء (السيد)
   if (ref != null && ref > lo && ref < hi) {
     const y = Y(ref);
-    const lbl = (ent.referenceLevelType === 'reclaim' ? (narrow ? 'استعادة' : 'مستوى الاستعادة') : (narrow ? 'دخول' : 'مستوى الدخول')) + ' ' + ISO('≈' + fmtP(ref));
+    const lbl = (ent.referenceLevelType === 'reclaim' ? (narrow ? 'استعادة' : 'مستوى الاستعادة') : (narrow ? 'دخول' : 'مستوى الدخول')) + ' ' + ISO('\u200E≈' + fmtP(ref));   // LRM قبل ≈ — محرك SVG يقلبها بعد الرقم رغم العازل (تصحيح الناقد 1)
     svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#f59e0b" stroke-width="2" stroke-dasharray="7,4"/>';
     labels.push({ y: y - 5, side: 'left', pri: 0, col: '#fbbf24', size: narrow ? 11.5 : 12, bold: true, text: '🎯 ' + lbl });
   }
@@ -1277,7 +1277,7 @@ function drawStockChart() {
   // ── محرك التصادم الموحد: جشع بالأولوية لكل جهة على حدة — 🎯 يثبت في هدفه (سيد القرار
   // بصرياً، منصوص)، والأدنى أولوية يُزاح بخطوات نصف الفجوة بعيداً عن الأعلى، ومن استحال
   // إسكانه داخل اللوحة يسقط بصمت. الفجوة الدنيا 14 وحدة ≈ سطر نص كامل
-  const GAP = 14, LY0 = padT + 10, LY1 = padT + H - 4;
+  const GAP = 14, LY0 = padT + 14, LY1 = padT + H - 4;   // ‏LY0=padT+14: أقل منه يقص صعود ⛰️ (تصحيح الناقد 2)
   const placeSide = (side) => {
     const group = labels.filter(l => l.side === side).sort((a, b) => a.pri - b.pri || a.y - b.y);
     const placed = [];
