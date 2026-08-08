@@ -1059,6 +1059,7 @@ function entrySection(s, sc) {
 // الصمود المرحلي: لا series ولا levels → القسم كله يختفي؛ مدة غائبة → زرها لا يُبنى.
 const RANGE_DEFS = [['d30', '30ي'], ['d90', '90ي'], ['w52', 'سنة'], ['w156', '3س'], ['mAll', 'الكل']];
 let chartStock = null, chartRange = null, chartGeom = null;
+let chartRO = null, chartLastW = 0;   // مراقب مقاس صندوق الرسم + آخر عرض مقيس (خصم الرجرجة)
 
 // أسعار الرسم: منزلتان، وثلاث لسهم دون الريال (اصطلاح التقريب في العقد نفسه)
 const fmtP = (v) => (v == null || !isFinite(v)) ? '—' : (Math.abs(v) < 1 ? Number(v).toFixed(3) : fmtPrice(v));
@@ -1163,8 +1164,24 @@ function drawStockChart() {
   const entry = s.series[chartRange];
   const p = entry.p, n = p.length;
   const dates = deriveDates(entry, chartRange, (s.dailyExtra || {}).lastDate);
-  const VBW = 820, VBH = 300, padL = 10, padR = 74, padT = 14, padB = 26;
+  // ── مقياس متجاوب (شكوى الآيفون الموثقة): عرض viewBox = عرض الصندوق الفعلي المقصوص
+  // إلى [340، 900] ⇒ وحدة SVG ≈ بكسل CSS والخطوط بحجمها الحقيقي لا مصغرة بالضغط.
+  // صندوق بلا عرض بعد (المودال لم يُرسَ layout) → 820 احتياطاً ويصححه ResizeObserver.
+  // الارتفاع على الضيق نسبة 0.45 من العرض كي لا ينسحق الرسم، وعلى الواسع 300 كما كان
+  const box = document.getElementById('chartBox');
+  const bw = box ? (box.clientWidth || Math.round((box.getBoundingClientRect() || {}).width || 0)) : 0;
+  const VBW = bw ? Math.max(340, Math.min(bw, 900)) : 820;
+  const narrow = VBW < 520;
+  const VBH = narrow ? Math.max(210, Math.round(VBW * 0.45)) : 300;
+  const padL = 8, padR = narrow ? 52 : 64, padT = 14, padB = 24;
   const W = VBW - padL - padR, H = VBH - padT - padB;
+  // هالة بلون أرضية اللوحة خلف كل نصوص الرسم — تُقرأ فوق المنحنى والأشرطة
+  const HALO = ' paint-order="stroke" stroke="#0f172a" stroke-width="3" stroke-linejoin="round"';
+  // عازل bidi للأرقام داخل نص عربي في SVG: بلا سمة dir هناك، وترتيب «5.35–5.48» بعد كلمة
+  // عربية غير حتمي عبر المحركات — العازل LRI يثبته قراءةً صاعدة دوماً
+  const ISO = (t) => '\u2066' + t + '\u2069';   // LRI…PDI
+  // مرشحو التسميات — يمرون جميعاً بمحرك التصادم قبل الإخراج (لا كتابة مباشرة فوق اللوحة)
+  const labels = [];   // {y مستهدف, text, side, pri (0=🎯 لا يُزاح, 1=مناطق, 2=كبرى), col, size, bold}
   const showLv = chartRange !== 'mAll';
   const lv = showLv ? (s.levels || null) : null;
   const ent = (showLv && entryOf(s.investmentScore)) || {};
@@ -1201,22 +1218,25 @@ function drawStockChart() {
     const v = lo + (hi - lo) * i / 4;
     const y = Y(v);
     svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#334155" stroke-width="0.6"/>';
-    svg += '<text x="' + (padL + W + 6) + '" y="' + (y + 3.5) + '" font-size="11" fill="#64748b">' + fmtP(v) + '</text>';
+    svg += '<text x="' + (padL + W + 5) + '" y="' + (y + 3.5) + '" font-size="11" fill="#64748b"' + HALO + '>' + fmtP(v) + '</text>';
   }
-  // مناطق الدعم/المقاومة: أشرطة أفقية شفافة strong أوضح من medium + وسم نصي بلا اعتماد على اللون وحده
+  // مناطق الدعم/المقاومة: أشرطة أفقية شفافة strong أوضح من medium + وسم نصي **مضغوط**
+  // («دعم/مقاومة» والنطاق على الواسع فقط) — التفاصيل الكاملة (قوي/متوسط/🔵/📊) حصراً
+  // في levels-note تحت الرسم، فلا حشو يتكدس فوق اللوحة (شكوى الآيفون)
   const zone = (z, kind) => {
     if (!z || z.lo == null || z.hi == null) return '';
     const zl = Math.max(z.lo, lo), zh = Math.min(z.hi, hi);
     if (zh <= zl) return '';   // خارج المجال المرئي كلياً
     const col = kind === 'sup' ? '16,185,129' : kind === 'res' ? '239,68,68' : '100,116,139';
     const op = z.strength === 'strong' ? 0.17 : 0.09;
-    const lbl = (kind === 'sup' ? 'دعم تقريبي' : kind === 'res' ? 'مقاومة تقريبية' : 'منطقة تقريبية — داخلها الآن') +
-      (z.strength === 'strong' ? ' (قوي)' : ' (متوسط)') +
-      (z.tags || []).map(t => t === 'round' ? ' 🔵' : t === 'volnode' ? ' 📊' : '').join('');
     const tcol = kind === 'sup' ? '#34d399' : kind === 'res' ? '#f87171' : '#94a3b8';
-    const ty = Math.min(Y(zl) - 3, Y(zh) + 11);
-    return '<rect x="' + padL + '" y="' + Y(zh) + '" width="' + W + '" height="' + (Y(zl) - Y(zh)) + '" fill="rgba(' + col + ',' + op + ')" clip-path="url(#chClip)"/>' +
-      '<text x="' + (padL + 5) + '" y="' + ty + '" font-size="10.5" fill="' + tcol + '">' + lbl + '</text>';
+    const bandH = Y(zl) - Y(zh);
+    if (bandH >= 8) {   // منطقة ظاهرة أنحف من 8 وحدات لا تُسمّى — الشريط وحده يكفي
+      const base = kind === 'sup' ? 'دعم' : kind === 'res' ? 'مقاومة' : 'داخلها الآن';
+      labels.push({ y: Y(zh) + 11, side: 'left', pri: 1, col: tcol, size: 11,
+                    text: narrow ? base : base + ' ' + ISO(fmtP(z.lo) + '–' + fmtP(z.hi)) });
+    }
+    return '<rect x="' + padL + '" y="' + Y(zh) + '" width="' + W + '" height="' + bandH + '" fill="rgba(' + col + ',' + op + ')" clip-path="url(#chClip)"/>';
   };
   if (lv) {
     (lv.supports || []).forEach(z => { svg += zone(z, 'sup'); });
@@ -1227,14 +1247,15 @@ function drawStockChart() {
     const major = (v, lbl) => {
       if (v == null || v <= lo || v >= hi) return '';
       const y = Y(v);
-      return '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#64748b" stroke-width="1" stroke-dasharray="2,4"/>' +
-        '<text x="' + (padL + W - 4) + '" y="' + (y - 3) + '" font-size="10" fill="#94a3b8" text-anchor="end">' + lbl + '</text>';
+      labels.push({ y: y - 3, side: 'right', pri: 2, col: '#94a3b8', size: 11, text: lbl });
+      return '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#64748b" stroke-width="1" stroke-dasharray="2,4"/>';
     };
     const since = lv.since ? ' منذ ' + String(lv.since).slice(0, 4) : '';
-    svg += major(mj.high52, '⛰️ قمة 52أ ' + fmtP(mj.high52));   // حاشية أسفل الرسم تميزها عن قمة الإغلاق
-    svg += major(mj.low52, 'قاع 52أ ' + fmtP(mj.low52));
-    if (mj.maxAvail != null && mj.maxAvail !== mj.high52) svg += major(mj.maxAvail, 'أعلى المتاح' + since + ' ' + fmtP(mj.maxAvail));
-    if (mj.minAvail != null && mj.minAvail !== mj.low52) svg += major(mj.minAvail, 'أدنى المتاح' + since + ' ' + fmtP(mj.minAvail));
+    // على الضيق الاسم وحده — الرقم يقرؤه المستخدم من محور الأسعار أو بالصليب
+    svg += major(mj.high52, narrow ? '⛰️ قمة 52أ' : '⛰️ قمة 52أ ' + ISO(fmtP(mj.high52)));   // حاشية أسفل الرسم تميزها عن قمة الإغلاق
+    svg += major(mj.low52, narrow ? 'قاع 52أ' : 'قاع 52أ ' + ISO(fmtP(mj.low52)));
+    if (mj.maxAvail != null && mj.maxAvail !== mj.high52) svg += major(mj.maxAvail, narrow ? 'أعلى المتاح' : 'أعلى المتاح' + since + ' ' + ISO(fmtP(mj.maxAvail)));
+    if (mj.minAvail != null && mj.minAvail !== mj.low52) svg += major(mj.minAvail, narrow ? 'أدنى المتاح' : 'أدنى المتاح' + since + ' ' + ISO(fmtP(mj.minAvail)));
   }
   // المنحنى + التعبئة
   let path = '';
@@ -1244,14 +1265,43 @@ function drawStockChart() {
   // المستوى المرجعي لطبقة الدخول — يُرسم فوق كل شيء (السيد)
   if (ref != null && ref > lo && ref < hi) {
     const y = Y(ref);
-    const lbl = (ent.referenceLevelType === 'reclaim' ? 'مستوى الاستعادة' : 'مستوى الدخول') + ' ≈' + fmtP(ref);
-    svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#f59e0b" stroke-width="2" stroke-dasharray="7,4"/>' +
-      '<text x="' + (padL + 5) + '" y="' + (y - 5) + '" font-size="11.5" font-weight="700" fill="#fbbf24">🎯 ' + lbl + '</text>';
+    const lbl = (ent.referenceLevelType === 'reclaim' ? (narrow ? 'استعادة' : 'مستوى الاستعادة') : (narrow ? 'دخول' : 'مستوى الدخول')) + ' ' + ISO('≈' + fmtP(ref));
+    svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + W) + '" y2="' + y + '" stroke="#f59e0b" stroke-width="2" stroke-dasharray="7,4"/>';
+    labels.push({ y: y - 5, side: 'left', pri: 0, col: '#fbbf24', size: narrow ? 11.5 : 12, bold: true, text: '🎯 ' + lbl });
   }
   // محور التواريخ (ثلاث علامات)
   const dLbl = (i) => (chartRange === 'mAll' || chartRange === 'w156') ? dates[i].slice(0, 7) : dates[i];
   [[0, 'start'], [Math.floor((n - 1) / 2), 'middle'], [n - 1, 'end']].forEach(([i, anc]) => {
-    if (dates[i]) svg += '<text x="' + X(i) + '" y="' + (VBH - 6) + '" font-size="10.5" fill="#64748b" text-anchor="' + anc + '">' + dLbl(i) + '</text>';
+    if (dates[i]) svg += '<text x="' + X(i) + '" y="' + (VBH - 6) + '" font-size="11" fill="#64748b" text-anchor="' + anc + '"' + HALO + '>' + dLbl(i) + '</text>';
+  });
+  // ── محرك التصادم الموحد: جشع بالأولوية لكل جهة على حدة — 🎯 يثبت في هدفه (سيد القرار
+  // بصرياً، منصوص)، والأدنى أولوية يُزاح بخطوات نصف الفجوة بعيداً عن الأعلى، ومن استحال
+  // إسكانه داخل اللوحة يسقط بصمت. الفجوة الدنيا 14 وحدة ≈ سطر نص كامل
+  const GAP = 14, LY0 = padT + 10, LY1 = padT + H - 4;
+  const placeSide = (side) => {
+    const group = labels.filter(l => l.side === side).sort((a, b) => a.pri - b.pri || a.y - b.y);
+    const placed = [];
+    group.forEach(l => {
+      const fits = (yy) => placed.every(q => Math.abs(q.y - yy) >= GAP);
+      for (let k = 0; k <= 14; k++) {
+        const offs = k === 0 ? [0] : [k * GAP / 2, -k * GAP / 2];
+        let done = false;
+        for (const off of offs) {
+          const yy = Math.max(LY0, Math.min(LY1, l.y + off));
+          if (l.pri === 0 || fits(yy)) { placed.push({ y: yy, l }); done = true; break; }
+        }
+        if (done || l.pri === 0) break;   // ‏🎯 لا يحاول إزاحات — مكانه محجوز دوماً
+      }
+    });
+    return placed;
+  };
+  // كل التسميات direction=rtl صريحة (لا اعتماد على وراثة CSS من صندوق ltr — الرندر كان
+  // يتأرجح بين المحركات/المواضع)، والعوازل ISO تحفظ الأرقام صاعدة. في RTL تنقلب دلالة
+  // المرساة: end = الحافة اليسرى (النص يمتد يميناً من x) وstart = اليمنى (يمتد يساراً)
+  placeSide('left').concat(placeSide('right')).forEach(({ y, l }) => {
+    const x = l.side === 'left' ? padL + 5 : padL + W - 4;
+    svg += '<text x="' + x + '" y="' + y + '" font-size="' + l.size + '" fill="' + l.col + '" direction="rtl"' +
+      ' text-anchor="' + (l.side === 'left' ? 'end' : 'start') + '"' + (l.bold ? ' font-weight="700"' : '') + HALO + '>' + l.text + '</text>';
   });
   // صليب اللمس (يُحدَّث بالمؤشر — مخفي ابتداءً)
   svg += '<g id="chCross" style="display:none">' +
@@ -1319,11 +1369,24 @@ function initModalChart(s) {
   if (!sv || !box) return;
   chartStock = s;
   chartRange = sv.ser.d90 ? 'd90' : sv.avail[0][0];
+  chartLastW = box.clientWidth || 0;
   drawStockChart();
   box.addEventListener('pointerdown', chartPointerMove);
   box.addEventListener('pointermove', chartPointerMove);
   box.addEventListener('pointerleave', chartCrossHide);
   box.addEventListener('pointercancel', chartCrossHide);   // المتصفح استولى على الإيماءة (تمرير رأسي) — نخفي بأمانة
+  // إعادة الرسم عند تغير المقاس (تدوير iPad، تغيير حجم النافذة) — مراقب واحد لا يتسرب:
+  // يُفصل سلفه هنا وفي closeModal، وأول نداء بعد observe (نفس العرض) يُتجاهل بفارق <5px
+  if (chartRO) { chartRO.disconnect(); chartRO = null; }
+  if (typeof ResizeObserver !== 'undefined') {
+    chartRO = new ResizeObserver(() => {
+      const w0 = box.clientWidth || 0;
+      if (Math.abs(w0 - chartLastW) < 5) return;
+      chartLastW = w0;
+      drawStockChart();
+    });
+    chartRO.observe(box);
+  }
 }
 
 function openModal(sym) {
@@ -1596,6 +1659,9 @@ function openModal(sym) {
 
 function closeModal() {
   document.getElementById('stockModal').classList.remove('active');
+  // تنظيف الرسم: فصل مراقب المقاس (لا تسريب بين المودالات) وتصفير حالته
+  if (chartRO) { chartRO.disconnect(); chartRO = null; }
+  chartStock = null; chartRange = null; chartGeom = null;
 }
 
 // (drawChart القديمة على canvas أُزيلت — الرسم كله في drawStockChart أعلاه بعقد series الحي)
