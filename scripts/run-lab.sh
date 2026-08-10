@@ -53,6 +53,14 @@ STOCKS_JSON="$DATA" CONFIG_JSON="$LAB/watchlist-config.json" ARCHIVE_DIR="$LAB/a
 STOCKS_JSON="$DATA" CONFIG_JSON="$LAB/watchlist-config.json" ARCHIVE_DIR="$LAB/archive" \
   python3 scripts/close_sma200w.py
 
+# صفحة قياس الدقة — خط المختبر هو الحاكم الوحيد لها (قرار المالك ج، موجة 07-08ب)
+# تمرير خماسي صريح (درس «الملف الآخر») — فشلها يُنبه ولا يُسقط السلسلة
+CONFIG_JSON="$LAB/watchlist-config.json" STOCKS_JSON="$DATA" \
+  HTML_FILE="$LAB/watchlist-accuracy.html" CACHE_FILE="$LAB/.entry-adjclose-cache.json" \
+  TASI_HISTORY="$LAB/tasi-history.json" \
+  bash scripts/update-watchlist-accuracy.sh \
+  || echo "⚠️ ALERT: update-watchlist-accuracy فشل — التشغيلة تكمل"
+
 python3 build.py
 python3 scripts/self-check-L1.py "$DATA"
 
