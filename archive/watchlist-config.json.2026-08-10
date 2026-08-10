@@ -365,9 +365,7 @@
    "peSectorMedianAtEntry": 19.07,
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": -0.04
+   "status": "open"
   },
   {
    "symbol": "2050",
@@ -391,9 +389,7 @@
    "peSectorMedianAtEntry": 18.5,
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": 0.73
+   "status": "open"
   },
   {
    "symbol": "3020",
@@ -417,9 +413,7 @@
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": 0.6
+   "status": "open"
   },
   {
    "symbol": "3080",
@@ -443,9 +437,7 @@
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": -0.11
+   "status": "open"
   },
   {
    "symbol": "6010",
@@ -469,9 +461,7 @@
    "peSectorMedianAtEntry": 18.5,
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": 0.14
+   "status": "open"
   },
   {
    "symbol": "4012",
@@ -494,10 +484,8 @@
    "peAtEntry": 13.99,
    "peSectorMedianAtEntry": 22.44,
    "tasiAtEntry": 10817.01,
-   "maePct": -1.38,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": -1.65
+   "maePct": 0.0,
+   "status": "open"
   },
   {
    "symbol": "3010",
@@ -521,9 +509,7 @@
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": -0.09
+   "status": "open"
   },
   {
    "symbol": "3005",
@@ -546,10 +532,8 @@
    "peAtEntry": 11.82,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -1.17,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": -1.45
+   "maePct": 0.0,
+   "status": "open"
   },
   {
    "symbol": "3030",
@@ -572,10 +556,8 @@
    "peAtEntry": 12.18,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.42,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": -0.7
+   "maePct": 0.0,
+   "status": "open"
   },
   {
    "symbol": "4323",
@@ -598,100 +580,6 @@
    "peAtEntry": 8.85,
    "peSectorMedianAtEntry": 11.99,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.38,
-   "status": "open",
-   "tasiRet": 0.26,
-   "excessNet": -0.66
-  },
-  {
-   "symbol": "1303",
-   "name": "الصناعات الكهربائية",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 15.28,
-   "entryDate": "2026-08-10",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 77,
-   "timingAtEntry": "ممتاز",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open"
-  },
-  {
-   "symbol": "1831",
-   "name": "مهارة",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 4.8,
-   "entryDate": "2026-08-10",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "hold",
-   "scoreAtEntry": 66,
-   "timingAtEntry": "انتظر",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open"
-  },
-  {
-   "symbol": "2110",
-   "name": "الكابلات السعودية",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 175.2,
-   "entryDate": "2026-08-10",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "conditional_buy",
-   "scoreAtEntry": 66,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open"
-  },
-  {
-   "symbol": "4280",
-   "name": "المملكة القابضة",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 13.31,
-   "entryDate": "2026-08-10",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "conditional_buy",
-   "scoreAtEntry": 71,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open"
-  },
-  {
-   "symbol": "4020",
-   "name": "العقارية السعودية",
-   "sector": "Real Estate",
-   "type": "buy",
-   "entryPrice": 15.6,
-   "entryDate": "2026-08-10",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 20,
-   "timingAtEntry": "انتظر",
-   "regimeAtEntry": "حذر",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "priceVsSmaPct": -9.62,
-   "peAtEntry": 9.19,
-   "peSectorMedianAtEntry": 12.04,
-   "tasiAtEntry": 10845.58,
    "maePct": 0.0,
    "status": "open"
   }
