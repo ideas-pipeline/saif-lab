@@ -2212,37 +2212,6 @@ renderSegments();
 applyFilter("applied");   // (قرار د) الافتراضي «المطبقة» — يطابق الزر النشط في الشريط
 renderLegacy();
 renderValueShadow();
-
-/*
-  ════════════════════════════════════════
-  🔌 JSON UPDATE HOOK — للتحديث مستقبلاً
-  ════════════════════════════════════════
-  استدعِ هذه الدالة لتحديث الأسعار من مصدر خارجي:
-
-  function updatePrices(priceMap) {
-    // priceMap = { "1010.SR": 30.5, "4030.SR": 33.1, ... }
-    WATCHLIST.forEach(item => {
-      if (priceMap[item.symbol] !== undefined) {
-        item.currentPrice = priceMap[item.symbol];
-      }
-    });
-    rows.length = 0;
-    WATCHLIST.forEach(item => {
-      const px2 = item.status === "closed" ? item.closePrice : item.currentPrice;
-      const ret = calcReturn(item.entryPrice, px2, item.type, item.divsSince);
-      rows.push({ ...item, ret, success: isSuccess(ret, item.type) });
-    });
-    renderStats(rows);
-    renderTable(rows);
-    renderCards(rows);
-    CONFIG.updatedAt = new Date().toISOString();
-    document.getElementById("last-updated-label").textContent =
-      "آخر تحديث: " + formatDateAr(CONFIG.updatedAt);
-  }
-
-  مثال:
-  updatePrices({ "1010.SR": 30.5, "4030.SR": 31.2, "2287": 23.5, "4264": 48.0 });
-*/
 </script>
 </body>
 </html>
