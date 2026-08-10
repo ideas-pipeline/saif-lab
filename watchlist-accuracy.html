@@ -8,28 +8,29 @@
     /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* هوية المختبر الموحدة (قرار المالك هـ) — اللوحة منقولة من template.html:
+       سليت #0f172a + كهرماني #f59e0b بدل هوية GitHub القديمة (#0d1117/#58a6ff) */
     :root {
-      --bg:          #0d1117;
-      --surface:     #161b22;
-      --border:      #30363d;
-      --text:        #e6edf3;
-      --muted:       #8b949e;
-      --accent:      #58a6ff;
-      --green:       #3fb950;
-      --green-bg:    rgba(63,185,80,.12);
-      --red:         #f85149;
-      --red-bg:      rgba(248,81,73,.12);
-      --yellow:      #d29922;
-      --yellow-bg:   rgba(210,153,34,.12);
-      --buy-color:   #2ea043;
-      --sell-color:  #da3633;
+      --bg:          #0f172a;
+      --surface:     #1e293b;
+      --border:      #334155;
+      --text:        #e2e8f0;
+      --muted:       #94a3b8;
+      --accent:      #f59e0b;
+      --green:       #10b981;
+      --green-bg:    rgba(16,185,129,.12);
+      --red:         #ef4444;
+      --red-bg:      rgba(239,68,68,.12);
+      --yellow:      #d97706;
+      --yellow-bg:   rgba(217,119,6,.12);
+      --buy-color:   #10b981;
+      --sell-color:  #ef4444;
       --radius:      8px;
       --radius-lg:   12px;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Arabic",
-                   Helvetica, Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, "Noto Sans Arabic", sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -68,11 +69,51 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 0.78rem;
-      color: var(--muted);
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      color: var(--text);
       white-space: nowrap;
+      font-weight: 600;
     }
+    /* البيانات تجاوز عمرها يوم تداول — تمييز صادق لا تجميل */
+    .badge-date.stale {
+      color: #fcd34d;
+      border-color: var(--yellow);
+      background: var(--yellow-bg);
+    }
+
+    /* رأس حالة العينة: الميلستونات م-2/م-3 + العدّ الظاهر (قرار الاجتماع) */
+    .sample-state {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      line-height: 1.9;
+    }
+    .sample-state .ms-counts { color: var(--text); }
+    .sample-state .ms-counts b { color: var(--accent); }
+    .sample-state .ms-line { color: var(--muted); }
+    .sample-state .ms-track {
+      position: relative; height: 8px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-top: 6px;
+    }
+    .sample-state .ms-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+    /* العلامات بمواضعها الحقيقية على مقياس 0→40 (م-2 عند 37.5%) — لا توسيط تقريبي مضلل */
+    .sample-state .ms-marks { position: relative; height: 16px; font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .sample-state .ms-marks span { position: absolute; top: 0; }
+    .sample-state .ms-marks .mk0  { right: 0; }
+    .sample-state .ms-marks .mk15 { right: 37.5%; transform: translateX(-50%); }
+    .sample-state .ms-marks .mk40 { left: 0; }
+
+    /* الأرقام والنسب تُقرأ يساراً-يميناً دوماً — علة «الخسارة تُقرأ ربحاً» الموثقة باللقطات */
+    .price, .stat-card .stat-value { direction: ltr; unicode-bidi: isolate; }
+    /* بطاقة إحصاء محايدة اللون (الإصابة قبل اكتمال العينة — لا أخضر مقولباً) */
+    .stat-card.plain .stat-value { color: var(--text); }
+    .stat-card .stat-sub { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+    /* سطر ظاهر بدل تلميح hover (المالك على iPad — التلميحات لا تعمل باللمس) */
+    .cell-sub { display: block; font-size: 0.68rem; color: var(--muted); font-weight: 400; }
 
     /* ── Stats Cards ── */
     .stats-grid {
@@ -284,16 +325,27 @@
 
 <div class="container">
 
-  <!-- ── Header ── -->
+  <!-- ── Header — هوية المختبر (قرار هـ): عنوان عربي + رابط عودة + منهجية مطوية ── -->
   <div class="header">
     <div class="header-left">
-      <h1>📊 Watchlist Accuracy</h1>
-<p style="font-size:0.85em;color:#888;margin-top:4px">أساس القياس v2 منذ 2026-07-21: دخول بإغلاق سهمك (معدّل للتقسيمات عند المصدر) + التوزيعات الفعلية بتاريخ الأحقية = عائد كلي دقيق (الاحتياطي adjclose يدمجها ضمنياً)</p>
-<p style="font-size:0.85em;color:#7aa2c9;margin-top:4px"><b>measurement v3 منذ 2026-08-03:</b> الحكم بالعائد الزائد الصافي مقابل TASI السعري للفترة المطابقة لكل توصية — نجاح = (العائد − عائد تاسي − خصم انحياز 3.5% سنوياً تناسبياً بالمدة) &gt; 0. الخصم يصحح انحياز عوائد شبه كلية مقابل مؤشر سعري (وثيقة المعايير §4). المسار اليدوي legacy مفصول أسفل الصفحة وخارج كل الإحصاءات</p>
-      <p>دقة التوصيات — متابعة الأداء الفعلي للتوصيات</p>
+      <h1>📊 دقة التوصيات</h1>
+      <p>متابعة الأداء الفعلي لتوصيات النظام — مختبر سيف تداول</p>
+      <!-- سطر المنهجية الواحد + التفاصيل الكثيفة مطوية (كانت 3 فقرات فوق الطية) -->
+      <p style="margin-top:4px">الحكم بالعائد الزائد الصافي مقابل تاسي: نجاح = (العائد − عائد تاسي − خصم 3.5% سنوياً بالمدة) &gt; 0</p>
+      <details style="margin-top:4px;font-size:0.82rem;color:var(--muted)">
+        <summary style="cursor:pointer;color:var(--accent)">تفاصيل منهجية القياس</summary>
+        <p style="margin-top:6px">أساس القياس v2 منذ 2026-07-21: دخول بإغلاق سهمك (معدّل للتقسيمات عند المصدر) + التوزيعات الفعلية بتاريخ الأحقية = عائد كلي دقيق (الاحتياطي adjclose يدمجها ضمنياً)</p>
+        <p style="margin-top:6px"><b>measurement v3 منذ 2026-08-03:</b> الحكم بالعائد الزائد الصافي مقابل TASI السعري للفترة المطابقة لكل توصية — نجاح = (العائد − عائد تاسي − خصم انحياز 3.5% سنوياً تناسبياً بالمدة) &gt; 0. الخصم يصحح انحياز عوائد شبه كلية مقابل مؤشر سعري (وثيقة المعايير §4). المسار اليدوي legacy مفصول أسفل الصفحة وخارج كل الإحصاءات</p>
+      </details>
+      <p style="margin-top:6px"><a href="index.html">↩ العودة للمنصة الرئيسة</a></p>
     </div>
-    <span class="badge-date" id="entry-date-badge">دخول: 11 مارس 2025</span>
+    <!-- وسم التحديث (طلب المالك الحرفي): ميلادي دائماً من updatedAt وحده — يعبئه JS،
+         ويتوسم «البيانات قديمة» بصدق حين يتجاوز عمرها يوم تداول -->
+    <span class="badge-date" id="update-badge">🗓 آخر تحديث للبيانات: —</span>
   </div>
+
+  <!-- ── رأس حالة العينة (قرار الاجتماع): الميلستونات والعدّ الظاهر قبل أي إحصاء ── -->
+  <div id="sample-state" class="sample-state"></div>
 
   <!-- ── Stats ── -->
   <div class="stats-grid" id="stats-grid">
@@ -305,9 +357,11 @@
 
   <!-- ── Filters ── -->
   <div class="filters">
-    <button class="filter-btn active" data-filter="all">الكل</button>
-    <button class="filter-btn" data-filter="buy">شراء</button>
-    <button class="filter-btn" data-filter="sell">بيع قوي</button>
+    <!-- قرار المالك (د): الافتراضي «المطبقة» — الظل يظهر بنقرة ولا يتصدر.
+         أُزيل زرا «شراء/بيع قوي» الميتان (العينة الآلية شراء كلها ولا بيع فيها) -->
+    <button class="filter-btn active" data-filter="applied">المطبقة</button>
+    <button class="filter-btn" data-filter="shadow">👁 الظل</button>
+    <button class="filter-btn" data-filter="all">الكل</button>
     <button class="filter-btn" data-filter="success">ناجح ✅</button>
     <button class="filter-btn" data-filter="fail">فشل ❌</button>
     <span class="last-updated" id="last-updated-label"></span>
@@ -320,7 +374,7 @@
         <tr>
           <th>الرمز</th>
           <th>الشركة</th>
-          <th>القطاع</th>
+          <th>تاريخ الدخول</th>
           <th>النوع</th>
           <th>سعر الدخول</th>
           <th>السعر الحالي</th>
@@ -1774,10 +1828,17 @@ function fmt(n, dec = 2) {
   return Number(n).toFixed(dec);
 }
 
+/* تعريب القطاعات — الخريطة منقولة من template.html (هوية موحدة، قرار هـ).
+   مدخلات legacy عربية أصلاً فتمر كما هي عبر الاحتياط */
+const SECTOR_AR = {"Financials": "المالية", "Materials": "المواد الأساسية", "Industrials": "الصناعية", "Consumer Discretionary": "السلع الاستهلاكية", "Consumer Staples": "السلع الأساسية", "Healthcare": "الرعاية الصحية", "Real Estate": "العقارية", "Energy": "الطاقة", "Technology": "التقنية", "Communication Services": "الاتصالات", "Utilities": "المرافق", "Unknown": "غير مصنف"};
+const secAr = (s) => SECTOR_AR[s] || s || "—";
+
+/* dir=ltr إجباري حول كل نسبة موقعة — علة «الخسارة تُقرأ ربحاً» الموثقة:
+   ‏"-2.72%" كانت تُرسم "2.72%-" في السياق العربي */
 function fmtReturn(ret) {
   if (ret === null) return "—";
   const sign = ret >= 0 ? "+" : "";
-  return `${sign}${fmt(ret)}%`;
+  return `<span dir="ltr">${sign}${fmt(ret)}%</span>`;
 }
 
 function returnClass(ret, success) {
@@ -1788,7 +1849,8 @@ function returnClass(ret, success) {
 function statusBadge(success, r) {
   if (r && r.legacy)    return `<span class="status-badge status-pending">📒 خارج الحكم (يدوي)</span>`;
   if (r && r.status === "closed") {
-    const why = r.closeReason === "score_below_50" ? "نقاط<50" : (r.closeReason === "sma200w_weekly_break" ? "كسر SMA200W" : r.closeReason);
+    // «النقاط دون 50» بدل «نقاط<50»: علامة < تنعكس في RTL وتُربك القراءة (موثق باللقطات)
+    const why = r.closeReason === "score_below_50" ? "النقاط دون 50" : (r.closeReason === "sma200w_weekly_break" ? "كسر SMA200W" : r.closeReason);
     if (r.shadow) return `<span class="status-badge status-pending">👁 ظل — أُغلق (${why})</span>`;
     if (success === true)  return `<span class="status-badge status-success">✅ ناجحة — مغلقة (${why})</span>`;
     if (success === false) return `<span class="status-badge status-fail">❌ فاشلة — مغلقة (${why})</span>`;
@@ -1850,15 +1912,31 @@ function renderStats() {
   const rets = done.map(r => r.ret).filter(v => v !== null);
   const avgRet = rets.length ? rets.reduce((a,b) => a+b, 0) / rets.length : null;
 
+  // عدّ عرضي بحت (قرار الاجتماع — لا رقم واحد منفوخ): تفكيك الـ68 إلى مطبقة/ظل،
+  // ومفتوح/مغلق/محكوم ظاهرة. لا مساس بأي حساب أعلاه
+  const appliedRows = autoRows.filter(r => !r.shadow);
+  const shadowN  = total - appliedRows.length;
+  const closedN  = appliedRows.filter(r => r.status === "closed").length;
+  const openN    = appliedRows.length - closedN;
+  // بطاقة الإصابة محايدة اللون ما دامت المحكومة أقل من 40 (لا حكم قبل اكتمال العينة — §7)
+  const hitClass = done.length >= 40 ? "green" : "plain";
+
   const g = document.getElementById("stats-grid");
   g.innerHTML = `
     <div class="stat-card accent">
-      <div class="stat-value">${total}</div>
-      <div class="stat-label">توصيات النظام (آلي)</div>
+      <div class="stat-value">${appliedRows.length}</div>
+      <div class="stat-label">توصيات مطبقة</div>
+      <div class="stat-sub">+ ${shadowN} ظل يُسجَّل ولا يُحاكم</div>
     </div>
-    <div class="stat-card green">
+    <div class="stat-card plain">
+      <div class="stat-value">${openN}</div>
+      <div class="stat-label">مفتوحة</div>
+      <div class="stat-sub">مغلقة ${closedN} • محكومة ${done.length}</div>
+    </div>
+    <div class="stat-card ${hitClass}">
       <div class="stat-value">${accuracy !== null ? accuracy + "%" : "—"}</div>
-      <div class="stat-label">نسبة الإصابة (زائد صافٍ &gt; 0)</div>
+      <div class="stat-label">نسبة الإصابة${done.length < 40 ? " (استرشادية)" : ""}</div>
+      <div class="stat-sub">الإصابة = زائد صافٍ &gt; 0؛ عتبات الحكم لكل فئة في التجزئة</div>
     </div>
     <div class="stat-card green">
       <div class="stat-value">${success}</div>
@@ -1877,6 +1955,18 @@ function renderStats() {
       <div class="stat-label">متوسط العائد المطلق (ثانوي)</div>
     </div>
   `;
+
+  // رأس حالة العينة: الميلستونات م-2 (15 مغلقة) وم-3 (40-50) بشريط تقدم — قبل أي إحصاء
+  const st = document.getElementById("sample-state");
+  if (st) {
+    const pct = Math.min(100, Math.round(closedN / 40 * 100));
+    st.innerHTML = `
+      <div class="ms-counts">حالة العينة: <b>${appliedRows.length}</b> مطبقة (<span dir="ltr">${openN}</span> مفتوحة، <span dir="ltr">${closedN}</span> مغلقة، <span dir="ltr">${done.length}</span> محكومة) + <b>${shadowN}</b> ظل مراقبة</div>
+      <div class="ms-line">مغلقة <b dir="ltr">${closedN}</b> — القراءة الأولى عند 15 (م-2)، الحكم عند 40–50 (م-3) • كل الأرقام استرشادية حتى اكتمال العينة</div>
+      <div class="ms-track"><div class="ms-fill" style="width:${pct}%"></div></div>
+      <div class="ms-marks"><span class="mk0">0</span><span class="mk15">15 (م-2)</span><span class="mk40">40 (م-3)</span></div>
+    `;
+  }
 }
 
 /* measurement v3: التجزئة الوجوبية — بالفئة (مقابل عتبات §6) وبالنظام عند الدخول (ملحق 14-07) */
@@ -1885,8 +1975,8 @@ function segCard(title, rows2, threshNote) {
   const hit  = done.filter(r => r.success).length;
   const nets = done.map(r => r.excessNet).filter(v => v !== null);
   const avgNet = nets.length ? nets.reduce((a,b) => a+b, 0) / nets.length : null;
-  return `<div style="display:inline-block;background:#1a2332;border:1px solid #2a3442;border-radius:8px;padding:8px 14px;margin:3px;font-size:0.85em">
-    <b>${title}</b> — مدخلات: ${rows2.length} | محكومة: ${done.length} | إصابة: ${done.length ? Math.round(hit/done.length*100) + "%" : "—"} | متوسط زائد صافٍ: ${avgNet !== null ? (avgNet >= 0 ? "+" : "") + fmt(avgNet) + "%" : "—"}${threshNote ? `<span style="color:#888"> | ${threshNote}</span>` : ""}
+  return `<div style="display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin:3px;font-size:0.85em">
+    <b>${title}</b> — مدخلات: ${rows2.length} | محكومة: ${done.length} | إصابة: ${done.length ? Math.round(hit/done.length*100) + "%" : "—"} | متوسط زائد صافٍ: ${avgNet !== null ? `<span dir="ltr">${(avgNet >= 0 ? "+" : "") + fmt(avgNet)}%</span>` : "—"}${threshNote ? `<span style="color:var(--muted)"> | ${threshNote}</span>` : ""}
   </div>`;
 }
 
@@ -1947,16 +2037,20 @@ function renderTable(data) {
       <td class="symbol">${r.symbol}</td>
       <td>
         <div class="company-name">${r.name}</div>
-        <div class="sector">${r.sector}</div>
+        <div class="sector">${secAr(r.sector)}</div>
       </td>
-      <td class="sector">${r.sector}</td>
+      <td class="price">${r.entryDate || "—"}</td>
       <td>${typeBadge(r.type, r.category)}</td>
       <td class="price">${fmt(r.entryPrice)}</td>
-      <td class="price current-price"${r.status === "closed" ? ` title="سعر الإغلاق${r.closeDate ? " — " + r.closeDate : ""}"` : ""}>${r.status === "closed" ? fmt(r.closePrice) + " 🔒" : (r.currentPrice !== null ? fmt(r.currentPrice) : "—")}</td>
+      <td class="price current-price">${r.status === "closed"
+        ? fmt(r.closePrice) + ` 🔒<span class="cell-sub">أُغلق ${r.closeDate || "—"}</span>`
+        : (r.currentPrice !== null ? fmt(r.currentPrice) : "—")}</td>
       <td>${fmtReturn(r.ret)}</td>
       <td>${r.tasiRet != null ? fmtReturn(r.tasiRet) : "—"}</td>
       <td>${r.excessGross !== null ? fmtReturn(r.excessGross) : "—"}</td>
-      <td class="${returnClass(r.excessNet, r.success)}"${r.discount !== null ? ` title="بعد خصم انحياز ${fmt(r.discount)} نقطة (3.5% سنوياً × ${r.periodDays} يوماً)"` : ""}>${r.excessNet !== null ? fmtReturn(r.excessNet) : "—"}</td>
+      <td class="${returnClass(r.excessNet, r.success)}">${r.excessNet !== null
+        ? fmtReturn(r.excessNet) + `<span class="cell-sub">بعد خصم <span dir="ltr">${fmt(r.discount)}</span> ن.م</span>`
+        : "—"}</td>
       <td>${statusBadge(r.success, r)}</td>
     </tr>
   `).join("");
@@ -1972,7 +2066,7 @@ function renderCards(data) {
       <div class="mc-header">
         <div>
           <div class="mc-symbol">${r.symbol}</div>
-          <div class="mc-sector">${r.sector}</div>
+          <div class="mc-sector">${secAr(r.sector)}</div>
         </div>
         <div style="text-align:left">${statusBadge(r.success, r)}</div>
       </div>
@@ -1983,12 +2077,17 @@ function renderCards(data) {
           ${typeBadge(r.type, r.category)}
         </div>
         <div class="mc-item">
+          <label>تاريخ الدخول</label>
+          <span class="price">${r.entryDate || "—"}</span>
+        </div>
+        <div class="mc-item">
           <label>سعر الدخول</label>
           <span class="price">${fmt(r.entryPrice)}</span>
         </div>
         <div class="mc-item">
-          <label>السعر الحالي</label>
-          <span class="price"${r.status === "closed" ? ` title="سعر الإغلاق${r.closeDate ? " — " + r.closeDate : ""}"` : ""}>${r.status === "closed" ? fmt(r.closePrice) + " 🔒" : (r.currentPrice !== null ? fmt(r.currentPrice) : "—")}</span>
+          <label>${r.status === "closed" ? "سعر الإغلاق" : "السعر الحالي"}</label>
+          <span class="price">${r.status === "closed" ? fmt(r.closePrice) + " 🔒" : (r.currentPrice !== null ? fmt(r.currentPrice) : "—")}</span>
+          ${r.status === "closed" ? `<span class="cell-sub">أُغلق ${r.closeDate || "—"}</span>` : ""}
         </div>
         <div class="mc-item">
           <label>العائد %</label>
@@ -1997,6 +2096,7 @@ function renderCards(data) {
         <div class="mc-item">
           <label>زائد صافٍ (مقابل تاسي)</label>
           <span class="${returnClass(r.excessNet, r.success)}">${r.excessNet !== null ? fmtReturn(r.excessNet) : "—"}</span>
+          ${r.excessNet !== null ? `<span class="cell-sub">بعد خصم <span dir="ltr">${fmt(r.discount)}</span> ن.م</span>` : ""}
         </div>
       </div>
     </div>
@@ -2008,9 +2108,10 @@ function renderCards(data) {
    ══════════════════════════════════════════════════════ */
 function applyFilter(filter) {
   // v3: الفلاتر تعمل على عينة النظام (auto) فقط — legacy في جدوله المستقل والإحصاءات ثابتة
+  // (قرار د): الافتراضي «المطبقة»؛ الظل بنقرة — 37 صف مراقبة لا تتصدر قائمة التوصيات
   let data = autoRows;
-  if (filter === "buy")     data = autoRows.filter(r => r.type === "buy");
-  if (filter === "sell")    data = autoRows.filter(r => r.type === "sell");
+  if (filter === "applied") data = autoRows.filter(r => !r.shadow);
+  if (filter === "shadow")  data = autoRows.filter(r => r.shadow);
   if (filter === "success") data = autoRows.filter(r => r.success === true);
   if (filter === "fail")    data = autoRows.filter(r => r.success === false);
 
@@ -2029,18 +2130,45 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
 /* ══════════════════════════════════════════════════════
    TIMESTAMPS
    ══════════════════════════════════════════════════════ */
+/* ميلادي دائماً (طلب المالك الحرفي + علة موثقة: ar-SA الافتراضي تقويم هجري —
+   الصفحة كانت تعرض «19 صفر 1448هـ» أسفلها وتواريخ ميلادية أعلاها).
+   تنسيق يدوي YYYY-MM-DD HH:MM — لا اعتماد على locale */
 function formatDateAr(isoStr) {
   const d = new Date(isoStr);
-  return d.toLocaleString("ar-SA", {
-    year: "numeric", month: "long", day: "numeric",
-    hour: "2-digit", minute: "2-digit"
-  });
+  if (isNaN(d)) return String(isoStr || "—");
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-document.getElementById("last-updated-label").textContent =
-  "آخر تحديث: " + formatDateAr(CONFIG.updatedAt);
-document.getElementById("footer-updated").textContent =
-  "آخر تحديث: " + formatDateAr(CONFIG.updatedAt);
+document.getElementById("last-updated-label").innerHTML =
+  'آخر تحديث: <span dir="ltr">' + formatDateAr(CONFIG.updatedAt) + '</span>';
+document.getElementById("footer-updated").innerHTML =
+  'آخر تحديث: <span dir="ltr">' + formatDateAr(CONFIG.updatedAt) + '</span>';
+
+/* وسم التحديث البارز (طلب المالك): من updatedAt وحده — لا اختراع تاريخ.
+   «قديمة» بصدق حين يتجاوز العمر يوم تداول واحد (أيام العمل أحد-خميس؛
+   الجمعة/السبت لا يعدّان — تحديث الخميس ليس قديماً صباح الأحد) */
+(function renderUpdateBadge() {
+  const el = document.getElementById("update-badge");
+  if (!el) return;
+  const d = new Date(CONFIG.updatedAt);
+  if (isNaN(d)) { el.textContent = "🗓 آخر تحديث للبيانات: —"; return; }
+  const p = (x) => String(x).padStart(2, "0");
+  const dateStr = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  let tradingDays = 0;
+  const cur = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date();
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  while (cur < end) {
+    cur.setDate(cur.getDate() + 1);
+    const wd = cur.getDay();
+    if (wd !== 5 && wd !== 6) tradingDays++;   // جمعة/سبت عطلة تداول
+  }
+  const stale = tradingDays > 1;
+  el.innerHTML = '🗓 آخر تحديث للبيانات: <span dir="ltr">' + dateStr + '</span>' +
+    (stale ? ' — ⚠️ البيانات قديمة' : '');
+  if (stale) el.classList.add("stale");
+})();
 
 /* ══════════════════════════════════════════════════════
    INIT — v3: الجدول الرئيسي عينة النظام، legacy مفصول، الإحصاءات ثابتة
@@ -2081,8 +2209,7 @@ function renderValueShadow() {
 
 renderStats();
 renderSegments();
-renderTable(autoRows);
-renderCards(autoRows);
+applyFilter("applied");   // (قرار د) الافتراضي «المطبقة» — يطابق الزر النشط في الشريط
 renderLegacy();
 renderValueShadow();
 
