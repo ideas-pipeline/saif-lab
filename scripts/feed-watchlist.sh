@@ -114,6 +114,23 @@ for e in stocks_cfg:
         e["closeReason"] = "score_below_50"
         closed.append((e["symbol"], total))
 
+# ══ MAE للمطبقة والظل (موجة 07-08ب — تعميم كاتب عينة القيمة، من أسعار الإقفال) ══
+# ‏maePct رتيب: لا يتحسن أبداً — أعمق انزلاق سلبي منذ الدخول. قياس محض:
+# لا يمس منطق الدخول/الخروج/الحكم بشيء.
+mae_official_updated = False
+for e in stocks_cfg:
+    if (e.get("track") != "auto" or e.get("status", "open") != "open"
+            or e.get("sampleType") == "value-shadow"):
+        continue
+    cur_mae, _tot = snapshot.get(e["symbol"], (None, None))
+    if cur_mae is None or not e.get("entryPrice"):
+        continue
+    ret_mae = (cur_mae / e["entryPrice"] - 1) * 100
+    new_mae = round(min(e.get("maePct", 0.0), ret_mae), 2)
+    if new_mae != e.get("maePct"):
+        e["maePct"] = new_mae
+        mae_official_updated = True
+
 # ══ عينة الظل الثانية: «قيمة تحت الفلتر» (مواصفة المحلل 07-08 — ظل بحثي، ليست توصيات) ══
 # الدخول: مستبعد بفلتر SMA200W تحديداً + عابر السيولة + P/E موجب < 0.8×وسيط قطاعه
 # وبسقف مطلق 15 + جودة ≥18/30 (من investmentScore.axes) + OCF موجب. سقف 15 متزامناً.
@@ -200,7 +217,7 @@ if len(vs_open_syms) < VS_CAP:
         }
         stocks_cfg.append(e)
         vs_added.append(e)
-if added or closed or vs_added or vs_closed_now or vs_meas_updated:
+if added or closed or vs_added or vs_closed_now or vs_meas_updated or mae_official_updated:
     backup = f"{ARCHIVE}/watchlist-config.json.{today}"
     if not os.path.exists(backup):
         shutil.copy2(CONFIG, backup)

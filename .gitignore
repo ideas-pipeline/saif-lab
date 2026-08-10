@@ -7,3 +7,4 @@ __pycache__/
 *.log
 .lab.lock
 .run-lab.exec.*
+.entry-adjclose-cache.json

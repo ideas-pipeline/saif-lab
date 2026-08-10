@@ -1,7 +1,7 @@
 {
  "criteriaVersion": "v3",
  "activatedAt": null,
- "note": "عينة قياس criteria v3 نظيفة من الصفر (requirements-v3.md §9-1) — عينة v2.1 مؤرشفة للقراءة فقط في archive/watchlist-config.json.pre-v3-*. لا مقارنة نقاط عبر النسختين إلا موسومة.",
+ "note": "عينة قياس criteria v3 نظيفة من الصفر (requirements-v3.md §9-1) — عينة v2.1 مؤرشفة للقراءة فقط في archive/watchlist-config.json.pre-v3-*. لا مقارنة نقاط عبر النسختين إلا موسومة. | مدخلات legacy الـ15 رُحلت من الأرشيف بوسومها (قرار المالك ب، 07-08ب) — جدول معزول خارج الإحصاء.",
  "stocks": [
   {
    "symbol": "1050",
@@ -240,6 +240,171 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open"
+  },
+  {
+   "symbol": "1010",
+   "name": "بنك الرياض",
+   "sector": "البنوك",
+   "type": "buy",
+   "entryPrice": 21.64,
+   "entryDate": "2025-03-13",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "4030",
+   "name": "البحري",
+   "sector": "النقل البحري",
+   "type": "buy",
+   "entryPrice": 32.0,
+   "entryDate": "2025-03-13",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "2287",
+   "name": "العربية للزراعة",
+   "sector": "الإنتاج الغذائي",
+   "type": "sell",
+   "entryPrice": 25.8,
+   "entryDate": "2025-03-13",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "4264",
+   "name": "طيران ناس",
+   "sector": "النقل الجوي",
+   "type": "sell",
+   "entryPrice": 50.5,
+   "entryDate": "2025-03-13",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "2020",
+   "name": "سابك للمغذيات الزراعية",
+   "sector": "المواد الأساسية",
+   "type": "buy",
+   "entryPrice": 145.0,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "1060",
+   "name": "البنك الأول",
+   "sector": "البنوك",
+   "type": "buy",
+   "entryPrice": 37.3,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "1120",
+   "name": "مصرف الراجحي",
+   "sector": "البنوك",
+   "type": "buy",
+   "entryPrice": 106.6,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "1180",
+   "name": "البنك الأهلي السعودي",
+   "sector": "البنوك",
+   "type": "buy",
+   "entryPrice": 41.82,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "4190",
+   "name": "جرير",
+   "sector": "السلع الاستهلاكية",
+   "type": "buy",
+   "entryPrice": 14.12,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "1303",
+   "name": "الصناعات الكهربائية",
+   "sector": "الصناعية",
+   "type": "buy",
+   "entryPrice": 16.7,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "1323",
+   "name": "الورق المتحدة",
+   "sector": "السلع الاستهلاكية",
+   "type": "sell",
+   "entryPrice": 24.47,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "2300",
+   "name": "صناعة الورق",
+   "sector": "السلع الأساسية",
+   "type": "sell",
+   "entryPrice": 56.35,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "4018",
+   "name": "الموسى الصحية",
+   "sector": "الرعاية الصحية",
+   "type": "sell",
+   "entryPrice": 138.2,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "2083",
+   "name": "مرافق",
+   "sector": "المرافق",
+   "type": "sell",
+   "entryPrice": 31.68,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
+  },
+  {
+   "symbol": "4019",
+   "name": "المتخصصة الطبية",
+   "sector": "الرعاية الصحية",
+   "type": "sell",
+   "entryPrice": 18.54,
+   "entryDate": "2026-04-02",
+   "track": "legacy",
+   "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
+   "scoreScaleAtEntry": "raw105"
   }
  ]
 }
