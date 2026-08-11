@@ -91,6 +91,22 @@ print("\n[2] شريحة 200-299 جلسة (SMA200D حاضر وZ غائب — 0/3 
       % (len(slice_z), slice_z[:10]))
 print("    شريحة 200-203 أسبوعاً (SMA200W بلا ميل → معاملة محايدة 6/8): %d %s"
       % (len(slice_w), slice_w[:10]))
+# ملحق §3.2 المؤرخ 2026-08-11: نقاط الترند الجزئية (حد EMA40W الأدنى المثبت مع غياب
+# SMA200W) مشروعة حصراً لunrated أو filtered — تسربها لمُقيَّم عادي = انكسار عقد
+partial_trend_bad = []
+for s in S:
+    wt_ = s.get("weeklyTechnical") or {}
+    inv_ = s.get("investmentScore") or {}
+    price_ = wt_.get("priceRef") or (s.get("dailyExtra") or {}).get("lastClose") or s.get("currentPrice")
+    ema_ = wt_.get("ema40w")
+    if not ema_ or wt_.get("sma200w") or not price_:
+        continue
+    if price_ > ema_:   # إعادة حساب مستقلة: بند التسلسل الجزئي > 0 (الحد المثبت 4/7)
+        if not (inv_.get("unrated") is True or inv_.get("filtered") is True):
+            partial_trend_bad.append(s["symbol"])
+if partial_trend_bad:
+    warn("🚨 ALERT صارخ (ملحق §3.2): نقاط ترند جزئية (EMA40W بلا SMA200W) لدى غير "
+         "unrated/مفلتر — انكسار عقد: %s" % partial_trend_bad[:10])
 # §4-ب الحارس ب: مستويات مقيدة التاريخ (كشف إجراء رأسمالي ملتبس) → مراجعة يدوية
 lv_restricted = [s["symbol"] for s in S if (s.get("levels") or {}).get("restricted")]
 print("    مستويات S/R مقيدة التاريخ (كشف ملتبس §4-ب): %d %s"

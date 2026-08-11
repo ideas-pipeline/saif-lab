@@ -234,10 +234,26 @@ def axis_trend(s):
         d.append("SMA200W غير متوفر → 0/8")
     ema40 = wt.get("ema40w")
     if ema40 and sma and price:
+        # السلّم الكامل — بلا أي تغيير
         p = 7 if (price > ema40 and ema40 > sma) else 4 if price > ema40 else 2 if price > sma else 0
         sc += p; d.append("EMA40W %s → %d/7" % (ema40, p))
+    elif ema40 and price:
+        # ملحق §3.2 المؤرخ 2026-08-11: «لا نقطة إلا بقياس حاضر يثبتها؛ والمكوّن المركب
+        # يسجل أعلى فرع أثبتته قياساته الحاضرة» — EMA40W حاضرة تثبت حدها الأدنى 4/7
+        # ولو غاب SMA200W (تاريخ < 200 أسبوع). القيمة تُعرض لحسم الحالات الحدية.
+        if price > ema40:
+            p = 4
+            sc += p
+            d.append("EMA40W %s — التسلسل الكامل يحتاج 200 أسبوع → 4/7 (حد أدنى مُثبَت)" % ema40)
+        else:
+            d.append("تحت EMA40W %s (تسلسل غير مكتمل) → 0/7" % ema40)
+    elif sma and price:
+        # حارس شذوذ بنيوي (مستحيل حالياً: ema40w يُشتق قبل sma200w دوماً)
+        p = 2 if price > sma else 0
+        sc += p
+        d.append("EMA40W غائب مع SMA200W حاضر (شذوذ بنيوي) → %d/7" % p)
     else:
-        d.append("EMA40W/تسلسل غير متوفر → 0/7")
+        d.append("EMA40W غير متوفر → 0/7")
     rsi = wt.get("rsi14w")
     if rsi is not None:
         p = 5 if 55 <= rsi <= 70 else 4 if 50 <= rsi < 55 else 3 if 70 < rsi <= 80 else 2 if 40 <= rsi < 50 else 1
