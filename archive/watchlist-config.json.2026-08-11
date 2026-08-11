@@ -18,8 +18,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "1303",
@@ -36,8 +35,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "1321",
@@ -54,8 +52,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "1831",
@@ -72,8 +69,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -11.26
+   "status": "open"
   },
   {
    "symbol": "2070",
@@ -90,8 +86,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -1.46
+   "status": "open"
   },
   {
    "symbol": "2190",
@@ -108,8 +103,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "2230",
@@ -126,8 +120,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "2280",
@@ -144,8 +137,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": false,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "2370",
@@ -162,8 +154,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -6.34
+   "status": "open"
   },
   {
    "symbol": "2380",
@@ -180,8 +171,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "4030",
@@ -198,8 +188,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "4190",
@@ -216,8 +205,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "4280",
@@ -234,8 +222,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "7010",
@@ -252,8 +239,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "2070",
@@ -270,8 +256,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "2110",
@@ -288,8 +273,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "2280",
@@ -306,8 +290,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": false,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -0.21
+   "status": "open"
   },
   {
    "symbol": "2380",
@@ -324,8 +307,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "4291",
@@ -342,8 +324,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -2.32
+   "status": "open"
   },
   {
    "symbol": "7010",
@@ -360,8 +341,7 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -0.18
+   "status": "open"
   },
   {
    "symbol": "5110",
@@ -384,10 +364,10 @@
    "peAtEntry": 5.26,
    "peSectorMedianAtEntry": 19.07,
    "tasiAtEntry": 10817.01,
-   "maePct": -2.63,
+   "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -2.8
+   "tasiRet": 0.26,
+   "excessNet": -0.04
   },
   {
    "symbol": "2050",
@@ -410,10 +390,10 @@
    "peAtEntry": 7.77,
    "peSectorMedianAtEntry": 18.5,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.23,
+   "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -0.4
+   "tasiRet": 0.26,
+   "excessNet": 0.73
   },
   {
    "symbol": "3020",
@@ -438,8 +418,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": 0.83
+   "tasiRet": 0.26,
+   "excessNet": 0.6
   },
   {
    "symbol": "3080",
@@ -462,10 +442,10 @@
    "peAtEntry": 9.91,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.68,
+   "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -0.84
+   "tasiRet": 0.26,
+   "excessNet": -0.11
   },
   {
    "symbol": "6010",
@@ -490,8 +470,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": 0.95
+   "tasiRet": 0.26,
+   "excessNet": 0.14
   },
   {
    "symbol": "4012",
@@ -514,10 +494,10 @@
    "peAtEntry": 13.99,
    "peSectorMedianAtEntry": 22.44,
    "tasiAtEntry": 10817.01,
-   "maePct": -1.93,
+   "maePct": -1.38,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -2.1
+   "tasiRet": 0.26,
+   "excessNet": -1.65
   },
   {
    "symbol": "3010",
@@ -540,10 +520,10 @@
    "peAtEntry": 10.41,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.54,
+   "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -0.71
+   "tasiRet": 0.26,
+   "excessNet": -0.09
   },
   {
    "symbol": "3005",
@@ -566,10 +546,10 @@
    "peAtEntry": 11.82,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -2.19,
+   "maePct": -1.17,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -2.36
+   "tasiRet": 0.26,
+   "excessNet": -1.45
   },
   {
    "symbol": "3030",
@@ -592,10 +572,10 @@
    "peAtEntry": 12.18,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.92,
+   "maePct": -0.42,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -1.09
+   "tasiRet": 0.26,
+   "excessNet": -0.7
   },
   {
    "symbol": "4323",
@@ -618,10 +598,10 @@
    "peAtEntry": 8.85,
    "peSectorMedianAtEntry": 11.99,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.84,
+   "maePct": -0.38,
    "status": "open",
-   "tasiRet": 0.15,
-   "excessNet": -1.01
+   "tasiRet": 0.26,
+   "excessNet": -0.66
   },
   {
    "symbol": "1303",
@@ -638,8 +618,7 @@
    "regimeAtEntry": "حذر",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "1831",
@@ -656,8 +635,7 @@
    "regimeAtEntry": "حذر",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -1.46
+   "status": "open"
   },
   {
    "symbol": "2110",
@@ -674,8 +652,7 @@
    "regimeAtEntry": "حذر",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
+   "status": "open"
   },
   {
    "symbol": "4280",
@@ -692,8 +669,7 @@
    "regimeAtEntry": "حذر",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -1.13
+   "status": "open"
   },
   {
    "symbol": "4020",
@@ -716,10 +692,8 @@
    "peAtEntry": 9.19,
    "peSectorMedianAtEntry": 12.04,
    "tasiAtEntry": 10845.58,
-   "maePct": -0.19,
-   "status": "open",
-   "tasiRet": -0.11,
-   "excessNet": -0.09
+   "maePct": 0.0,
+   "status": "open"
   },
   {
    "symbol": "1010",
@@ -885,60 +859,6 @@
    "track": "legacy",
    "note": "ما قبل انقطاع 2026-07-04 — خارج عينة الحكم (بيانات التقييم كانت معيبة)",
    "scoreScaleAtEntry": "raw105"
-  },
-  {
-   "symbol": "1321",
-   "name": "الشرقية للأنابيب المتكاملة",
-   "sector": "Materials",
-   "type": "buy",
-   "entryPrice": 195.9,
-   "entryDate": "2026-08-11",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 82,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "2020",
-   "name": "سابك للمغذيات الزراعية",
-   "sector": "Materials",
-   "type": "buy",
-   "entryPrice": 125.6,
-   "entryDate": "2026-08-11",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "conditional_buy",
-   "scoreAtEntry": 65,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "4030",
-   "name": "البحري",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 31.1,
-   "entryDate": "2026-08-11",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 82,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": 0.0
   }
  ]
 }
