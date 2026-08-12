@@ -420,7 +420,7 @@
    ══════════════════════════════════════════════════════ */
 const CONFIG = {
   entryDate:   "2025-03-13",
-  updatedAt:   "2026-08-11T16:22:23+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
+  updatedAt:   "2026-08-12T16:22:23+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
 };
 
 /*
@@ -433,351 +433,355 @@ const WATCHLIST = [
     name:          "البنك السعودي الفرنسي",
     sector:        "Financials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    20.15,      // sahmk-close | يدوي أصلي: 20.15
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    20.15,      // cache | يدوي أصلي: 20.15
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy",
     maePct: 0.0,
-    currentPrice:  20.39,           // ✅ confirmed 2026-08-11
+    currentPrice:  20.39,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1303",
     name:          "الصناعات الكهربائية",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    14.9,      // sahmk-close | يدوي أصلي: 14.9
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    14.9,      // cache | يدوي أصلي: 14.9
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
     maePct: 0.0,
-    currentPrice:  15.5,           // ✅ confirmed 2026-08-11
+    currentPrice:  15.6,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1321",
     name:          "الشرقية للأنابيب المتكاملة",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    191.3,      // sahmk-close | يدوي أصلي: 191.3
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    191.3,      // cache | يدوي أصلي: 191.3
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
     maePct: 0.0,
-    currentPrice:  195.9,           // ✅ confirmed 2026-08-11
+    currentPrice:  195.1,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1831",
     name:          "مهارة",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    5.33,      // sahmk-close | يدوي أصلي: 5.33
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    5.33,      // cache | يدوي أصلي: 5.33
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
+    status:        "closed",
+    closeDate:     "2026-08-12",
+    closePrice:    4.65,
+    closeReason:   "score_below_50",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy",
     maePct: -11.26,
-    currentPrice:  4.73,           // ✅ confirmed 2026-08-11
+    currentPrice:  4.65,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2070",
     name:          "سبيماكو",
     sector:        "Healthcare",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    31.44,      // sahmk-close | يدوي أصلي: 31.44
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    31.44,      // cache | يدوي أصلي: 31.44
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
-    maePct: -1.46,
-    currentPrice:  30.98,           // ✅ confirmed 2026-08-11
+    maePct: -2.04,
+    currentPrice:  30.8,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2190",
     name:          "مستدام",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    34.48,      // sahmk-close | يدوي أصلي: 34.48
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    34.48,      // cache | يدوي أصلي: 34.48
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
-    maePct: 0.0,
-    currentPrice:  35.0,           // ✅ confirmed 2026-08-11
+    maePct: -0.52,
+    currentPrice:  34.3,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2230",
     name:          "الكيميائية السعودية",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    8.07,      // sahmk-close | يدوي أصلي: 8.07
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    8.07,      // cache | يدوي أصلي: 8.07
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
-    maePct: 0.0,
-    currentPrice:  8.07,           // ✅ confirmed 2026-08-11
+    maePct: -0.12,
+    currentPrice:  8.06,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2280",
     name:          "المراعي",
     sector:        "Consumer Staples",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    47.24,      // sahmk-close | يدوي أصلي: 47.24
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    47.24,      // cache | يدوي أصلي: 47.24
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy",
     maePct: 0.0,
-    currentPrice:  47.7,           // ✅ confirmed 2026-08-11
+    currentPrice:  47.7,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2370",
     name:          "مسك",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    32.8,      // sahmk-close | يدوي أصلي: 32.8
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    32.8,      // cache | يدوي أصلي: 32.8
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy",
     maePct: -6.34,
-    currentPrice:  30.72,           // ✅ confirmed 2026-08-11
+    currentPrice:  30.9,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2380",
     name:          "بترو رابغ",
     sector:        "Energy",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    16.12,      // sahmk-close | يدوي أصلي: 16.12
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    16.12,      // cache | يدوي أصلي: 16.12
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
     maePct: 0.0,
-    currentPrice:  17.09,           // ✅ confirmed 2026-08-11
+    currentPrice:  17.6,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4030",
     name:          "البحري",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    30.24,      // sahmk-close | يدوي أصلي: 30.24
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    30.24,      // cache | يدوي أصلي: 30.24
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
     maePct: 0.0,
-    currentPrice:  31.1,           // ✅ confirmed 2026-08-11
+    currentPrice:  30.74,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4190",
     name:          "جرير",
     sector:        "Consumer Discretionary",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    17.11,      // sahmk-close | يدوي أصلي: 17.11
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    17.11,      // cache | يدوي أصلي: 17.11
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "strong_buy",
     maePct: 0.0,
-    currentPrice:  17.26,           // ✅ confirmed 2026-08-11
+    currentPrice:  17.34,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4280",
     name:          "المملكة القابضة",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    12.82,      // sahmk-close | يدوي أصلي: 12.82
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    12.82,      // cache | يدوي أصلي: 12.82
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy",
     maePct: 0.0,
-    currentPrice:  13.16,           // ✅ confirmed 2026-08-11
+    currentPrice:  13.12,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "7010",
     name:          "إس تي سي",
     sector:        "Communication Services",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    43.38,      // sahmk-close | يدوي أصلي: 43.38
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    43.38,      // cache | يدوي أصلي: 43.38
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.2,
-    periodDays:    5,
+    tasiRet:       0.3,
+    periodDays:    6,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy_wait",
     maePct: 0.0,
-    currentPrice:  43.5,           // ✅ confirmed 2026-08-11
+    currentPrice:  43.6,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2070",
     name:          "سبيماكو",
     sector:        "Healthcare",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    30.96,      // sahmk-close | يدوي أصلي: 30.96
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    30.96,      // cache | يدوي أصلي: 30.96
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "buy",
-    maePct: 0.0,
-    currentPrice:  30.98,           // ✅ confirmed 2026-08-11
+    maePct: -0.52,
+    currentPrice:  30.8,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2110",
     name:          "الكابلات السعودية",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    172.1,      // sahmk-close | يدوي أصلي: 172.1
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    172.1,      // cache | يدوي أصلي: 172.1
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "buy",
     maePct: 0.0,
-    currentPrice:  176.6,           // ✅ confirmed 2026-08-11
+    currentPrice:  177.3,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2280",
     name:          "المراعي",
     sector:        "Consumer Staples",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    47.8,      // sahmk-close | يدوي أصلي: 47.8
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    47.8,      // cache | يدوي أصلي: 47.8
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "buy_wait",
     maePct: -0.21,
-    currentPrice:  47.7,           // ✅ confirmed 2026-08-11
+    currentPrice:  47.7,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2380",
     name:          "بترو رابغ",
     sector:        "Energy",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    15.55,      // sahmk-close | يدوي أصلي: 15.55
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    15.55,      // cache | يدوي أصلي: 15.55
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "buy",
     maePct: 0.0,
-    currentPrice:  17.09,           // ✅ confirmed 2026-08-11
+    currentPrice:  17.6,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4291",
     name:          "الوطنية للتعليم",
     sector:        "Consumer Staples",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    146.8,      // sahmk-close | يدوي أصلي: 146.8
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    146.8,      // cache | يدوي أصلي: 146.8
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "buy_wait",
-    maePct: -2.32,
-    currentPrice:  143.4,           // ✅ confirmed 2026-08-11
+    maePct: -2.59,
+    currentPrice:  143.0,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "7010",
     name:          "إس تي سي",
     sector:        "Communication Services",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    43.58,      // sahmk-close | يدوي أصلي: 43.58
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    43.58,      // cache | يدوي أصلي: 43.58
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "buy",
     maePct: -0.18,
-    currentPrice:  43.5,           // ✅ confirmed 2026-08-11
+    currentPrice:  43.6,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "5110",
     name:          "الكهرباء السعودية",
     sector:        "Utilities",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    17.46,      // sahmk-close | يدوي أصلي: 17.46
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    17.46,      // cache | يدوي أصلي: 17.46
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
@@ -788,42 +792,42 @@ const WATCHLIST = [
     peSectorMedianAtEntry: 19.07,
     priceVsSmaPct: -3.91,
     qualityAtEntry: 19,
-    excessNet: -2.8,
-    currentPrice:  17.0,           // ✅ confirmed 2026-08-11
+    excessNet: -2.46,
+    currentPrice:  17.08,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2050",
     name:          "مجموعة صافولا",
     sector:        "Consumer Staples",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    25.92,      // sahmk-close | يدوي أصلي: 25.92
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    25.92,      // cache | يدوي أصلي: 25.92
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "value-shadow",
     sampleType:    "value-shadow",
-    maePct: -0.23,
+    maePct: -2.24,
     peAtEntry: 7.77,
     peSectorMedianAtEntry: 18.5,
     priceVsSmaPct: -11.93,
     qualityAtEntry: 19,
-    excessNet: -0.4,
-    currentPrice:  25.86,           // ✅ confirmed 2026-08-11
+    excessNet: -2.52,
+    currentPrice:  25.34,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "3020",
     name:          "أسمنت اليمامة",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    23.0,      // sahmk-close | يدوي أصلي: 23.0
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    entryPrice:    23.0,      // cache | يدوي أصلي: 23.0
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0.0,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
@@ -834,42 +838,42 @@ const WATCHLIST = [
     peSectorMedianAtEntry: 16.58,
     priceVsSmaPct: -25.32,
     qualityAtEntry: 24,
-    excessNet: 0.83,
-    currentPrice:  23.23,           // ✅ confirmed 2026-08-11
+    excessNet: 0.07,
+    currentPrice:  23.08,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "3080",
     name:          "أسمنت الشرقية",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    25.14,      // manual-fallback | يدوي أصلي: 25.14
-    entrySource:   "manual-fallback",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    entryPrice:    25.14,      // sahmk-close | يدوي أصلي: 25.14
+    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0.0,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "value-shadow",
     sampleType:    "value-shadow",
-    maePct: -0.68,
+    maePct: -0.95,
     peAtEntry: 9.91,
     peSectorMedianAtEntry: 16.58,
     priceVsSmaPct: -25.02,
     qualityAtEntry: 23,
-    excessNet: -0.84,
-    currentPrice:  24.97,           // ✅ confirmed 2026-08-11
+    excessNet: -1.23,
+    currentPrice:  24.9,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "6010",
     name:          "نادك",
     sector:        "Consumer Staples",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    14.34,      // manual-fallback | يدوي أصلي: 14.34
-    entrySource:   "manual-fallback",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    entryPrice:    14.34,      // sahmk-close | يدوي أصلي: 14.34
+    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0.0,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
@@ -880,42 +884,42 @@ const WATCHLIST = [
     peSectorMedianAtEntry: 18.5,
     priceVsSmaPct: -32.55,
     qualityAtEntry: 21,
-    excessNet: 0.95,
-    currentPrice:  14.5,           // ✅ confirmed 2026-08-11
+    excessNet: -0.28,
+    currentPrice:  14.34,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4012",
     name:          "ثوب الأصيل",
     sector:        "Consumer Discretionary",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    3.62,      // manual-fallback | يدوي أصلي: 3.62
-    entrySource:   "manual-fallback",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    entryPrice:    3.62,      // sahmk-close | يدوي أصلي: 3.62
+    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0.0,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "value-shadow",
     sampleType:    "value-shadow",
-    maePct: -1.93,
+    maePct: -2.21,
     peAtEntry: 13.99,
     peSectorMedianAtEntry: 22.44,
     priceVsSmaPct: -12.77,
     qualityAtEntry: 23,
-    excessNet: -2.1,
-    currentPrice:  3.55,           // ✅ confirmed 2026-08-11
+    excessNet: -2.49,
+    currentPrice:  3.54,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "3010",
     name:          "أسمنت العربية",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    22.22,      // sahmk-close | يدوي أصلي: 22.22
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    22.22,      // cache | يدوي أصلي: 22.22
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
@@ -926,157 +930,165 @@ const WATCHLIST = [
     peSectorMedianAtEntry: 16.58,
     priceVsSmaPct: -21.54,
     qualityAtEntry: 22,
-    excessNet: -0.71,
-    currentPrice:  22.1,           // ✅ confirmed 2026-08-11
+    excessNet: -0.37,
+    currentPrice:  22.2,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "3005",
     name:          "أسمنت أم القرى",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    12.79,      // sahmk-close | يدوي أصلي: 12.79
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    12.79,      // cache | يدوي أصلي: 12.79
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "value-shadow",
     sampleType:    "value-shadow",
-    maePct: -2.19,
+    maePct: -3.28,
     peAtEntry: 11.82,
     peSectorMedianAtEntry: 16.58,
     priceVsSmaPct: -21.2,
     qualityAtEntry: 23,
-    excessNet: -2.36,
-    currentPrice:  12.51,           // ✅ confirmed 2026-08-11
+    excessNet: -3.56,
+    currentPrice:  12.37,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "3030",
     name:          "أسمنت السعودية",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    28.3,      // sahmk-close | يدوي أصلي: 28.3
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    28.3,      // cache | يدوي أصلي: 28.3
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "value-shadow",
     sampleType:    "value-shadow",
-    maePct: -0.92,
+    maePct: -1.7,
     peAtEntry: 12.18,
     peSectorMedianAtEntry: 16.58,
     priceVsSmaPct: -35.91,
     qualityAtEntry: 19,
-    excessNet: -1.09,
-    currentPrice:  28.04,           // ✅ confirmed 2026-08-11
+    excessNet: -1.98,
+    currentPrice:  27.82,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4323",
     name:          "سمو العقارية",
     sector:        "Real Estate",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    26.2,      // sahmk-close | يدوي أصلي: 26.2
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    26.2,      // cache | يدوي أصلي: 26.2
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       0.15,
-    periodDays:    2,
+    tasiRet:       0.25,
+    periodDays:    3,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "value-shadow",
     sampleType:    "value-shadow",
-    maePct: -0.84,
+    maePct: -1.45,
     peAtEntry: 8.85,
     peSectorMedianAtEntry: 11.99,
     priceVsSmaPct: -37.09,
     qualityAtEntry: 20,
-    excessNet: -1.01,
-    currentPrice:  25.98,           // ✅ confirmed 2026-08-11
+    excessNet: -1.73,
+    currentPrice:  25.82,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1303",
     name:          "الصناعات الكهربائية",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    15.28,      // sahmk-close | يدوي أصلي: 15.28
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    15.28,      // cache | يدوي أصلي: 15.28
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       -0.11,
-    periodDays:    1,
+    tasiRet:       -0.01,
+    periodDays:    2,
     regimeAtEntry: "حذر",
     entryDate:     "2026-08-10",
     track:         "auto",
     category:      "buy",
     maePct: 0.0,
-    currentPrice:  15.5,           // ✅ confirmed 2026-08-11
+    currentPrice:  15.6,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1831",
     name:          "مهارة",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    4.8,      // sahmk-close | يدوي أصلي: 4.8
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    4.8,      // cache | يدوي أصلي: 4.8
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       -0.11,
-    periodDays:    1,
+    tasiRet:       -0.01,
+    periodDays:    2,
     regimeAtEntry: "حذر",
+    status:        "closed",
+    closeDate:     "2026-08-12",
+    closePrice:    4.65,
+    closeReason:   "score_below_50",
     entryDate:     "2026-08-10",
     track:         "auto",
     category:      "buy_wait",
     maePct: -1.46,
-    currentPrice:  4.73,           // ✅ confirmed 2026-08-11
+    currentPrice:  4.65,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2110",
     name:          "الكابلات السعودية",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    175.2,      // sahmk-close | يدوي أصلي: 175.2
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    175.2,      // cache | يدوي أصلي: 175.2
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       -0.11,
-    periodDays:    1,
+    tasiRet:       -0.01,
+    periodDays:    2,
     regimeAtEntry: "حذر",
     entryDate:     "2026-08-10",
     track:         "auto",
     category:      "buy_wait",
     maePct: 0.0,
-    currentPrice:  176.6,           // ✅ confirmed 2026-08-11
+    currentPrice:  177.3,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4280",
     name:          "المملكة القابضة",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    13.31,      // sahmk-close | يدوي أصلي: 13.31
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    13.31,      // cache | يدوي أصلي: 13.31
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       -0.11,
-    periodDays:    1,
+    tasiRet:       -0.01,
+    periodDays:    2,
     regimeAtEntry: "حذر",
     entryDate:     "2026-08-10",
     track:         "auto",
     category:      "buy_wait",
-    maePct: -1.13,
-    currentPrice:  13.16,           // ✅ confirmed 2026-08-11
+    maePct: -1.43,
+    currentPrice:  13.12,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4020",
     name:          "العقارية السعودية",
     sector:        "Real Estate",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    15.6,      // sahmk-close | يدوي أصلي: 15.6
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    15.6,      // cache | يدوي أصلي: 15.6
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       -0.11,
-    periodDays:    1,
+    tasiRet:       -0.01,
+    periodDays:    2,
     regimeAtEntry: "حذر",
+    status:        "closed",
+    closeDate:     "2026-08-12",
+    closePrice:    15.65,
+    closeReason:   "filter_recovered",
     entryDate:     "2026-08-10",
     track:         "auto",
     category:      "value-shadow",
@@ -1086,53 +1098,55 @@ const WATCHLIST = [
     peSectorMedianAtEntry: 12.04,
     priceVsSmaPct: -9.62,
     qualityAtEntry: 20,
-    excessNet: -0.09,
-    currentPrice:  15.57,           // ✅ confirmed 2026-08-11
+    excessNet: 0.31,
+    filterCrossDate: "2026-08-12",
+    filterCrossPrice: 15.65,
+    currentPrice:  15.65,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1010",
     name:          "بنك الرياض",
     sector:        "البنوك",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    22.32,      // sahmk-close | يدوي أصلي: 21.64
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    22.32,      // cache | يدوي أصلي: 21.64
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     2.94,
-    tasiRet:       -7.61,
-    periodDays:    516,
+    tasiRet:       -7.52,
+    periodDays:    517,
     regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
-    currentPrice:  20.59,           // ✅ confirmed 2026-08-11
+    currentPrice:  20.05,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4030",
     name:          "البحري",
     sector:        "النقل البحري",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    23.2,      // sahmk-close | يدوي أصلي: 32.0
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    23.2,      // cache | يدوي أصلي: 32.0
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     2.0,
-    tasiRet:       -7.61,
-    periodDays:    516,
+    tasiRet:       -7.52,
+    periodDays:    517,
     regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
-    currentPrice:  31.1,           // ✅ confirmed 2026-08-11
+    currentPrice:  30.74,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2287",
     name:          "العربية للزراعة",
     sector:        "الإنتاج الغذائي",
     type:          "sell",          // "buy" | "sell"
-    entryPrice:    65.0,      // sahmk-close | يدوي أصلي: 25.8
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    65.0,      // cache | يدوي أصلي: 25.8
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.5,
-    tasiRet:       -7.61,
-    periodDays:    516,
+    tasiRet:       -7.52,
+    periodDays:    517,
     regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
-    currentPrice:  22.95,           // ✅ confirmed 2026-08-11
+    currentPrice:  23.02,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4264",
@@ -1142,228 +1156,267 @@ const WATCHLIST = [
     entryPrice:    50.5,      // manual-fallback | يدوي أصلي: 50.5
     entrySource:   "manual-fallback",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0,
-    tasiRet:       -7.61,
-    periodDays:    516,
+    tasiRet:       -7.52,
+    periodDays:    517,
     regimeAtEntry: "",
     entryDate:     "2025-03-13",
     track:         "legacy",
-    currentPrice:  48.84,           // ✅ confirmed 2026-08-11
+    currentPrice:  49.32,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2020",
     name:          "سابك للمغذيات الزراعية",
     sector:        "المواد الأساسية",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    149.9,      // sahmk-close | يدوي أصلي: 145.0
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    149.9,      // cache | يدوي أصلي: 145.0
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     3.5,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  125.6,           // ✅ confirmed 2026-08-11
+    currentPrice:  126.5,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1060",
     name:          "البنك الأول",
     sector:        "البنوك",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    36.82,      // sahmk-close | يدوي أصلي: 37.3
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    36.82,      // cache | يدوي أصلي: 37.3
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     2.0,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  33.2,           // ✅ confirmed 2026-08-11
+    currentPrice:  32.66,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1120",
     name:          "مصرف الراجحي",
     sector:        "البنوك",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    70.93,      // sahmk-close | يدوي أصلي: 106.6
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    70.93,      // cache | يدوي أصلي: 106.6
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     1.75,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  64.1,           // ✅ confirmed 2026-08-11
+    currentPrice:  64.05,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1180",
     name:          "البنك الأهلي السعودي",
     sector:        "البنوك",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    42.46,      // sahmk-close | يدوي أصلي: 41.82
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     2.3,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    entryPrice:    42.46,      // cache | يدوي أصلي: 41.82
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  40.9,           // ✅ confirmed 2026-08-11
+    currentPrice:  41.0,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4190",
     name:          "جرير",
     sector:        "السلع الاستهلاكية",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    14.12,      // sahmk-close | يدوي أصلي: 14.12
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.47,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    entryPrice:    14.12,      // cache | يدوي أصلي: 14.12
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  17.26,           // ✅ confirmed 2026-08-11
+    currentPrice:  17.34,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1303",
     name:          "الصناعات الكهربائية",
     sector:        "الصناعية",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    16.68,      // sahmk-close | يدوي أصلي: 16.7
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.375,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    entryPrice:    16.68,      // cache | يدوي أصلي: 16.7
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  15.5,           // ✅ confirmed 2026-08-11
+    currentPrice:  15.6,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1323",
     name:          "الورق المتحدة",
     sector:        "السلع الاستهلاكية",
     type:          "sell",          // "buy" | "sell"
-    entryPrice:    24.9,      // sahmk-close | يدوي أصلي: 24.47
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.5,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    entryPrice:    24.9,      // cache | يدوي أصلي: 24.47
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  27.4,           // ✅ confirmed 2026-08-11
+    currentPrice:  27.92,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2300",
     name:          "صناعة الورق",
     sector:        "السلع الأساسية",
     type:          "sell",          // "buy" | "sell"
-    entryPrice:    58.4,      // sahmk-close | يدوي أصلي: 56.35
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.5,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    entryPrice:    58.4,      // cache | يدوي أصلي: 56.35
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  62.8,           // ✅ confirmed 2026-08-11
+    currentPrice:  62.25,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4018",
     name:          "الموسى الصحية",
     sector:        "الرعاية الصحية",
     type:          "sell",          // "buy" | "sell"
-    entryPrice:    135.9,      // sahmk-close | يدوي أصلي: 138.2
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    135.9,      // cache | يدوي أصلي: 138.2
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.25,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  117.6,           // ✅ confirmed 2026-08-11
+    currentPrice:  117.7,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2083",
     name:          "مرافق",
     sector:        "المرافق",
     type:          "sell",          // "buy" | "sell"
-    entryPrice:    31.94,      // sahmk-close | يدوي أصلي: 31.68
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    31.94,      // cache | يدوي أصلي: 31.68
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  39.48,           // ✅ confirmed 2026-08-11
+    currentPrice:  38.72,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4019",
     name:          "المتخصصة الطبية",
     sector:        "الرعاية الصحية",
     type:          "sell",          // "buy" | "sell"
-    entryPrice:    18.56,      // sahmk-close | يدوي أصلي: 18.54
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    18.56,      // cache | يدوي أصلي: 18.54
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.32,
-    tasiRet:       -3.86,
-    periodDays:    131,
+    tasiRet:       -3.77,
+    periodDays:    132,
     regimeAtEntry: "",
     entryDate:     "2026-04-02",
     track:         "legacy",
-    currentPrice:  15.52,           // ✅ confirmed 2026-08-11
+    currentPrice:  15.87,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "1321",
     name:          "الشرقية للأنابيب المتكاملة",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    195.9,      // same-day-close | يدوي أصلي: 195.9
-    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       0.0,
-    periodDays:    0,
+    entryPrice:    195.9,      // sahmk-close | يدوي أصلي: 195.9
+    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0.0,
+    tasiRet:       0.1,
+    periodDays:    1,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-11",
     track:         "auto",
     category:      "buy",
-    maePct: 0.0,
-    currentPrice:  195.9,           // ✅ confirmed 2026-08-11
+    maePct: -0.41,
+    currentPrice:  195.1,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "2020",
     name:          "سابك للمغذيات الزراعية",
     sector:        "Materials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    125.6,      // same-day-close | يدوي أصلي: 125.6
-    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       0.0,
-    periodDays:    0,
+    entryPrice:    125.6,      // sahmk-close | يدوي أصلي: 125.6
+    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0.0,
+    tasiRet:       0.1,
+    periodDays:    1,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-11",
     track:         "auto",
     category:      "buy_wait",
     maePct: 0.0,
-    currentPrice:  125.6,           // ✅ confirmed 2026-08-11
+    currentPrice:  126.5,           // ✅ confirmed 2026-08-12
   },
   {
     symbol:        "4030",
     name:          "البحري",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    31.1,      // same-day-close | يدوي أصلي: 31.1
-    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       0.0,
-    periodDays:    0,
+    entryPrice:    31.1,      // sahmk-close | يدوي أصلي: 31.1
+    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0.0,
+    tasiRet:       0.1,
+    periodDays:    1,
     regimeAtEntry: "هابط",
     entryDate:     "2026-08-11",
     track:         "auto",
     category:      "buy",
+    maePct: -1.16,
+    currentPrice:  30.74,           // ✅ confirmed 2026-08-12
+  },
+  {
+    symbol:        "2020",
+    name:          "سابك للمغذيات الزراعية",
+    sector:        "Materials",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    126.5,      // same-day-close | يدوي أصلي: 126.5
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "حذر",
+    entryDate:     "2026-08-12",
+    track:         "auto",
+    category:      "buy",
     maePct: 0.0,
-    currentPrice:  31.1,           // ✅ confirmed 2026-08-11
+    currentPrice:  126.5,           // ✅ confirmed 2026-08-12
+  },
+  {
+    symbol:        "7030",
+    name:          "زين السعودية",
+    sector:        "Communication Services",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    10.3,      // same-day-close | يدوي أصلي: 10.3
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "حذر",
+    entryDate:     "2026-08-12",
+    track:         "auto",
+    category:      "value-shadow",
+    sampleType:    "value-shadow",
+    maePct: 0.0,
+    peAtEntry: 10.54,
+    peSectorMedianAtEntry: 13.22,
+    priceVsSmaPct: -11.44,
+    qualityAtEntry: 19,
+    currentPrice:  10.3,           // ✅ confirmed 2026-08-12
   },
 ];
 

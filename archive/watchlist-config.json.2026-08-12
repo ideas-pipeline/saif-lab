@@ -72,11 +72,8 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "closed",
-   "maePct": -11.26,
-   "closeDate": "2026-08-12",
-   "closePrice": 4.65,
-   "closeReason": "score_below_50"
+   "status": "open",
+   "maePct": -11.26
   },
   {
    "symbol": "2070",
@@ -94,7 +91,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.04
+   "maePct": -1.46
   },
   {
    "symbol": "2190",
@@ -112,7 +109,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.52
+   "maePct": 0.0
   },
   {
    "symbol": "2230",
@@ -130,7 +127,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.12
+   "maePct": 0.0
   },
   {
    "symbol": "2280",
@@ -274,7 +271,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.52
+   "maePct": 0.0
   },
   {
    "symbol": "2110",
@@ -346,7 +343,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.59
+   "maePct": -2.32
   },
   {
    "symbol": "7010",
@@ -389,8 +386,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.63,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -2.46
+   "tasiRet": 0.15,
+   "excessNet": -2.8
   },
   {
    "symbol": "2050",
@@ -413,10 +410,10 @@
    "peAtEntry": 7.77,
    "peSectorMedianAtEntry": 18.5,
    "tasiAtEntry": 10817.01,
-   "maePct": -2.24,
+   "maePct": -0.23,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -2.52
+   "tasiRet": 0.15,
+   "excessNet": -0.4
   },
   {
    "symbol": "3020",
@@ -441,8 +438,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": 0.07
+   "tasiRet": 0.15,
+   "excessNet": 0.83
   },
   {
    "symbol": "3080",
@@ -465,10 +462,10 @@
    "peAtEntry": 9.91,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.95,
+   "maePct": -0.68,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -1.23
+   "tasiRet": 0.15,
+   "excessNet": -0.84
   },
   {
    "symbol": "6010",
@@ -493,8 +490,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -0.28
+   "tasiRet": 0.15,
+   "excessNet": 0.95
   },
   {
    "symbol": "4012",
@@ -517,10 +514,10 @@
    "peAtEntry": 13.99,
    "peSectorMedianAtEntry": 22.44,
    "tasiAtEntry": 10817.01,
-   "maePct": -2.21,
+   "maePct": -1.93,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -2.49
+   "tasiRet": 0.15,
+   "excessNet": -2.1
   },
   {
    "symbol": "3010",
@@ -545,8 +542,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.54,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -0.37
+   "tasiRet": 0.15,
+   "excessNet": -0.71
   },
   {
    "symbol": "3005",
@@ -569,10 +566,10 @@
    "peAtEntry": 11.82,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -3.28,
+   "maePct": -2.19,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -3.56
+   "tasiRet": 0.15,
+   "excessNet": -2.36
   },
   {
    "symbol": "3030",
@@ -595,10 +592,10 @@
    "peAtEntry": 12.18,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -1.7,
+   "maePct": -0.92,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -1.98
+   "tasiRet": 0.15,
+   "excessNet": -1.09
   },
   {
    "symbol": "4323",
@@ -621,10 +618,10 @@
    "peAtEntry": 8.85,
    "peSectorMedianAtEntry": 11.99,
    "tasiAtEntry": 10817.01,
-   "maePct": -1.45,
+   "maePct": -0.84,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -1.73
+   "tasiRet": 0.15,
+   "excessNet": -1.01
   },
   {
    "symbol": "1303",
@@ -659,11 +656,8 @@
    "regimeAtEntry": "حذر",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "closed",
-   "maePct": -1.46,
-   "closeDate": "2026-08-12",
-   "closePrice": 4.65,
-   "closeReason": "score_below_50"
+   "status": "open",
+   "maePct": -1.46
   },
   {
    "symbol": "2110",
@@ -699,7 +693,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -1.43
+   "maePct": -1.13
   },
   {
    "symbol": "4020",
@@ -723,14 +717,9 @@
    "peSectorMedianAtEntry": 12.04,
    "tasiAtEntry": 10845.58,
    "maePct": -0.19,
-   "status": "closed",
-   "tasiRet": -0.01,
-   "excessNet": 0.31,
-   "filterCrossDate": "2026-08-12",
-   "filterCrossPrice": 15.65,
-   "closeDate": "2026-08-12",
-   "closePrice": 15.65,
-   "closeReason": "filter_recovered"
+   "status": "open",
+   "tasiRet": -0.11,
+   "excessNet": -0.09
   },
   {
    "symbol": "1010",
@@ -913,7 +902,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.41
+   "maePct": 0.0
   },
   {
    "symbol": "2020",
@@ -949,49 +938,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -1.16
-  },
-  {
-   "symbol": "2020",
-   "name": "سابك للمغذيات الزراعية",
-   "sector": "Materials",
-   "type": "buy",
-   "entryPrice": 126.5,
-   "entryDate": "2026-08-12",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 65,
-   "timingAtEntry": "ممتاز",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
    "maePct": 0.0
-  },
-  {
-   "symbol": "7030",
-   "name": "زين السعودية",
-   "sector": "Communication Services",
-   "type": "buy",
-   "entryPrice": 10.3,
-   "entryDate": "2026-08-12",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 19,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "حذر",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "priceVsSmaPct": -11.44,
-   "peAtEntry": 10.54,
-   "peSectorMedianAtEntry": 13.22,
-   "tasiAtEntry": 10844.12,
-   "maePct": 0.0,
-   "status": "open"
   }
  ]
 }
