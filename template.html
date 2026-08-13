@@ -126,6 +126,15 @@ h1{text-align:center;color:#f59e0b;margin:20px 0 8px;font-size:1.6em}
 .rev-sig{display:inline-block;font-size:max(0.68em,9px);padding:3px 8px;border-radius:10px;background:#0f172a;color:#94a3b8;border:1px solid #334155;white-space:nowrap}
 .rev-sig.on{color:#34d399;border-color:#10b98155;background:#10b98112}
 .rev-sig.off{color:#f87171;border-color:#ef444455;background:#ef444412}
+/* شارة الانعكاس الظاهرة (بديل tooltip الـtitle — لا يعمل باللمس والمالك iPad):
+   نمط unrated-badge بصبغة القسم الكهرمانية-الخضراء */
+.rev-early-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:max(0.68em,9px);background:#78350f18;color:#fcd34d;border:1px dashed #d97706;white-space:nowrap}
+/* سطر مسافة الاستعادة — معلومة القرار الأولى في بطاقة القسم */
+.rev-dist{font-size:0.78em;color:#e2e8f0;background:#0f172a;border-radius:6px;padding:5px 8px;margin-top:8px}
+.rev-dist b{color:#fcd34d}
+/* زر عرض الكل/طي — لمسي كأزرار المدد (≥44px) */
+.rev-toggle{display:block;margin:10px auto 0;min-height:44px;min-width:160px;padding:8px 20px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:10px;cursor:pointer;font-family:inherit;font-size:0.85em}
+.rev-toggle:hover{border-color:#f59e0b}
 
 /* Table */
 table{width:100%;border-collapse:collapse;margin-top:16px;font-size:0.8em}
@@ -687,7 +696,7 @@ function renderDecisions() {
         ${verdictBlock(s)}
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div>
-            <div class="name">${s.name}${sproutTag(sc)}</div>
+            <div class="name">${s.name}</div>${sproutTag(sc)}
             <div class="symbol">${s.symbol}</div>
             <div class="sector-tag">${SECTOR_AR[secOf(s)] || secOf(s) || 'غير مصنف'}</div>
           </div>
@@ -729,7 +738,7 @@ function renderTopCards() {
       ${verdictBlock(s)}
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div>
-          <div class="name">${s.name}${sproutTag(sc)}</div>
+          <div class="name">${s.name}</div>${sproutTag(sc)}
           <div class="symbol">${s.symbol}</div>
           <div class="sector-tag">${SECTOR_AR[secOf(s)] || secOf(s) || ''}</div>
         </div>
@@ -762,38 +771,68 @@ function renderTopCards() {
 }
 
 // شاشة استثناء الانعكاس: أسهم عبرت فلتر SMA200W الإقصائي بإشارات الانعكاس الثلاث وهي بعدُ تحته.
-// المطابقة التامة إلزامية — نص الرفض المقابل «تحت SMA200W بدون إشارات انعكاس» يختلف بكلمة واحدة.
+// العقد البنيوي (قرار الاجتماع): المطابقة على sc.viaReversal === true حصراً — علم المحرك
+// الصريح، لا التطابق النصي لـfilterReason (النص للعرض فقط بعد اليوم).
 // الشارات تُحسب حية من weeklyTechnical فقد تنطفئ إشارة بين حساب الفلتر الأسبوعي والسعر اليومي،
 // والحالة المجهولة (حقل غائب) تُعرض رمادية محايدة لا حمراء
-const REVERSAL_REASON = 'تحت SMA200W لكن إشارات انعكاس';
-const REVERSAL_TAG_LABEL = 'تحت SMA200W — عبر بإشارات انعكاس';
-// وسم 🌱 بجانب اسم السهم في بطاقات الفرص (أبرز + أفضل) — نص واحد يتشاركه الموضعان والمودال
-const sproutTag = (sc) => sc && sc.filterReason === REVERSAL_REASON
-  ? ' <span title="' + REVERSAL_TAG_LABEL + '" style="cursor:help">🌱</span>'
+const isReversal = (sc) => !!sc && sc.viaReversal === true;
+const REVERSAL_TAG_LABEL = '🌱 انعكاس مبكر — تحت متوسطه الطويل';
+// شارة نصية ظاهرة (بديل tooltip الـtitle — لا يعمل باللمس والمالك iPad) تتشاركها
+// بطاقتا الفرص والمودال
+const sproutTag = (sc) => isReversal(sc)
+  ? '<div style="margin-top:3px"><span class="rev-early-badge">' + REVERSAL_TAG_LABEL + '</span></div>'
   : '';
+// مسافة الاستعادة: كم يحتاج السهم ليعود فوق SMA200W — معلومة القرار الأولى في هذا القسم،
+// وهي أيضاً مفتاح الفرز (الأقرب للاستعادة أولاً — قرار المالك 3)
+const reclaimNeedOf = (s) => {
+  const sma = (s.weeklyTechnical || {}).sma200w;
+  const p = s.currentPrice;
+  if (!sma || !p || !isFinite(sma) || !isFinite(p)) return null;
+  return (sma / p - 1) * 100;   // موجبة = ما زال تحته؛ سالبة = استعاده بآخر سعر
+};
+let revExpanded = false;
+function toggleReversals() { revExpanded = !revExpanded; renderReversals(); }
 function renderReversals() {
-  const list = stocks.filter(s => !s.delisted && s.investmentScore?.filterReason === REVERSAL_REASON)
-    .sort((a,b) => (b.investmentScore?.total||0) - (a.investmentScore?.total||0));
+  const list = stocks.filter(s => !s.delisted && isReversal(s.investmentScore))
+    .sort((a, b) => {   // الأقرب للاستعادة أولاً؛ غائب المسافة (دفاعي) يهبط للقاع
+      const na = reclaimNeedOf(a), nb = reclaimNeedOf(b);
+      if (na == null && nb == null) return (b.investmentScore?.total||0) - (a.investmentScore?.total||0);
+      if (na == null) return 1;
+      if (nb == null) return -1;
+      return na - nb;
+    });
   const el = document.getElementById('reversals');
   if (!list.length) {
     el.innerHTML = '<div style="color:#64748b;padding:16px;text-align:center">لا أسهم في هذه الفئة اليوم — لم يمنح الفلتر استثناء الانعكاس لأي سهم</div>';
     return;
   }
-  // ✓/✕ قبل التسمية: تمييز لا يعتمد اللون وحده
+  // الطي الافتراضي (قرار المالك 2): أعلى 5 بالقرب من الاستعادة، والكل بنقرة — لا إخفاء لأحد
+  const shown = revExpanded ? list : list.slice(0, 5);
+  // ✓/✕ قبل التسمية: تمييز لا يعتمد اللون وحده. التسميات بالعربية المبسطة (قرار الاجتماع)
   const sig = (state, label, v, dec) => {
     const val = v != null ? '<span dir="ltr">' + Number(v).toFixed(dec) + '</span>' : '—';
     return state == null
       ? `<span class="rev-sig">${label} ${val}</span>`
       : `<span class="rev-sig ${state ? 'on' : 'off'}">${state ? '✓' : '✕'} ${label} ${val}</span>`;
   };
-  // التحذير جزء من الشاشة نفسها وقبل الأسماء — شرط الناقد
-  el.innerHTML = '<div class="rev-warn">⚠️ الاتجاه لم يثبت بعد — مخاطرة أعلى من قائمة الشراء</div>' +
-    '<div class="rev-note">الشارات محسوبة بآخر سعر — الحمراء إشارة تراجعت بعد الفرز الأسبوعي</div>' +
-    '<div class="cards">' + list.map(s => {
+  // سطر المسافة: يحتاج +X% ليستعيد ≈ قيمة المتوسط؛ ولو استعاده بآخر سعر يُقال بصدق.
+  // غير قابلة للحساب (دفاعي — لا يحدث بنيوياً) → وسم غياب لا إخفاء
+  const distLine = (s) => {
+    const need = reclaimNeedOf(s);
+    const sma = (s.weeklyTechnical || {}).sma200w;
+    if (need == null) return '<div class="rev-dist" style="color:#64748b">مسافة الاستعادة غير متاحة</div>';
+    if (need <= 0) return '<div class="rev-dist">✓ استعاد المتوسط بآخر سعر — يُحسم في الفرز القادم</div>';
+    return '<div class="rev-dist">يحتاج <b dir="ltr">+' + need.toFixed(1) + '%</b> ليستعيد المتوسط ≈ <span dir="ltr">' + (fmtPrice(sma) || '—') + '</span> ر.س</div>';
+  };
+  // التحذير جزء من الشاشة نفسها وقبل الأسماء (ختم ناقد سابق) — مقوّى بدمج «فئة رصد»
+  // في متنه (قرار الاجتماع 9). البطاقة بلا verdictBlock عمداً: سطر «فرصة شراء» الأخضر
+  // تحت تحذير المخاطرة تناقض ظاهر — الكبح سياقي هنا حصراً، وبطاقات الفرص تبقى بحكمها
+  el.innerHTML = '<div class="rev-warn">⚠️ الاتجاه لم يثبت بعد — مخاطرة أعلى من قائمة الشراء | فئة رصد — ليست توصيات</div>' +
+    '<div class="rev-note">شارة EMA40W وحدها قد تتغير مع آخر سعر — انطفاؤها يعني ترشح السهم للخروج من القسم في الفرز القادم</div>' +
+    '<div class="cards">' + shown.map(s => {
       const sc = s.investmentScore || {};
       const wt = s.weeklyTechnical || {};
       return `<div class="card" onclick="openModal('${s.symbol}')">
-        ${verdictBlock(s)}
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div>
             <div class="name">${s.name}</div>
@@ -806,15 +845,20 @@ function renderReversals() {
             ${liqBlocked(s) ? '<div style="margin-top:4px">' + liqBadge(s) + '</div>' : ''}
           </div>
         </div>
+        ${distLine(s)}
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">
-          ${sig(wt.ema40w != null && s.currentPrice != null ? s.currentPrice > wt.ema40w : null, 'EMA40W', wt.ema40w, 2)}
-          ${sig(wt.rsi14w != null ? wt.rsi14w > 50 : null, 'RSI-W', wt.rsi14w, 1)}
-          ${sig(wt.macdW != null && wt.macdSignalW != null ? wt.macdW > wt.macdSignalW : null, 'MACD-W', wt.macdW, 2)}
+          ${sig(wt.ema40w != null && s.currentPrice != null ? s.currentPrice > wt.ema40w : null, 'فوق EMA40W', wt.ema40w, 2)}
+          ${sig(wt.rsi14w != null ? wt.rsi14w > 50 : null, 'زخم أسبوعي RSI', wt.rsi14w, 1)}
+          ${sig(wt.macdW != null && wt.macdSignalW != null ? wt.macdW > wt.macdSignalW : null, 'تقاطع MACD', wt.macdW, 2)}
         </div>
         ${entryStrip(sc)}
         <div style="margin-top:6px;font-size:1.2em">${priceLine(s)}</div>
       </div>`;
-    }).join('') + '</div>';
+    }).join('') + '</div>' +
+    (list.length > 5
+      ? '<button type="button" class="rev-toggle" onclick="toggleReversals()" aria-expanded="' + revExpanded + '">' +
+        (revExpanded ? '▲ طي القائمة' : '▼ عرض الكل (' + list.length + ')') + '</button>'
+      : '');
 }
 
 // يُبنى الجدول كاملاً مرة واحدة — الفلترة إخفاءً والفرز إعادة ترتيب للعقد نفسها (248 صفاً)
@@ -1429,7 +1473,7 @@ function openModal(sym) {
       ${s.delisted ? '<div style="color:#9ca3af;margin-top:8px;font-size:0.85em">📤 شُطب من السوق أو عُلّق تداوله' + (s.delistedAt ? ' — ' + String(s.delistedAt).slice(0,10) : '') + ' | البيانات المعروضة تاريخية بآخر تداول</div>' : ''}
       ${!s.delisted && isUnrated(sc) ? '<div style="margin-top:6px">' + unratedBadge(sc) + '</div>' : ''}
       ${!s.delisted && liqBlocked(s) ? '<div style="margin-top:6px">' + liqBadge(s) + '</div>' : ''}
-      ${!s.delisted && !sc.filtered && sc.filterReason === REVERSAL_REASON ? '<div style="color:#fcd34d;margin-top:6px;font-size:0.85em">🌱 ' + REVERSAL_TAG_LABEL + '</div>' : ''}
+      ${!s.delisted && !sc.filtered && isReversal(sc) ? '<div style="margin-top:6px"><span class="rev-early-badge">' + REVERSAL_TAG_LABEL + '</span></div>' : ''}
       ${!s.delisted && sc.filtered ? '<div style="color:#f59e0b;margin-top:8px">لم يعدّ الفلتر: ' + (sc.filterReason||'') + '</div>' : ''}
     </div>`;
 

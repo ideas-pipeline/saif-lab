@@ -107,6 +107,15 @@ for s in S:
 if partial_trend_bad:
     warn("🚨 ALERT صارخ (ملحق §3.2): نقاط ترند جزئية (EMA40W بلا SMA200W) لدى غير "
          "unrated/مفلتر — انكسار عقد: %s" % partial_trend_bad[:10])
+# اجتماع قسم الانعكاس (11-08): اتساق العقد البنيوي viaReversal ⇔ filterReason
+# (القالب سيطابق على العلم البنيوي — أي انفكاك بين الاثنين كسر عقد صامت محتمل)
+REV_REASON = "تحت SMA200W لكن إشارات انعكاس"
+rev_mismatch = [s["symbol"] for s in S
+                if bool((s.get("investmentScore") or {}).get("viaReversal"))
+                != ((s.get("investmentScore") or {}).get("filterReason") == REV_REASON)]
+if rev_mismatch:
+    warn("🚨 ALERT صارخ: انفكاك viaReversal عن filterReason==REVERSAL لدى %d: %s — "
+         "عقد قسم الانعكاس منكسر" % (len(rev_mismatch), rev_mismatch[:10]))
 # §4-ب الحارس ب: مستويات مقيدة التاريخ (كشف إجراء رأسمالي ملتبس) → مراجعة يدوية
 lv_restricted = [s["symbol"] for s in S if (s.get("levels") or {}).get("restricted")]
 print("    مستويات S/R مقيدة التاريخ (كشف ملتبس §4-ب): %d %s"

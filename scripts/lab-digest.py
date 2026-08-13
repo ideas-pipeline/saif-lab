@@ -288,6 +288,40 @@ def main():
                  % ec["بلا طبقة دخول"])
     L.append("")
 
+    # ── قسم الانعكاس (اجتماع 11-08 — ملف أدلة م-3: عتبة RSI>50 في فلتر الانعكاس) ──
+    REV_REASON = "تحت SMA200W لكن إشارات انعكاس"
+    rev = [s for s in S if (s.get("investmentScore") or {}).get("filterReason") == REV_REASON]
+    rev_syms = sorted(s["symbol"] for s in rev)
+    L.append("### قسم الانعكاس «الاتجاه لم يثبت بعد» (ملف أدلة م-3)")
+    L.append("- أعضاء اليوم: %d — قفزة الأحد سلوك متوقع لا علة: المؤشرات الأسبوعية"
+             " تتحدث جماعياً عند اكتمال كل أسبوع فيُتوقع churn صباح أول جلسة بعده." % len(rev))
+    if rev:
+        L.append("")
+        L.append("| الرمز | النقاط | مسافة الاستعادة | حالة الحجم (vol20/vol50) |")
+        L.append("|---|---|---|---|")
+        for s in sorted(rev, key=lambda x: -((x.get("investmentScore") or {}).get("total") or 0)):
+            wt_ = s.get("weeklyTechnical") or {}
+            dx_ = s.get("dailyExtra") or {}
+            dist = ("%+.1f%%" % ((s.get("currentPrice") / wt_["sma200w"] - 1) * 100)
+                    if s.get("currentPrice") and wt_.get("sma200w") else "—")
+            vt = (round(dx_["avgVol20"] / dx_["avgVol50"], 2)
+                  if dx_.get("avgVol20") and dx_.get("avgVol50") else "—")
+            L.append("| %s | %s | %s | %s |" % (
+                s["symbol"], (s.get("investmentScore") or {}).get("total"), dist, vt))
+        secs = Counter(s.get("sector") or "؟" for s in rev)
+        L.append("")
+        L.append("- التركيبة القطاعية: " + "، ".join("%s: %d" % kv for kv in secs.most_common()))
+    prev_rev = prev.get("reversalMembers")
+    if prev_rev is not None:
+        ent_r = [x for x in rev_syms if x not in prev_rev]
+        left_r = [x for x in prev_rev if x not in rev_syms]
+        L.append("- تقلب العضوية أسبوعياً: دخل %d %s | خرج %d %s | ثابت %d"
+                 % (len(ent_r), ent_r or "", len(left_r), left_r or "",
+                    len([x for x in rev_syms if x in prev_rev])))
+    else:
+        L.append("- تقلب العضوية: لا لقطة سابقة — هذه أساس المقارنة.")
+    L.append("")
+
     # ── تاريخ النظام الأسبوعي (شرط الناقد 3 — مصدر محفز م-4) ──
     same_day_rerun = prev.get("at") == today
     regime_log = list(prev.get("regimeLog") or [])
@@ -386,6 +420,7 @@ def main():
                 "universe": (data.get("scoringStats") or {}).get("universe"),
                 "buyFamily": fam_syms, "unrated": n_unrated,
                 "guardByField": {str(k): v for k, v in rej.items()},
+                "reversalMembers": rev_syms,
                 "regimeLog": regime_log}
         atomic_write(prev_path, json.dumps(snap, ensure_ascii=False, indent=1))
     print("✅ lab-digest: كُتب %s (ذرياً)%s | فئات المحرك: %s"

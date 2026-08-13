@@ -94,8 +94,21 @@ for s in data.get("stocks", []):
         "regimeAtEntry": regime,
         "aboveSmaAtEntry": bool(cur >= sma_w) if (cur is not None and sma_w) else None,
         "scoreScaleAtEntry": "criteria-v3",  # مقام 100 مباشرة — لا مقارنة عبر سلالم النسخ الأقدم
+        # أختام اجتماع قسم الانعكاس (موجة 11-08): تجزئة cohort الانعكاس + حالة الحجم
+        "viaReversalAtEntry": bool(inv.get("viaReversal")),
+        "volTrendAtEntry": (round((s.get("dailyExtra") or {}).get("avgVol20") /
+                                  (s.get("dailyExtra") or {}).get("avgVol50"), 2)
+                            if (s.get("dailyExtra") or {}).get("avgVol20")
+                            and (s.get("dailyExtra") or {}).get("avgVol50") else None),
         "status": "open",
     }
+    # وسم التوائم (موجة 11-08): مدخلان متزامنان لسهم عبر العينتين — معزولان إحصائياً
+    if sample == "shadow" and (s["symbol"], "applied") in open_auto:
+        entry["twinNote"] = "سبقه مدخل مطبق مفتوح بتاريخه"
+    if sample == "applied":
+        tw = open_auto.get((s["symbol"], "shadow"))
+        if tw is not None:
+            tw["twinNote"] = "تخرّج لمطبق بتاريخه"
     stocks_cfg.append(entry)
     open_auto[(s["symbol"], sample)] = entry
     added.append(entry)
@@ -210,6 +223,11 @@ if len(vs_open_syms) < VS_CAP:
             "engineClass": "filtered", "scoreAtEntry": 0, "qualityAtEntry": q,
             "timingAtEntry": inv.get("timing", ""), "regimeAtEntry": regime,
             "scoreScaleAtEntry": "criteria-v3", "aboveSmaAtEntry": False,
+            "viaReversalAtEntry": False,   # مستبعد بالتعريف — الختم للتوحيد
+            "volTrendAtEntry": (round((s.get("dailyExtra") or {}).get("avgVol20") /
+                                      (s.get("dailyExtra") or {}).get("avgVol50"), 2)
+                                if (s.get("dailyExtra") or {}).get("avgVol20")
+                                and (s.get("dailyExtra") or {}).get("avgVol50") else None),
             "priceVsSmaPct": round((cur / sma_w2 - 1) * 100, 2),
             "peAtEntry": pe, "peSectorMedianAtEntry": med,
             "tasiAtEntry": tasi_now, "maePct": 0.0,
