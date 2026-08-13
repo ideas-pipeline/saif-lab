@@ -37,7 +37,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": 0.0
+   "maePct": 0.0,
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "1321",
@@ -55,7 +56,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": 0.0
+   "maePct": 0.0,
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "1831",
@@ -91,7 +93,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -1.46
+   "maePct": -1.46,
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "2190",
@@ -181,7 +184,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": 0.0
+   "maePct": 0.0,
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "4030",
@@ -199,7 +203,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": 0.0
+   "maePct": 0.0,
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "4190",
@@ -253,7 +258,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": 0.0
+   "maePct": 0.0,
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "2070",
@@ -307,7 +313,8 @@
    "aboveSmaAtEntry": false,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.21
+   "maePct": -0.21,
+   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه"
   },
   {
    "symbol": "2380",
@@ -657,7 +664,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -1.46
+   "maePct": -1.46,
+   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه"
   },
   {
    "symbol": "2110",
@@ -675,7 +683,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": 0.0
+   "maePct": 0.0,
+   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه"
   },
   {
    "symbol": "4280",
@@ -693,7 +702,8 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -1.13
+   "maePct": -1.13,
+   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه"
   },
   {
    "symbol": "4020",
