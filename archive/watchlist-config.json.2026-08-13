@@ -169,7 +169,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -6.59
+   "maePct": -6.34
   },
   {
    "symbol": "2380",
@@ -353,7 +353,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.93
+   "maePct": -2.59
   },
   {
    "symbol": "7010",
@@ -394,10 +394,10 @@
    "peAtEntry": 5.26,
    "peSectorMedianAtEntry": 19.07,
    "tasiAtEntry": 10817.01,
-   "maePct": -4.07,
+   "maePct": -2.63,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -4.17
+   "tasiRet": 0.25,
+   "excessNet": -2.46
   },
   {
    "symbol": "2050",
@@ -422,8 +422,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -0.1
+   "tasiRet": 0.25,
+   "excessNet": -2.52
   },
   {
    "symbol": "3020",
@@ -448,8 +448,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": 0.81
+   "tasiRet": 0.25,
+   "excessNet": 0.07
   },
   {
    "symbol": "3080",
@@ -472,10 +472,10 @@
    "peAtEntry": 9.91,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -1.95,
+   "maePct": -0.95,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -2.05
+   "tasiRet": 0.25,
+   "excessNet": -1.23
   },
   {
    "symbol": "6010",
@@ -498,10 +498,10 @@
    "peAtEntry": 11.47,
    "peSectorMedianAtEntry": 18.5,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.98,
+   "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -1.08
+   "tasiRet": 0.25,
+   "excessNet": -0.28
   },
   {
    "symbol": "4012",
@@ -524,10 +524,10 @@
    "peAtEntry": 13.99,
    "peSectorMedianAtEntry": 22.44,
    "tasiAtEntry": 10817.01,
-   "maePct": -3.04,
+   "maePct": -2.21,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -3.14
+   "tasiRet": 0.25,
+   "excessNet": -2.49
   },
   {
    "symbol": "3010",
@@ -552,8 +552,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.54,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -0.59
+   "tasiRet": 0.25,
+   "excessNet": -0.37
   },
   {
    "symbol": "3005",
@@ -576,10 +576,10 @@
    "peAtEntry": 11.82,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -4.46,
+   "maePct": -3.28,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -4.56
+   "tasiRet": 0.25,
+   "excessNet": -3.56
   },
   {
    "symbol": "3030",
@@ -604,8 +604,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -1.51
+   "tasiRet": 0.25,
+   "excessNet": -1.98
   },
   {
    "symbol": "4323",
@@ -628,10 +628,10 @@
    "peAtEntry": 8.85,
    "peSectorMedianAtEntry": 11.99,
    "tasiAtEntry": 10817.01,
-   "maePct": -2.75,
+   "maePct": -1.45,
    "status": "open",
-   "tasiRet": 0.06,
-   "excessNet": -2.85
+   "tasiRet": 0.25,
+   "excessNet": -1.73
   },
   {
    "symbol": "1303",
@@ -923,7 +923,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.25
+   "maePct": -0.41
   },
   {
    "symbol": "2020",
@@ -941,7 +941,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.71
+   "maePct": 0.0
   },
   {
    "symbol": "4030",
@@ -977,7 +977,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.4
+   "maePct": 0.0
   },
   {
    "symbol": "7030",
@@ -1000,130 +1000,6 @@
    "peAtEntry": 10.54,
    "peSectorMedianAtEntry": 13.22,
    "tasiAtEntry": 10844.12,
-   "maePct": -0.58,
-   "status": "closed",
-   "tasiRet": -0.19,
-   "excessNet": -0.4,
-   "closeDate": "2026-08-13",
-   "closePrice": 10.24,
-   "closeReason": "cheapness_exited"
-  },
-  {
-   "symbol": "1050",
-   "name": "البنك السعودي الفرنسي",
-   "sector": "Financials",
-   "type": "buy",
-   "entryPrice": 20.65,
-   "entryDate": "2026-08-13",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "conditional_buy",
-   "scoreAtEntry": 69,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 0.92,
-   "status": "open",
-   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "4020",
-   "name": "العقارية السعودية",
-   "sector": "Real Estate",
-   "type": "buy",
-   "entryPrice": 15.77,
-   "entryDate": "2026-08-13",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "hold",
-   "scoreAtEntry": 66,
-   "timingAtEntry": "انتظر",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": false,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": true,
-   "volTrendAtEntry": 0.82,
-   "status": "open",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "4003",
-   "name": "اكسترا",
-   "sector": "Consumer Discretionary",
-   "type": "buy",
-   "entryPrice": 62.5,
-   "entryDate": "2026-08-13",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 19,
-   "timingAtEntry": "انتظر",
-   "regimeAtEntry": "هابط",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 1.32,
-   "priceVsSmaPct": -25.84,
-   "peAtEntry": 12.84,
-   "peSectorMedianAtEntry": 23.0,
-   "tasiAtEntry": 10823.6,
-   "maePct": 0.0,
-   "status": "open"
-  },
-  {
-   "symbol": "4260",
-   "name": "بدجت السعودية",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 28.28,
-   "entryDate": "2026-08-13",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 19,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "هابط",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 1.37,
-   "priceVsSmaPct": -48.94,
-   "peAtEntry": 9.94,
-   "peSectorMedianAtEntry": 14.34,
-   "tasiAtEntry": 10823.6,
-   "maePct": 0.0,
-   "status": "open"
-  },
-  {
-   "symbol": "4150",
-   "name": "الرياض للتعمير",
-   "sector": "Real Estate",
-   "type": "buy",
-   "entryPrice": 15.5,
-   "entryDate": "2026-08-13",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 23,
-   "timingAtEntry": "انتظر",
-   "regimeAtEntry": "هابط",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 1.13,
-   "priceVsSmaPct": -35.09,
-   "peAtEntry": 10.69,
-   "peSectorMedianAtEntry": 13.57,
-   "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open"
   }
