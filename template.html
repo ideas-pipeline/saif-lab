@@ -8,6 +8,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Tahoma,sans-serif;background:#0f172a;color:#e2e8f0;padding:16px;max-width:1400px;margin:0 auto}
 h1{text-align:center;color:#f59e0b;margin:20px 0 8px;font-size:1.6em}
+h1.brand{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.brand-mark{flex:none;display:block}
+.brand-sub{font-size:0.55em;color:#94a3b8;font-weight:600;align-self:flex-end;margin-bottom:5px}
 .subtitle{text-align:center;color:#94a3b8;margin-bottom:8px;font-size:0.9em}
 .regime-banner{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 20px;border-radius:8px;margin:6px auto 10px;max-width:750px;font-size:0.9em;font-weight:600;border:1px solid;flex-wrap:wrap;text-align:center}
 .regime-red{background:#7f1d1d22;border-color:#dc2626;color:#fca5a5}
@@ -149,9 +152,11 @@ tr:hover{background:#1e293b88}
 .modal-overlay.active{display:flex}
 .modal{background:#1e293b;border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;border:1px solid #334155;animation:modalIn .3s ease-out}
 @keyframes modalIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #334155;position:sticky;top:0;background:#1e293b;z-index:2;border-radius:16px 16px 0 0}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #334155;position:sticky;top:0;background:#1e293b;z-index:2;border-radius:16px 16px 0 0;box-shadow:0 2px 10px #0006} /* معتم بظل — يبقى الاسم و✕ ظاهرين مهما نزل التمرير (شكوى الآيفون) */
 .modal-header h2{font-size:1.2em;color:#f8fafc}
-.modal-close{background:none;border:none;color:#94a3b8;font-size:1.5em;cursor:pointer;padding:4px 8px;border-radius:8px}
+.modal-close{background:none;border:1px solid #334155;color:#94a3b8;font-size:1.3em;cursor:pointer;min-width:44px;min-height:44px;border-radius:10px} /* ‏≥44px لمسي */
+.modal-return{display:block;width:100%;min-height:48px;margin-top:6px;padding:12px;background:#0f172a;border:1px solid #f59e0b66;border-radius:10px;color:#fcd34d;font-family:inherit;font-size:0.95em;font-weight:700;cursor:pointer}
+.modal-return:hover{background:#f59e0b18;border-color:#f59e0b}
 .modal-close:hover{background:#334155;color:#f8fafc}
 .modal-body{padding:20px}
 .modal-section{margin-bottom:20px}
@@ -238,7 +243,7 @@ tr:hover{background:#1e293b88}
 .search-fab{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:calc(18px + env(safe-area-inset-left,0px));width:56px;height:56px;border-radius:50%;background:#f59e0b;color:#000;border:none;font-size:1.4em;cursor:pointer;z-index:90;box-shadow:0 4px 14px #000a;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .search-fab:hover{background:#fbbf24}
 .search-fab.hidden{display:none} /* يختفي مع أي مودال مفتوح — لا يزاحم أزراره */
-.search-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;padding:14px;padding-top:max(72px,calc(env(safe-area-inset-top,0px) + 64px))} /* يجاوز ارتفاع بانر «نسخة تجريبية» الملاصق (z:9999 مقصود لا يُمس) — كان يقص ✕ ورأس الحقل */
+.search-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;padding:14px;padding-top:max(20px,calc(env(safe-area-inset-top,0px) + 10px))} /* أعيد ضبطها بعد إزالة البانر — safe-area وحدها تكفي */
 .search-overlay.active{display:flex;flex-direction:column;align-items:center}
 .search-panel{width:100%;max-width:560px;background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px #000a}
 .search-panel .sp-head{display:flex;gap:8px;padding:10px;border-bottom:1px solid #334155}
@@ -274,11 +279,20 @@ tr:hover{background:#1e293b88}
 </style>
 </head>
 <body>
-<div style="position:sticky;top:0;z-index:9999;background:#b91c1c;color:#fff;text-align:center;padding:10px 12px;font-weight:700;font-size:15px;letter-spacing:.2px;box-shadow:0 2px 8px rgba(0,0,0,.4)">
-  &#129514; نسخة تجريبية &mdash; ليست المنصة الحقيقية
-  <span style="display:block;font-weight:400;font-size:12px;opacity:.9;margin-top:2px">لا تُبنَ عليها قرارات استثمارية</span>
-</div>
-<h1>سيف تداول — النموذج الاستثماري</h1>
+<!-- شعار سيف تداول (قرار المالك: الشعار بدل بانر النسخة التجريبية) — SVG مضمّن:
+     نصل سيف صاعد بمسار شموع (كهرماني)، سنّه سهم أخضر صاعد، ومقبض رمادي — حدّة واستقامة
+     السيف بروح رسم الاتجاه. الإفصاح الهادئ باقٍ في التذييل كما هو -->
+<h1 class="brand">
+  <svg class="brand-mark" viewBox="0 0 48 48" width="42" height="42" role="img" aria-label="شعار سيف تداول">
+    <line x1="7" y1="34.5" x2="14" y2="41.5" stroke="#64748b" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="6.2" cy="42" r="2.1" fill="#64748b"/>
+    <polyline points="10.5,37.5 19,29 23,33 30.5,25.5 28.5,23.5 36,16" fill="none"
+      stroke="#f59e0b" stroke-width="3.4" stroke-linecap="square" stroke-linejoin="miter"/>
+    <path d="M43 5 L31.5 8.6 L39.4 16.5 Z" fill="#10b981"/>
+  </svg>
+  <span>سيف تداول</span>
+  <span class="brand-sub">النموذج الاستثماري</span>
+</h1>
 <div class="subtitle">تقييم استثماري متوسط المدى (6-12 شهر) | 5 محاور | 100 نقطة</div>
 <div class="subtitle" style="margin-top:-4px">آخر تحديث: <span id="lastUpdate">—</span> | <a href="watchlist-accuracy.html" style="color:#f59e0b;text-decoration:none">📊 دقة التوصيات</a></div>
 <div id="regimeBanner" class="regime-banner" style="display:none"></div>
@@ -1729,6 +1743,9 @@ function openModal(sym) {
     </div>
   </div>`;
   
+  // قناة خروج ثالثة (شكوى الآيفون): زر عريض واضح نهاية المحتوى — لا حاجة للوصول لطرف الشاشة
+  body += '<button type="button" class="modal-return" onclick="closeModal()">↩ العودة للقائمة</button>';
+
   document.getElementById('modalBody').innerHTML = body;
   document.getElementById('stockModal').classList.add('active');
 
@@ -1738,16 +1755,30 @@ function openModal(sym) {
   // الزر العائم يختفي مع المودال — لا يزاحم أزراره (أزرار المدد، الإغلاق)
   const fab = document.getElementById('searchFab');
   if (fab) fab.classList.add('hidden');
+
+  // تكامل التاريخ: فتح فوق مودال مفتوح يستبدل الحالة (لا تكديس من البحث/الجدول)
+  try {
+    if (modalHistoryActive) history.replaceState({ m: sym }, '');
+    else { history.pushState({ m: sym }, ''); modalHistoryActive = true; }
+  } catch (e) { /* بيئة بلا history (اختبار/تضمين) — المودال يعمل بدونها */ }
 }
 
 function closeModal() {
-  document.getElementById('stockModal').classList.remove('active');
+  const m = document.getElementById('stockModal');
+  if (!m.classList.contains('active')) return;   // حارس: لا تنظيف مكرراً ولا back() على مودال مغلق (Escape مثلاً)
+  m.classList.remove('active');
   // تنظيف الرسم: فصل مراقب المقاس (لا تسريب بين المودالات) وتصفير حالته
   if (chartRO) { chartRO.disconnect(); chartRO = null; }
   chartStock = null; chartRange = null; chartGeom = null;
   // عودة زر البحث العائم بعد إغلاق المودال
   const fab = document.getElementById('searchFab');
   if (fab) fab.classList.remove('hidden');
+  // التاريخ: القنوات اليدوية (✕/خارج/Escape/زر العودة) تستهلك الحالة المدفوعة بback()،
+  // أما مسار popstate فالمتصفح استهلكها أصلاً — العلم يمنع الدوران
+  if (modalHistoryActive) {
+    modalHistoryActive = false;
+    if (!modalFromPop) { try { history.back(); } catch (e) {} }
+  }
 }
 
 // (drawChart القديمة على canvas أُزيلت — الرسم كله في drawStockChart أعلاه بعقد series الحي)
@@ -1812,6 +1843,21 @@ function fabSearch(q) {
       '</div>';
   }).join('');
 }
+
+// ═══ إيماءة الرجوع iOS (شكوى الآيفون): سحبة الرجوع تغلق المودال لا الصفحة ═══
+// openModal يدفع حالة واحدة (والفتح فوق مودال مفتوح = replaceState لا تكديس)؛
+// popstate والمودال مفتوح → إغلاق بعلم fromPop يمنع back() مزدوجاً (دوران)؛
+// popstate والمودال مغلق → لا شيء (تصفح طبيعي)؛ refresh والمودال مفتوح → الحالة
+// تسقط بصمت (العلم modalHistoryActive يبدأ false بعد التحميل)
+let modalFromPop = false;
+let modalHistoryActive = false;
+window.addEventListener('popstate', () => {
+  const m = document.getElementById('stockModal');
+  if (m && m.classList.contains('active')) {
+    modalFromPop = true;
+    try { closeModal(); } finally { modalFromPop = false; }
+  }
+});
 
 // ‏Escape: تغلق طبقة البحث أولاً إن كانت مفتوحة، وإلا المودال — طبقة واحدة لكل ضغطة
 document.addEventListener('keydown', e => {
