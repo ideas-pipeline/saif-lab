@@ -150,13 +150,15 @@ tr:hover{background:#1e293b88}
 /* Modal */
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:100;justify-content:center;align-items:center;padding:16px}
 .modal-overlay.active{display:flex}
-.modal{background:#1e293b;border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;border:1px solid #334155;animation:modalIn .3s ease-out}
+.modal{background:#1e293b;border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;border:1px solid #334155;animation:modalIn .3s ease-out;overscroll-behavior:contain;-webkit-overflow-scrolling:touch} /* عزل الإيماءة داخل المودال + زخم تمرير iOS */
 @keyframes modalIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #334155;position:sticky;top:0;background:#1e293b;z-index:2;border-radius:16px 16px 0 0;box-shadow:0 2px 10px #0006} /* معتم بظل — يبقى الاسم و✕ ظاهرين مهما نزل التمرير (شكوى الآيفون) */
 .modal-header h2{font-size:1.2em;color:#f8fafc}
-.modal-close{background:none;border:1px solid #334155;color:#94a3b8;font-size:1.3em;cursor:pointer;min-width:44px;min-height:44px;border-radius:10px} /* ‏≥44px لمسي */
-.modal-return{display:block;width:100%;min-height:48px;margin-top:6px;padding:12px;background:#0f172a;border:1px solid #f59e0b66;border-radius:10px;color:#fcd34d;font-family:inherit;font-size:0.95em;font-weight:700;cursor:pointer}
+.modal-close{background:none;border:1px solid #334155;color:#94a3b8;font-size:1.3em;cursor:pointer;min-width:44px;min-height:44px;border-radius:10px;-webkit-appearance:none;appearance:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent} /* ‏≥44px لمسي + مواءمة سفاري: لا تأخير 300ms ولا وميض لمس افتراضي */
+.modal-close:active{background:#334155;color:#f8fafc;transform:scale(.94)} /* حالة ضغط مرئية بديلة عن tap-highlight */
+.modal-return{display:block;width:100%;min-height:48px;margin-top:6px;margin-bottom:calc(4px + env(safe-area-inset-bottom,0px));padding:12px;background:#0f172a;border:1px solid #f59e0b66;border-radius:10px;color:#fcd34d;font-family:inherit;font-size:0.95em;font-weight:700;cursor:pointer;-webkit-appearance:none;appearance:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent} /* ‏safe-area: لا يختبئ خلف شريط سفاري السفلي */
 .modal-return:hover{background:#f59e0b18;border-color:#f59e0b}
+.modal-return:active{background:#f59e0b26;border-color:#f59e0b;transform:scale(.99)}
 .modal-close:hover{background:#334155;color:#f8fafc}
 .modal-body{padding:20px}
 .modal-section{margin-bottom:20px}
@@ -1756,11 +1758,14 @@ function openModal(sym) {
   const fab = document.getElementById('searchFab');
   if (fab) fab.classList.add('hidden');
 
-  // تكامل التاريخ: فتح فوق مودال مفتوح يستبدل الحالة (لا تكديس من البحث/الجدول)
-  try {
-    if (modalHistoryActive) history.replaceState({ m: sym }, '');
-    else { history.pushState({ m: sym }, ''); modalHistoryActive = true; }
-  } catch (e) { /* بيئة بلا history (اختبار/تضمين) — المودال يعمل بدونها */ }
+  // قفل تمرير الخلفية — الإيماءة تصير حصرية للمودال (شكوى الآيفون)
+  lockBodyScroll();
+
+  // تكامل التاريخ مؤجلاً ~60ms بعد استقرار العرض (لا pushState متزامناً مع اللمس —
+  // علة WebKit)؛ الحواف المختومة باقية: replaceState فوق مفتوح، العلمان، الاستهلاك
+  modalHistPending = sym;
+  if (modalHistTimer) clearTimeout(modalHistTimer);
+  modalHistTimer = setTimeout(commitModalHistory, 60);
 }
 
 function closeModal() {
@@ -1773,6 +1778,11 @@ function closeModal() {
   // عودة زر البحث العائم بعد إغلاق المودال
   const fab = document.getElementById('searchFab');
   if (fab) fab.classList.remove('hidden');
+  // فك قفل الخلفية واستعادة موضع التمرير (لا قفزة)
+  unlockBodyScroll();
+  // إلغاء دفع مؤجل لم يُنفذ بعد (فتح ثم إغلاق فوري) — لا حالة يتيمة في التاريخ
+  modalHistPending = null;
+  if (modalHistTimer) { clearTimeout(modalHistTimer); modalHistTimer = null; }
   // التاريخ: القنوات اليدوية (✕/خارج/Escape/زر العودة) تستهلك الحالة المدفوعة بback()،
   // أما مسار popstate فالمتصفح استهلكها أصلاً — العلم يمنع الدوران
   if (modalHistoryActive) {
@@ -1851,6 +1861,47 @@ function fabSearch(q) {
 // تسقط بصمت (العلم modalHistoryActive يبدأ false بعد التحميل)
 let modalFromPop = false;
 let modalHistoryActive = false;
+// استعادة التمرير بأيدينا لا بيد المتصفح: التلقائية تعيد موضع لحظة pushState — وكان
+// صفراً لأن الخلفية مقفلة — فتسحق استعادة unlockBodyScroll وتقفز الصفحة للأعلى (مقيس)
+try { history.scrollRestoration = 'manual'; } catch (e) {}
+let modalHistPending = null;   // رمز بانتظار الدفع المؤجل
+let modalHistTimer = null;
+// الدفع الفعلي — مؤجل عن openModal (علة WebKit: pushState متزامن مع اللمس يعطل تمرير
+// حاويات overflow في سفاري iOS). يُستدعى بالمؤقت، وقابل للاستدعاء المباشر (idempotent)
+function commitModalHistory() {
+  if (modalHistTimer) { clearTimeout(modalHistTimer); modalHistTimer = null; }
+  if (modalHistPending == null) return;
+  const sym = modalHistPending;
+  modalHistPending = null;
+  // نافذة السباق: أُغلق قبل التنفيذ → لا حالة يتيمة
+  if (!document.getElementById('stockModal').classList.contains('active')) return;
+  try {
+    if (modalHistoryActive) history.replaceState({ m: sym }, '');
+    else { history.pushState({ m: sym }, ''); modalHistoryActive = true; }
+  } catch (e) { /* بيئة بلا history — المودال يعمل بدونها */ }
+}
+
+// ═══ قفل تمرير الخلفية (النمط القياسي الآمن): يمنع scroll chaining خلف المودال
+// على iOS بلا قفزة صفحة عند الإغلاق — يُحفظ scrollY ويُستعاد ═══
+let bodyScrollY = 0;
+function lockBodyScroll() {
+  if (document.body.style.position === 'fixed') return;   // فتح فوق مفتوح — لا إعادة قفل تفسد Y المحفوظ
+  bodyScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.style.position = 'fixed';
+  document.body.style.top = (-bodyScrollY) + 'px';
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+function unlockBodyScroll() {
+  if (document.body.style.position !== 'fixed') return;
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  try { window.scrollTo(0, bodyScrollY); } catch (e) {}
+}
 window.addEventListener('popstate', () => {
   const m = document.getElementById('stockModal');
   if (m && m.classList.contains('active')) {
