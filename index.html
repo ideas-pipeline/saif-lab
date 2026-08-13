@@ -238,7 +238,7 @@ tr:hover{background:#1e293b88}
 .search-fab{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:calc(18px + env(safe-area-inset-left,0px));width:56px;height:56px;border-radius:50%;background:#f59e0b;color:#000;border:none;font-size:1.4em;cursor:pointer;z-index:90;box-shadow:0 4px 14px #000a;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .search-fab:hover{background:#fbbf24}
 .search-fab.hidden{display:none} /* يختفي مع أي مودال مفتوح — لا يزاحم أزراره */
-.search-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;padding:14px;padding-top:max(20px,env(safe-area-inset-top,0px))}
+.search-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;padding:14px;padding-top:max(72px,calc(env(safe-area-inset-top,0px) + 64px))} /* يجاوز ارتفاع بانر «نسخة تجريبية» الملاصق (z:9999 مقصود لا يُمس) — كان يقص ✕ ورأس الحقل */
 .search-overlay.active{display:flex;flex-direction:column;align-items:center}
 .search-panel{width:100%;max-width:560px;background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px #000a}
 .search-panel .sp-head{display:flex;gap:8px;padding:10px;border-bottom:1px solid #334155}
@@ -587,9 +587,11 @@ const sectorStats = (() => {
   return bySymbol;
 })();
 
-// تطبيع عربي للبحث: همزات، تاء مربوطة، ألف مقصورة، تطويل
+// تطبيع عربي للبحث: همزات، تاء مربوطة، ألف مقصورة، تطويل + الأرقام الهندية ٠-٩ → ASCII
+// (ملزمة الناقد: «٢٢٨٠» بلوحة iPad العربية كانت تعطي «لا نتائج» كاذبة)
 const normalizeAr = (t) => String(t).toLowerCase()
-  .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ـ/g, '');
+  .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ـ/g, '')
+  .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
 
 // عزل الأرقام السالبة عن انعكاس RTL — "‎-14.4%" كانت تُرسم "14.4-%" فتُقرأ الخسارة ربحاً
 const ltrNums = (t) => String(t).replace(/-\d[\d.,]*x?%?/g, m => '<span dir="ltr">' + m + '</span>');
@@ -1786,7 +1788,7 @@ function fabSearch(q) {
     const name = normalizeAr(s.name || '');
     const hay = name + ' ' + sym + ' ' + normalizeAr(s.yahooName || '');
     let rank = null;
-    if (sym.startsWith(raw) || name.startsWith(nq)) rank = 0;
+    if (sym.startsWith(nq) || name.startsWith(nq)) rank = 0;   // المطبع لا الخام — «٢٢٨٠» تطابق بداية 2280
     else if (hay.includes(nq)) rank = 1;
     if (rank !== null) scored.push({ s, rank, i });
   });
