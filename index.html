@@ -234,6 +234,27 @@ tr:hover{background:#1e293b88}
 .footer{text-align:center;color:#475569;margin-top:32px;font-size:0.8em;padding:16px}
 
 /* Mobile */
+/* ═══ زر البحث العائم وطبقته (طلب المالك: بحث حاضر دائماً مهما كان التمرير) ═══ */
+.search-fab{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:calc(18px + env(safe-area-inset-left,0px));width:56px;height:56px;border-radius:50%;background:#f59e0b;color:#000;border:none;font-size:1.4em;cursor:pointer;z-index:90;box-shadow:0 4px 14px #000a;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.search-fab:hover{background:#fbbf24}
+.search-fab.hidden{display:none} /* يختفي مع أي مودال مفتوح — لا يزاحم أزراره */
+.search-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;padding:14px;padding-top:max(20px,env(safe-area-inset-top,0px))}
+.search-overlay.active{display:flex;flex-direction:column;align-items:center}
+.search-panel{width:100%;max-width:560px;background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px #000a}
+.search-panel .sp-head{display:flex;gap:8px;padding:10px;border-bottom:1px solid #334155}
+.search-panel input{flex:1;min-width:0;font-size:16px;padding:10px 12px;background:#0f172a;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-family:inherit} /* ‏16px تمنع زوم iOS التلقائي */
+.search-panel input:focus{outline:none;border-color:#f59e0b}
+.sp-close{min-width:44px;min-height:44px;background:none;border:1px solid #334155;border-radius:10px;color:#94a3b8;font-size:1.15em;cursor:pointer}
+.sp-close:hover{border-color:#f59e0b;color:#e2e8f0}
+.sp-results{max-height:62vh;overflow-y:auto}
+.sp-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #33415544;cursor:pointer;min-height:44px}
+.sp-row:last-child{border-bottom:none}
+.sp-row:hover{background:#0f172a}
+.sp-row .r-name{font-weight:600;color:#f8fafc}
+.sp-row .r-sym{font-family:monospace;color:#64748b;font-size:.78em}
+.sp-row .r-price{font-weight:700;color:#e2e8f0;white-space:nowrap}
+.sp-empty{padding:18px;text-align:center;color:#64748b;font-size:.88em}
+
 @media(max-width:768px){
   body{padding:10px;font-size:0.95em}
   h1{font-size:1.3em}
@@ -313,6 +334,18 @@ tr:hover{background:#1e293b88}
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- زر البحث العائم + طبقته (طلب المالك) — فوق الصفحة وتحت المودال (z:‏ 90/95 < 100) -->
+<button class="search-fab" id="searchFab" onclick="openSearch()" aria-label="بحث عن سهم بالاسم أو الرمز">🔍</button>
+<div class="search-overlay" id="searchOverlay" onclick="if(event.target===this)closeSearch()">
+  <div class="search-panel">
+    <div class="sp-head">
+      <input id="fabSearchInput" type="search" placeholder="🔍 ابحث بالاسم أو الرمز…" oninput="fabSearch(this.value)" autocomplete="off">
+      <button class="sp-close" onclick="closeSearch()" aria-label="إغلاق البحث">✕</button>
+    </div>
+    <div class="sp-results" id="fabResults"></div>
   </div>
 </div>
 
@@ -1699,6 +1732,10 @@ function openModal(sym) {
 
   // ربط الرسم التفاعلي بعد الحقن (أزرار المدد + أحداث المؤشر الموحدة)
   initModalChart(s);
+
+  // الزر العائم يختفي مع المودال — لا يزاحم أزراره (أزرار المدد، الإغلاق)
+  const fab = document.getElementById('searchFab');
+  if (fab) fab.classList.add('hidden');
 }
 
 function closeModal() {
@@ -1706,11 +1743,81 @@ function closeModal() {
   // تنظيف الرسم: فصل مراقب المقاس (لا تسريب بين المودالات) وتصفير حالته
   if (chartRO) { chartRO.disconnect(); chartRO = null; }
   chartStock = null; chartRange = null; chartGeom = null;
+  // عودة زر البحث العائم بعد إغلاق المودال
+  const fab = document.getElementById('searchFab');
+  if (fab) fab.classList.remove('hidden');
 }
 
 // (drawChart القديمة على canvas أُزيلت — الرسم كله في drawStockChart أعلاه بعقد series الحي)
 
-document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+// ═══ البحث العائم (طلب المالك: «زر البحث متواجد دايم إذا نزلت ولا طلعت») ═══
+// يعيد استخدام الموجود بلا نسخ: normalizeAr نفسها وstocks وopenModal — وحقل بحث
+// شريط الفلاتر القديم باقٍ كما هو بوظيفته (فلترة الجدول)؛ هذه طبقة وصول مباشر للمودال.
+// النطاق بتوجيه مالك صريح: جميع الأسهم بلا استثناء — المشطوب بشارته والمستبعد وغير
+// المُقيَّم بمودالاتهم الصادقة
+function openSearch() {
+  const ov = document.getElementById('searchOverlay');
+  const inp = document.getElementById('fabSearchInput');
+  ov.classList.add('active');
+  inp.value = '';
+  fabSearch('');
+  inp.focus();
+}
+function closeSearch() {
+  document.getElementById('searchOverlay').classList.remove('active');
+}
+function pickSearch(sym) {
+  closeSearch();
+  openModal(sym);
+}
+function fabSearch(q) {
+  const el = document.getElementById('fabResults');
+  const raw = String(q || '').trim();
+  const nq = normalizeAr(raw);
+  if (!nq) {
+    el.innerHTML = '<div class="sp-empty">اكتب اسم الشركة أو رمزها الرقمي — النتائج تظهر أثناء الكتابة</div>';
+    return;
+  }
+  // الترتيب المعتمد: تطابق بداية الرمز/الاسم أولاً (rank 0) ثم الاحتواء (rank 1)،
+  // والثبات بفهرس المصفوفة الأصلي عند التعادل
+  const scored = [];
+  stocks.forEach((s, i) => {
+    const sym = String(s.symbol || '');
+    const name = normalizeAr(s.name || '');
+    const hay = name + ' ' + sym + ' ' + normalizeAr(s.yahooName || '');
+    let rank = null;
+    if (sym.startsWith(raw) || name.startsWith(nq)) rank = 0;
+    else if (hay.includes(nq)) rank = 1;
+    if (rank !== null) scored.push({ s, rank, i });
+  });
+  scored.sort((a, b) => a.rank - b.rank || a.i - b.i);
+  const top = scored.slice(0, 8);
+  if (!top.length) {
+    const esc = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    el.innerHTML = '<div class="sp-empty">لا نتائج لـ«' + esc + '»</div>';
+    return;
+  }
+  el.innerHTML = top.map(({ s }) => {
+    const p = fmtPrice(s.currentPrice);
+    // المشطوب بشارته الصريحة كي لا يُفاجأ المستخدم بمودال الشطب (توجيه المالك)
+    const badge = s.delisted
+      ? '<span class="class-badge delisted" style="font-size:0.68em;padding:2px 8px">📤 مشطوب</span>'
+      : '<span class="class-badge ' + classCodeOf(s) + '" style="font-size:0.68em;padding:2px 8px">' + classLabelOf(s) + '</span>';
+    return '<div class="sp-row" onclick="pickSearch(\'' + s.symbol + '\')">' +
+      '<div><div class="r-name">' + s.name + '</div><div class="r-sym" dir="ltr">' + s.symbol + '</div></div>' +
+      '<div style="text-align:left"><div class="r-price">' + (p != null ? p + ' <span style="font-size:0.7em;color:#94a3b8">ر.س</span>' : '—') + '</div>' +
+      '<div style="margin-top:2px">' + badge + '</div></div>' +
+      '</div>';
+  }).join('');
+}
+
+// ‏Escape: تغلق طبقة البحث أولاً إن كانت مفتوحة، وإلا المودال — طبقة واحدة لكل ضغطة
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const ov = document.getElementById('searchOverlay');
+  if (ov && ov.classList.contains('active')) closeSearch();
+  else closeModal();
+});
 init();
 </script>
 <script data-goatcounter="https://saif-vc-sa.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
