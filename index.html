@@ -821,7 +821,7 @@ function renderReversals() {
     const need = reclaimNeedOf(s);
     const sma = (s.weeklyTechnical || {}).sma200w;
     if (need == null) return '<div class="rev-dist" style="color:#64748b">مسافة الاستعادة غير متاحة</div>';
-    if (need <= 0) return '<div class="rev-dist">✓ استعاد المتوسط بآخر سعر — بانتظار تثبيت الفرز الأسبوعي</div>';
+    if (need <= 0) return '<div class="rev-dist">✓ استعاد المتوسط بآخر سعر — يُحسم في الفرز القادم</div>';
     return '<div class="rev-dist">يحتاج <b dir="ltr">+' + need.toFixed(1) + '%</b> ليستعيد المتوسط ≈ <span dir="ltr">' + (fmtPrice(sma) || '—') + '</span> ر.س</div>';
   };
   // التحذير جزء من الشاشة نفسها وقبل الأسماء (ختم ناقد سابق) — مقوّى بدمج «فئة رصد»
