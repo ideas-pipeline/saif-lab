@@ -834,6 +834,10 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
         wm, ws, wh = calc_macd(weeks, dp=3)
         st["weeklyTechnical"] = {
             "sma200w": calc_sma(weeks, 200),
+            # عمود بحثي صامت (قرار المالك 13-08) — لا يستهلكه المحرك ولا الواجهة؛
+            # غرضه قراءة افتراضية عند م-3: من كان سيدخله فلتر 100 أسبوع.
+            # نفس اصطلاح الأسابيع المكتملة والحد الأدنى (≥100 أسبوعاً وإلا null)
+            "sma100w": calc_sma(weeks, 100),
             "ema40w": calc_ema(weeks, 40, dp=2),
             "rsi14w": calc_rsi_wilder(weeks),
             "macdW": wm, "macdSignalW": ws, "macdHistW": wh,
