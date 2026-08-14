@@ -241,7 +241,22 @@ tr:hover{background:#1e293b88}
 .footer{text-align:center;color:#475569;margin-top:32px;font-size:0.8em;padding:16px}
 
 /* Mobile */
-/* ═══ زر البحث العائم وطبقته (طلب المالك: بحث حاضر دائماً مهما كان التمرير) ═══ */
+/* ═══ مفكرة التوزيعات (عقد المحلل 14-08) — عرض تقويمي مفصول تماماً عن التقييم ═══ */
+.div-cal{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:4px 14px 10px;margin-bottom:24px}
+.div-day{font-size:0.82em;color:#f59e0b;font-weight:700;margin:12px 0 2px;border-bottom:1px solid #33415566;padding-bottom:4px}
+.div-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #33415533;cursor:pointer;flex-wrap:wrap}
+.div-row:last-child{border-bottom:none}
+.div-row:hover{background:#0f172a55}
+.div-row .dv-name{font-weight:600;color:#f8fafc}
+.div-row .dv-sym{font-family:monospace;color:#64748b;font-size:0.76em}
+.div-row .dv-val{font-weight:700;color:#e2e8f0;white-space:nowrap}
+.div-row .dv-yield{color:#34d399;font-weight:700;white-space:nowrap}
+.div-row .dv-meta{font-size:0.72em;color:#94a3b8;width:100%;margin-top:2px}
+.dv-kind{display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.7em;white-space:nowrap}
+.dv-kind.elig{background:#f59e0b1a;color:#fcd34d;border:1px solid #d9770666}
+.dv-kind.dist{background:#10b98115;color:#6ee7b7;border:1px solid #10b98155}
+.dv-port{display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.7em;background:#47556933;color:#cbd5e1;border:1px dashed #94a3b8;white-space:nowrap}
+.div-note{font-size:0.74em;color:#94a3b8;margin-top:10px;line-height:1.8;border-top:1px dashed #33415588;padding-top:8px}
 .search-fab{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:calc(18px + env(safe-area-inset-left,0px));width:56px;height:56px;border-radius:50%;background:#f59e0b;color:#000;border:none;font-size:1.4em;cursor:pointer;z-index:90;box-shadow:0 4px 14px #000a;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .search-fab:hover{background:#fbbf24}
 .search-fab.hidden{display:none} /* يختفي مع أي مودال مفتوح — لا يزاحم أزراره */
@@ -321,6 +336,13 @@ tr:hover{background:#1e293b88}
 
 <div class="section-title">🌱 إشارات انعكاس مبكرة <span style="font-size:0.6em;color:#64748b;font-weight:normal">تحت متوسط 200 أسبوع، عبرت الفلتر بفضل إشارات انعكاس — فئة رصد لا توصيات</span></div>
 <div id="reversals"></div>
+
+<!-- مفكرة التوزيعات (عقد المحلل 14-08): الحاوية كلها مخفية افتراضياً — تظهر فقط حين
+     تصل كتلة upcomingDividends من الجالب (الصمود: غياب الكتلة = لا أثر للقسم) -->
+<div id="divCalSection" style="display:none">
+  <div class="section-title">📅 مفكرة التوزيعات <span style="font-size:0.6em;color:#64748b;font-weight:normal">معلومة تقويمية — ليست توصية ولا إشارة شراء</span></div>
+  <div id="divCalendar"></div>
+</div>
 
 <div class="section-title">📊 الجدول الشامل</div>
 <div id="peNote" class="rev-note" style="display:none;margin:8px auto 0">❄️ مكرر الربح غير محدّث — مصدر البيانات قيد المعالجة، وكذلك مكرر القيمة الدفترية P/B للأسهم الموسومة ❄️ (أغلبها بنوك)</div>
@@ -696,6 +718,7 @@ function init() {
 
   renderTopCards();
   renderReversals();
+  renderDivCalendar();   // مفكرة التوزيعات — تظهر فقط حين تصل كتلتها
   renderTable();
 
   // مؤشر تجميد P/E في رأس العمود وسطر الشرح فوق الجدول — يظهران فقط حين يصرّح المحرك
@@ -910,6 +933,101 @@ function renderReversals() {
       ? '<button type="button" class="rev-toggle" onclick="toggleReversals()" aria-expanded="' + revExpanded + '">' +
         (revExpanded ? '▲ طي القائمة' : '▼ عرض الكل (' + list.length + ')') + '</button>'
       : '');
+}
+
+// ═══════════ مفكرة التوزيعات (عقد المحلل الملزم 14-08) ═══════════
+// العقد: DATA.upcomingDividends = [{sym, name?, value, period, fy, annDate,
+// eligDate|null, distDate|null}] + DATA.portfolioSymbols + ختم upcomingDividendsAt.
+// **الفصل التام**: كتلة عرض تقويمية صرفة — لا نقاط ولا تصنيف ولا أي ربط بالتوصيات
+// في الصفوف (لا class-badge تقييم هنا عمداً). قراءة دفاعية بحتة: غياب الكتلة = القسم
+// لا يظهر إطلاقاً؛ الصف الناقص يسقط بصمت لا يعرض undefined.
+const AR_DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+// عنوان اليوم بالعربية الميلادية يدوياً (درس ar-SA الهجري الموثق) — «الأحد 16 أغسطس 2026»
+const dayTitleAr = (iso) => {
+  const d = new Date(iso + 'T00:00:00Z');
+  if (isNaN(d)) return iso;
+  return AR_DAYS[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + AR_MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+};
+let divCalExpanded = false;
+function toggleDivCal() { divCalExpanded = !divCalExpanded; renderDivCalendar(); }
+function renderDivCalendar() {
+  const sect = document.getElementById('divCalSection');
+  const host = document.getElementById('divCalendar');
+  if (!sect || !host) return;
+  const raw = DATA.upcomingDividends;
+  if (!Array.isArray(raw)) { sect.style.display = 'none'; return; }   // الكتلة غائبة (قبل تفعيل الجالب) — لا أثر
+  sect.style.display = '';
+  const p2 = (x) => String(x).padStart(2, '0');
+  const now = new Date();
+  const today = now.getFullYear() + '-' + p2(now.getMonth() + 1) + '-' + p2(now.getDate());
+  const bySym = Object.create(null);
+  stocks.forEach(s => { bySym[s.symbol] = s; });
+  const inPortfolio = (sym, name) => {
+    if (Array.isArray(DATA.portfolioSymbols)) return DATA.portfolioSymbols.includes(sym);
+    return Array.isArray(DATA.portfolio) && !!name && DATA.portfolio.includes(name);   // احتياط العقد القديم (أسماء)
+  };
+  // الصف الواحد لكل توزيعة تحت **حدثها الأقرب المستقبلي**: أحقية قادمة أولى، وإلا
+  // الإيداع القادم (يغطي حافتي «أحقية null» و«أحقية ماضية + إيداع قادم»)؛
+  // الماضي كلياً يسقط بصمت — الكتلة تشيخ بصدق مع مرور الأيام
+  const rows2 = [];
+  raw.forEach(r => {
+    if (!r || !r.sym || r.value == null || !isFinite(Number(r.value))) return;
+    let anchor = null, kind = null;
+    if (r.eligDate && r.eligDate >= today) { anchor = r.eligDate; kind = 'elig'; }
+    else if (r.distDate && r.distDate >= today) { anchor = r.distDate; kind = 'dist'; }
+    else return;
+    const st = bySym[r.sym];
+    const price = st && st.currentPrice;
+    const yieldPct = (price && Number(price) > 0) ? Number(r.value) / Number(price) * 100 : null;
+    rows2.push({ r, anchor, kind, st, yieldPct });
+  });
+  if (!rows2.length) {
+    host.innerHTML = '<div class="div-cal"><div style="color:#64748b;padding:12px;text-align:center">لا توزيعات معلنة في النافذة القادمة</div></div>';
+    return;
+  }
+  // الفرز: باليوم تصاعدياً، وداخل اليوم الأحقيات قبل الإيداعات ثم العائد تنازلياً ثم الرمز (ثبات)
+  rows2.sort((a, b) => a.anchor.localeCompare(b.anchor) ||
+    (a.kind === b.kind ? 0 : a.kind === 'elig' ? -1 : 1) ||
+    ((b.yieldPct || 0) - (a.yieldPct || 0)) || String(a.r.sym).localeCompare(String(b.r.sym)));
+  const shown = divCalExpanded ? rows2 : rows2.slice(0, 5);
+  let html = '<div class="div-cal">';
+  let lastDay = null;
+  shown.forEach(({ r, anchor, kind, st, yieldPct }) => {
+    if (anchor !== lastDay) {
+      html += '<div class="div-day">📆 ' + dayTitleAr(anchor) + '</div>';
+      lastDay = anchor;
+    }
+    const name = r.name || (st && st.name) || r.sym;
+    const kindChip = kind === 'elig'
+      ? '<span class="dv-kind elig">📌 يوم الأحقية</span>'
+      : '<span class="dv-kind dist">💵 يوم الإيداع</span>';
+    const port = inPortfolio(r.sym, name) ? ' <span class="dv-port">💼 في محفظتك</span>' : '';
+    // السطر الفرعي: الفترة/السنة + الإعلان + التاريخ الآخر بصدق حوافه
+    const meta = [];
+    if (r.period || r.fy) meta.push('عن ' + [r.period, r.fy].filter(Boolean).join(' '));
+    if (kind === 'elig') meta.push(r.distDate ? 'الإيداع: <span dir="ltr">' + r.distDate + '</span>' : 'تاريخ الإيداع لم يُعلن');
+    else meta.push(r.eligDate ? 'الأحقية كانت <span dir="ltr">' + r.eligDate + '</span>' : 'الأحقية: لم تُعتمد بعد');
+    if (r.annDate) meta.push('أُعلن <span dir="ltr">' + String(r.annDate).slice(0, 10) + '</span>');
+    html += '<div class="div-row"' + (st ? ' onclick="openModal(\'' + r.sym + '\')"' : '') + '>' +
+      '<div><span class="dv-name">' + name + '</span> <span class="dv-sym" dir="ltr">' + r.sym + '</span> ' + kindChip + port + '</div>' +
+      '<div style="text-align:left"><span class="dv-val"><span dir="ltr">' + Number(r.value).toFixed(2) + '</span> ر.س/سهم</span>' +
+      ' <span class="dv-yield" dir="ltr">' + (yieldPct != null ? '≈' + yieldPct.toFixed(1) + '%' : '—') + '</span></div>' +
+      '<div class="dv-meta">' + meta.join(' • ') + '</div>' +
+      '</div>';
+  });
+  // سطرا الصدق الملزمان + ختم نضارة المفكرة
+  const stamp = DATA.upcomingDividendsAt ? ' آخر تحديث للمفكرة: <span dir="ltr">' + String(DATA.upcomingDividendsAt).slice(0, 10) + '</span>.' : '';
+  html += '<div class="div-note">' +
+    'المواعيد من إعلانات الشركات كما وردت من المصدر وقد تتعدل — العبرة بإعلان السوق الرسمي.' + stamp + '<br>' +
+    'العائد المعروض لهذه الدفعة وحدها محسوب من آخر سعر لدينا وليس عائداً سنوياً، ويوم الأحقية ينخفض سعر السهم عادة بقيمة التوزيع تقريباً — معلومة تقويمية لا توصية.' +
+    '</div>';
+  html += '</div>';
+  if (rows2.length > 5) {
+    html += '<button type="button" class="rev-toggle" style="margin-top:-14px;margin-bottom:24px" onclick="toggleDivCal()" aria-expanded="' + divCalExpanded + '">' +
+      (divCalExpanded ? '▲ طي المفكرة' : '▼ عرض الكل (' + rows2.length + ')') + '</button>';
+  }
+  host.innerHTML = html;
 }
 
 // يُبنى الجدول كاملاً مرة واحدة — الفلترة إخفاءً والفرز إعادة ترتيب للعقد نفسها (248 صفاً)

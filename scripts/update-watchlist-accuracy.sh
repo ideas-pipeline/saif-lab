@@ -80,16 +80,20 @@ def fetch_sahmk_entry_close(symbol, entry_date):
     return None, None
 
 def fetch_sahmk_divs_since(symbol, entry_date, until):
-    """مجموع التوزيعات النقدية التي تاريخ أحقيتها بين الدخول والنهاية"""
+    """مجموع التوزيعات النقدية التي تاريخ أحقيتها بين الدخول والنهاية.
+    عزل قياس مفكرة التوزيعات (عقد المحلل 14-08): الفلتر `ed and entry_date <= ed <= until`
+    يستبعد بنيوياً الأحقية null (بـ`if ed`) والمستقبلية (بـ`<= until` حيث until = يوم
+    التشغيلة/الإغلاق) — ويعاد سجل التواريخ المحتسبة ليُخزن في الكاش (DL|) فيدققه L1."""
     r = _sahmk_get(f"{BASE}/dividends/{symbol}/?limit=50")
     if r is None:
-        return None
-    tot = 0.0
+        return None, None
+    tot, dates = 0.0, []
     for h in r.get("history", []):
         ed = h.get("eligibility_date") or ""
         if ed and entry_date <= ed <= until and h.get("value"):
             tot += h["value"]
-    return round(tot, 3)
+            dates.append(ed)
+    return round(tot, 3), dates
 
 # ── 1) قراءة config + الأسعار + الـ cache ──
 with open(CONFIG_JSON) as f:
@@ -187,10 +191,12 @@ for s in stocks_config:
             if dkey in cache:
                 divs = cache[dkey]
             else:
-                d = fetch_sahmk_divs_since(symbol, entry_date, div_until)
+                d, ddates = fetch_sahmk_divs_since(symbol, entry_date, div_until)
                 if d is not None:
                     time.sleep(0.4)
                     divs = d
+                    # سجل المصدر لتدقيق L1 (عزل مفكرة التوزيعات): التواريخ المحتسبة فعلاً
+                    cache["DL|" + key] = {"dates": ddates, "until": div_until, "at": today}
                     if status == "closed":     # فترة المغلقة ثابتة — توزيعاتها تُثبت
                         cache[dkey] = d
                 else:
