@@ -1515,7 +1515,8 @@ def main():
     cdir = candle_dir(args.data)
     n = len(stocks)
     batches = (n + 49) // 50
-    budget = batches + n + 2 + (n * 4 if args.weekly else 0) + (1 if args.maintain_universe else 0)
+    budget = (batches + n + 2 + (n * 4 if args.weekly else 0) + (1 if args.maintain_universe else 0)
+              + (n if not args.symbols else 0))   # +n: مفكرة التوزيعات اليومية (عقد المحلل 14-08)
     print("═" * 60)
     print("سيف تداول — sahmk-direct-v3 | أسهم: %d | %s" % (n, "أسبوعي" if args.weekly else "يومي"))
     print("ميزانية ~%d (quotes %d + 1d %d + تاسي/ملخص 2%s) — happy-path، إيقاع %.1fط/ث، حصة 5000/يوم"
@@ -1527,7 +1528,8 @@ def main():
         "ratios_ok", "ratios_fail", "financials_ok", "financials_fail",
         "company_ok", "company_fail", "dividends_ok", "dividends_fail",
         "adj_dropped_rows", "partial_excluded", "tasi_ok", "tasi_fail", "tasi_api_stale",
-        "regime_ok", "regime_fail", "universe_ok", "universe_fail")}
+        "regime_ok", "regime_fail", "universe_ok", "universe_fail",
+        "divcal_ok", "divcal_fail")}
     now_riyadh = datetime.now(RIYADH).strftime("%Y-%m-%d %H:%M")
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -1543,6 +1545,12 @@ def main():
 
     print("📊 شموع 1d (تزايدي) + اشتقاق أسبوعي + Z + سيولة...")
     fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today)
+
+    if not args.symbols:
+        print("📅 مفكرة التوزيعات (upcoming، نافذة %d يوماً)..." % DIVCAL_WINDOW_DAYS)
+        fetch_upcoming_dividends(api, data, stocks, counters, today)
+    else:
+        print("📅 مفكرة التوزيعات: تخطٍ — تشغيلة --symbols جزئية (كتلة سوقية لا تُبنى من جزء)")
 
     drift = []
     if args.weekly:
@@ -1613,6 +1621,16 @@ def main():
                                      {s["symbol"]: s.get("currentPrice") for s in data["stocks"]}, today)
         print("  🌐 أُغلقت توصيات المشطوبين (بعد البوابات): %s" % closed)
     data["coverage"] = {"smaCapable": sma_cap, "zCapable": z_cap, "at": today}
+    # قائمة أسهم المحفظة لشارة «في محفظتك» (موجة مفكرة التوزيعات 14-08):
+    # رموز track=legacy من watchlist-config — الصفحة تجدها في stocks-data مباشرة
+    try:
+        with open(cfg_path, encoding="utf-8") as _cf:
+            _cfg = json.load(_cf)
+        data["portfolioSymbols"] = sorted({e["symbol"] for e in _cfg.get("stocks", [])
+                                           if e.get("track") == "legacy" and e.get("symbol")})
+        print("👜 portfolioSymbols: %d رمزاً (legacy) من %s" % (len(data["portfolioSymbols"]), cfg_path))
+    except Exception as _e:
+        print("⚠️ portfolioSymbols: تعذر قراءة config (%s) — الكتلة السابقة تبقى" % _e)
     for s in stocks:
         s.pop("_prevFinancials", None)
     data["lastUpdated"] = now_riyadh + " الرياض"
