@@ -116,6 +116,29 @@ rev_mismatch = [s["symbol"] for s in S
 if rev_mismatch:
     warn("🚨 ALERT صارخ: انفكاك viaReversal عن filterReason==REVERSAL لدى %d: %s — "
          "عقد قسم الانعكاس منكسر" % (len(rev_mismatch), rev_mismatch[:10]))
+# عزل قياس مفكرة التوزيعات (عقد المحلل 14-08): سجل مصدر divsSince في كاش سكربت
+# الدقة (مفاتيح DL|) — أي تاريخ أحقية محتسب يكون null/فارغاً أو بعد يوم البيانات
+# = تلوث قياس بتوزيعة مستقبلية → ALERT صارخ. غياب الكاش (بيئة بلا تشغيلة دقة) = تخطٍ.
+_cache_p = os.path.join(os.path.dirname(os.path.abspath(DATA)), ".entry-adjclose-cache.json")
+if os.path.exists(_cache_p):
+    try:
+        _dcache = json.load(open(_cache_p, encoding="utf-8"))
+    except Exception:
+        _dcache = {}
+    _lu_day = str(cur.get("lastUpdated", ""))[:10] or "9999-99-99"
+    bad_divs = []
+    for _k, _v in _dcache.items():
+        if not _k.startswith("DL|") or not isinstance(_v, dict):
+            continue
+        for _dt in _v.get("dates", []):
+            if not _dt or str(_dt)[:10] > _lu_day:
+                bad_divs.append("%s (%s)" % (_k, _dt))
+                break
+    print("    سجلات مصدر divsSince المدققة (DL|): %d" %
+          sum(1 for _k in _dcache if _k.startswith("DL|")))
+    if bad_divs:
+        warn("🚨 ALERT صارخ: divsSince ملوث بأحقية مستقبلية/فارغة (عقد عزل مفكرة "
+             "التوزيعات منكسر): %s" % bad_divs[:5])
 # §4-ب الحارس ب: مستويات مقيدة التاريخ (كشف إجراء رأسمالي ملتبس) → مراجعة يدوية
 lv_restricted = [s["symbol"] for s in S if (s.get("levels") or {}).get("restricted")]
 print("    مستويات S/R مقيدة التاريخ (كشف ملتبس §4-ب): %d %s"

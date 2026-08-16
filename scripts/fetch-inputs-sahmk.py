@@ -75,6 +75,7 @@ LIQUIDITY_GATE_SAR = 1_000_000    # §2 بوابة السيولة (وسيط قي
 Z_MIN_OBS, Z_WINDOW = 100, 756    # §3.4 بعد قرار المحلل 05-08: Z على الإطار اليومي
                                   # (سعر/SMA200D−1؛ 100 مشاهدة ≈ 300 جلسة، نافذة 3 سنوات)
 PARTIAL_CUTOFF_RIYADH = (15, 10)  # قاعدة الشمعة الجزئية الاحتياطية (نقاش المالك 05-08)
+DIVCAL_WINDOW_DAYS = 45           # نافذة مفكرة التوزيعات (عقد المحلل 14-08)
 
 
 # ═══════════════════ دوال نقية: مؤشرات ═══════════════════
@@ -1175,6 +1176,61 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
     return drift
 
 
+def fetch_upcoming_dividends(api, data, stocks, counters, today):
+    """مفكرة التوزيعات (عقد المحلل 14-08) — كتلة عرض علوية `upcomingDividends`:
+    الأحداث القادمة في نافذة 45 يوماً (أحقية أو إيداع). القواعد الملزمة:
+      - أحقية null + إيداع قادم → يُبقى (الواجهة تعرض «الأحقية: لم تُعتمد بعد»)
+      - أحقية ماضية + إيداع قادم → يدخل بإيداعه (حالة علم)
+      - أحقية null وإيداع null، أو ماضٍ كلياً، أو بعد النافذة → يسقط
+    **عزل القياس الصارم:** كتلة عرض فقط — divsSince في سكربت الدقة يبقى من أحقية
+    فعلية ≤ تاريخ التشغيلة حصراً (فلتره القائم يستوفيه)، وL1 يدقق سجل مصدره.
+    **قرار هندسي موثق:** ‏?upcoming=true يومياً للكون كله (+248 طلباً ≈ 503/5000 —
+    قياس الميزانية في sahmk-divcal-probe.py) — النضارة اليومية أرجح من تحسين
+    «كامل أسبوعياً + قريب يومياً» الذي يفوّت إعلانات بين التشغيلتين ويعقّد الحالة؛
+    وفشل الكتلة لا يحجب بيانات التقييم (fail-open معلن كصيانة الكون): فشل >10%
+    أو كلي → تبقى الكتلة السابقة بختمها القديم + إنذار عالٍ، ولا تدخل بوابة §7."""
+    horizon = (datetime.strptime(today, "%Y-%m-%d")
+               + timedelta(days=DIVCAL_WINDOW_DAYS)).strftime("%Y-%m-%d")
+    out = []
+
+    def process(st):
+        sym = st["symbol"]
+        r, err = api.get("/dividends/%s/?upcoming=true&limit=50" % sym)
+        if r is None:
+            return False, err
+        for rec in rows_of(r, "history", "data", "results", "dividends"):
+            if not isinstance(rec, dict):
+                continue
+            elig = (rec.get("eligibility_date") or None)
+            dist = (rec.get("distribution_date") or rec.get("payment_date") or None)
+            val = rec.get("value", rec.get("amount"))
+            if val is None:
+                continue
+            in_elig = bool(elig) and today <= str(elig)[:10] <= horizon
+            in_dist = bool(dist) and today <= str(dist)[:10] <= horizon
+            if not (in_elig or in_dist):
+                continue   # يشمل: null+null، الماضي كلياً، وما بعد النافذة
+            out.append({"sym": sym, "name": st.get("name", ""), "value": val,
+                        "period": rec.get("period"),
+                        "fy": rec.get("fiscal_year") or rec.get("fy"),
+                        "annDate": rec.get("announcement_date") or None,
+                        "eligDate": str(elig)[:10] if elig else None,
+                        "distDate": str(dist)[:10] if dist else None})
+        return True, None
+
+    run_with_429_sweep(stocks, process, counters, "divcal_ok", "divcal_fail", "مفكرة التوزيعات")
+    ok, fl = counters["divcal_ok"], counters["divcal_fail"]
+    if ok == 0 or (ok + fl and fl / (ok + fl) > 0.10):
+        print("  ⚠️⚠️ مفكرة التوزيعات: فشل %d/%d — الكتلة السابقة تبقى بختمها القديم"
+              " (عرض لا يحجب التقييم)" % (fl, ok + fl))
+        return
+    out.sort(key=lambda x: (x["eligDate"] or x["distDate"] or "9999", x["sym"]))
+    data["upcomingDividends"] = out
+    data["upcomingDividendsAt"] = today
+    print("  📅 مفكرة التوزيعات: %d حدثاً قادماً في نافذة %d يوماً (نجح %d | فشل %d)"
+          % (len(out), DIVCAL_WINDOW_DAYS, ok, fl))
+
+
 def fetch_tasi(api, counters, hist_file, data):
     hist = []
     if os.path.exists(hist_file):
@@ -1459,7 +1515,8 @@ def main():
     cdir = candle_dir(args.data)
     n = len(stocks)
     batches = (n + 49) // 50
-    budget = batches + n + 2 + (n * 4 if args.weekly else 0) + (1 if args.maintain_universe else 0)
+    budget = (batches + n + 2 + (n * 4 if args.weekly else 0) + (1 if args.maintain_universe else 0)
+              + (n if not args.symbols else 0))   # +n: مفكرة التوزيعات اليومية (عقد المحلل 14-08)
     print("═" * 60)
     print("سيف تداول — sahmk-direct-v3 | أسهم: %d | %s" % (n, "أسبوعي" if args.weekly else "يومي"))
     print("ميزانية ~%d (quotes %d + 1d %d + تاسي/ملخص 2%s) — happy-path، إيقاع %.1fط/ث، حصة 5000/يوم"
@@ -1471,7 +1528,8 @@ def main():
         "ratios_ok", "ratios_fail", "financials_ok", "financials_fail",
         "company_ok", "company_fail", "dividends_ok", "dividends_fail",
         "adj_dropped_rows", "partial_excluded", "tasi_ok", "tasi_fail", "tasi_api_stale",
-        "regime_ok", "regime_fail", "universe_ok", "universe_fail")}
+        "regime_ok", "regime_fail", "universe_ok", "universe_fail",
+        "divcal_ok", "divcal_fail")}
     now_riyadh = datetime.now(RIYADH).strftime("%Y-%m-%d %H:%M")
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -1487,6 +1545,12 @@ def main():
 
     print("📊 شموع 1d (تزايدي) + اشتقاق أسبوعي + Z + سيولة...")
     fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today)
+
+    if not args.symbols:
+        print("📅 مفكرة التوزيعات (upcoming، نافذة %d يوماً)..." % DIVCAL_WINDOW_DAYS)
+        fetch_upcoming_dividends(api, data, stocks, counters, today)
+    else:
+        print("📅 مفكرة التوزيعات: تخطٍ — تشغيلة --symbols جزئية (كتلة سوقية لا تُبنى من جزء)")
 
     drift = []
     if args.weekly:
@@ -1557,6 +1621,16 @@ def main():
                                      {s["symbol"]: s.get("currentPrice") for s in data["stocks"]}, today)
         print("  🌐 أُغلقت توصيات المشطوبين (بعد البوابات): %s" % closed)
     data["coverage"] = {"smaCapable": sma_cap, "zCapable": z_cap, "at": today}
+    # قائمة أسهم المحفظة لشارة «في محفظتك» (موجة مفكرة التوزيعات 14-08):
+    # رموز track=legacy من watchlist-config — الصفحة تجدها في stocks-data مباشرة
+    try:
+        with open(cfg_path, encoding="utf-8") as _cf:
+            _cfg = json.load(_cf)
+        data["portfolioSymbols"] = sorted({e["symbol"] for e in _cfg.get("stocks", [])
+                                           if e.get("track") == "legacy" and e.get("symbol")})
+        print("👜 portfolioSymbols: %d رمزاً (legacy) من %s" % (len(data["portfolioSymbols"]), cfg_path))
+    except Exception as _e:
+        print("⚠️ portfolioSymbols: تعذر قراءة config (%s) — الكتلة السابقة تبقى" % _e)
     for s in stocks:
         s.pop("_prevFinancials", None)
     data["lastUpdated"] = now_riyadh + " الرياض"

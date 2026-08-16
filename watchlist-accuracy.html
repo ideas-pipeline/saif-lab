@@ -115,6 +115,12 @@
     /* سطر ظاهر بدل تلميح hover (المالك على iPad — التلميحات لا تعمل باللمس) */
     .cell-sub { display: block; font-size: 0.68rem; color: var(--muted); font-weight: 400; }
 
+    /* شرائح التجزئة: نفس القيم السطرية السابقة حرفياً — صنف ليتيح override الشبكة على الواسع */
+    .seg-card { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; margin: 3px; font-size: 0.85em; }
+    .seg-note { font-size: 0.8em; color: #f0b429; margin-bottom: 4px; }
+    /* فاصل مجموعتي الفئة/النظام: يكسر السطر كما كان <br> في block flow، ويختفي على الواسع */
+    .seg-break { display: block; height: 0; }
+
     /* ── Stats Cards ── */
     .stats-grid {
       display: grid;
@@ -315,6 +321,44 @@
     @media (min-width: 641px) {
       .mobile-cards { display: none; }
     }
+
+    /* ── Desktop ≥1024: «لوحة نظرة عامة» بدل الرتل الممدود (شكوى المالك على 1657px) —
+       كل ما هنا لا يمس الموبايل/التابلت إطلاقاً ── */
+    @media (min-width: 1024px) {
+      .container { max-width: 1400px; }
+
+      /* صف نظرة عامة: في RTL العمود الأول يرسو يميناً ⇒ حالة العينة بطاقة جانبية مضغوطة */
+      .overview {
+        display: grid;
+        grid-template-columns: minmax(300px, 360px) 1fr;
+        gap: 14px;
+        align-items: stretch;
+        margin-bottom: 20px;
+      }
+      .overview .sample-state {
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      /* 4 أعمدة ثابتة + بطاقة نسبة الإصابة (الثالثة — أطول نص فرعي) تمتد عمودين
+         ⇒ صفان متوازنان: [مطبقة][مفتوحة][إصابة×2] / [ناجح][فشل][زائد صافٍ][مطلق] — لا يتيمة */
+      .overview .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        margin-bottom: 0;
+      }
+      .overview .stats-grid .stat-card:nth-child(3) { grid-column: span 2; }
+
+      /* التجزئة: شبكة 3 أعمدة، سطر «استرشادي» يمتد كامل العرض، والفاصل يختفي */
+      #segment-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      #segment-grid .seg-card { display: block; margin: 0; }
+      #segment-grid .seg-note { grid-column: 1 / -1; margin-bottom: 0; }
+      #segment-grid .seg-break { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -340,12 +384,16 @@
     <span class="badge-date" id="update-badge">🗓 آخر تحديث للبيانات: —</span>
   </div>
 
-  <!-- ── رأس حالة العينة (قرار الاجتماع): الميلستونات والعدّ الظاهر قبل أي إحصاء ── -->
-  <div id="sample-state" class="sample-state"></div>
+  <!-- ── نظرة عامة: حالة العينة + البطاقات — دون 1024 الحاوية شفافة بلا أنماط،
+       وعلى الواسع تصير شبكة (الحالة عمود جانبي يمين البطاقات في RTL) ── -->
+  <div class="overview">
+    <!-- ── رأس حالة العينة (قرار الاجتماع): الميلستونات والعدّ الظاهر قبل أي إحصاء ── -->
+    <div id="sample-state" class="sample-state"></div>
 
-  <!-- ── Stats ── -->
-  <div class="stats-grid" id="stats-grid">
-    <!-- populated by JS -->
+    <!-- ── Stats ── -->
+    <div class="stats-grid" id="stats-grid">
+      <!-- populated by JS -->
+    </div>
   </div>
 
   <!-- ── measurement v3: التجزئة الوجوبية (بالفئة وبالنظام — ملحق المعايير 14-07) ── -->
@@ -1705,7 +1753,7 @@ function segCard(title, rows2, threshNote) {
   const hit  = done.filter(r => r.success).length;
   const nets = done.map(r => r.excessNet).filter(v => v !== null);
   const avgNet = nets.length ? nets.reduce((a,b) => a+b, 0) / nets.length : null;
-  return `<div style="display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin:3px;font-size:0.85em">
+  return `<div class="seg-card">
     <b>${title}</b> — مدخلات: ${rows2.length} | محكومة: ${done.length} | إصابة: ${done.length ? Math.round(hit/done.length*100) + "%" : "—"} | متوسط زائد صافٍ: ${avgNet !== null ? `<span dir="ltr">${(avgNet >= 0 ? "+" : "") + fmt(avgNet)}%</span>` : "—"}${threshNote ? `<span style="color:var(--muted)"> | ${threshNote}</span>` : ""}
   </div>`;
 }
@@ -1714,11 +1762,11 @@ function renderSegments() {
   const el = document.getElementById("segment-grid");
   if (!el) return;
   const applied = autoRows.filter(r => !r.shadow);
-  let html = `<div style="font-size:0.8em;color:#f0b429;margin-bottom:4px">⚠️ استرشادي — لا حكم قبل 40-50 توصية مغلقة (وثيقة المعايير §7)</div>`;
+  let html = `<div class="seg-note">⚠️ استرشادي — لا حكم قبل 40-50 توصية مغلقة (وثيقة المعايير §7)</div>`;
   html += segCard("⭐⭐⭐ شراء قوي", applied.filter(r => r.category === "strong_buy"), "عتبة الحكم: زائد ≥ +5% وإصابة ≥ 55%");
   html += segCard("⭐⭐ شراء", applied.filter(r => r.category === "buy"), "عتبة الحكم: زائد ≥ +2% وإصابة ≥ 50%");
   html += segCard("👁 الظل (buy_wait)", autoRows.filter(r => r.shadow), "يُسجَّل ولا يُحاكم");
-  html += "<br>";
+  html += `<div class="seg-break"></div>`;
   const regimes = [["🟢 دخول في نظام صاعد", "صاعد"], ["🟡 دخول في نظام حذر", "حذر"], ["🔴 دخول في نظام هابط", "هابط"]];
   regimes.forEach(([t, rg]) => {
     const grp = applied.filter(r => (r.regimeAtEntry || "") === rg);

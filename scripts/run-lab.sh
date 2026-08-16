@@ -38,11 +38,13 @@ git pull -q origin main
 export SAHMK_KEY="$(cat "$KEYFILE")"
 DATA="$LAB/stocks-data.json"
 
+# ‏--watchlist-config صريح (نمط المسارات الصريحة): يغذي portfolioSymbols وإغلاقات delisted
+WLCFG="$LAB/watchlist-config.json"
 case "$MODE" in
-  weekly)   python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --weekly ;;
-  universe) python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --maintain-universe
-            python3 scripts/fetch-inputs-sahmk.py --data "$DATA" ;;
-  *)        python3 scripts/fetch-inputs-sahmk.py --data "$DATA" ;;
+  weekly)   python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --weekly --watchlist-config "$WLCFG" ;;
+  universe) python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --maintain-universe --watchlist-config "$WLCFG"
+            python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" ;;
+  *)        python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" ;;
 esac
 
 python3 scripts/scoring-engine.py "$DATA"
