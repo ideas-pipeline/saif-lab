@@ -1016,8 +1016,11 @@ function renderDivCalendar() {
       '<div class="dv-meta">' + meta.join(' • ') + '</div>' +
       '</div>';
   });
-  // سطرا الصدق الملزمان + ختم نضارة المفكرة
+  // سطرا الصدق الملزمان + ختم نضارة المفكرة (ملزمة الختم 15-08: البيات يُفضح بوسم بارز
+  // لا بتاريخ صغير في الذيل — fail-open قد يبقي كتلة بائتة بصفوف معقولة الشكل)
   const stamp = DATA.upcomingDividendsAt ? ' آخر تحديث للمفكرة: <span dir="ltr">' + String(DATA.upcomingDividendsAt).slice(0, 10) + '</span>.' : '';
+  const _ageDays = DATA.upcomingDividendsAt ? Math.floor((Date.now() - new Date(String(DATA.upcomingDividendsAt).slice(0, 10) + 'T00:00:00')) / 86400000) : 0;
+  if (_ageDays > 1) html += '<div class="div-note" style="color:#fcd34d;font-weight:700">⚠️ المفكرة بعمر ' + _ageDays + ' أيام — لم تتحدث مع آخر تشغيلة، تحقق قبل الاعتماد عليها</div>';
   html += '<div class="div-note">' +
     'المواعيد من إعلانات الشركات كما وردت من المصدر وقد تتعدل — العبرة بإعلان السوق الرسمي.' + stamp + '<br>' +
     'العائد المعروض لهذه الدفعة وحدها محسوب من آخر سعر لدينا وليس عائداً سنوياً، ويوم الأحقية ينخفض سعر السهم عادة بقيمة التوزيع تقريباً — معلومة تقويمية لا توصية.' +
