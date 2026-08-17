@@ -69,7 +69,12 @@ from datetime import datetime, timezone, timedelta
 
 BASE = "https://api.sahmk.sa/api/v1"
 RIYADH = timezone(timedelta(hours=3))
-RATE_PER_SEC = 2.5
+RATE_PER_SEC = 1.5   # مواءمة 16-08: حد Starter الموثق 100/دقيقة (جدول الخطط في
+                     # docs/sahmk-api-docs-snapshot.md) — كان 2.5/ث=150/د فوق الحد
+                     # (جذر أسراب 429 التاريخية)؛ 1.5/ث=90/د بهامش أمان لأن الخنق
+                     # «على مستوى المفتاح والحساب معاً» (شرط الناقد — لا 1.6).
+                     # القياس: شموع 248: ~99ث→~165ث | اليومي الكامل ~503 طلباً ≈
+                     # ‏5.6 دقيقة صافي إيقاع — مقبول لتشغيلة إقفال مجدولة.
 FOUNDING_CAL_DAYS = 2600          # ~7.1 سنة — انظر «عمق التأسيس» أعلاه
 LIQUIDITY_GATE_SAR = 1_000_000    # §2 بوابة السيولة (وسيط قيمة تداول 20 جلسة)
 Z_MIN_OBS, Z_WINDOW = 100, 756    # §3.4 بعد قرار المحلل 05-08: Z على الإطار اليومي
@@ -762,6 +767,14 @@ def fetch_quotes(api, stocks, counters, now_str, today):
                 st["dailyChange"] = round(cp, 2)
         if q.get("net_liquidity") is not None:
             st["netLiquidity"] = q["net_liquidity"]
+        # عمود بحثي صامت (شرط الناقد 16-08 — نمط sma100w المختوم حرفياً): bid/ask صارا
+        # في الاستجابة الدفعية الموثقة مجاناً — صفر طلبات إضافية. لا يستهلكه المحرك
+        # ولا الواجهة؛ غرضه بناء تاريخ السبريد لمراجعة بوابة السيولة المسجلة (بعد 20 مغلقة).
+        bid, ask = q.get("bid"), q.get("ask")
+        if bid and ask and bid > 0 and ask > 0 and ask >= bid:
+            st["bidAsk"] = {"bid": bid, "ask": ask,
+                            "spreadPct": round((ask - bid) / ((ask + bid) / 2) * 100, 3),
+                            "at": now_str}
         if q.get("volume") is not None:
             st["volume"] = q["volume"]
         st["priceUpdatedAt"] = now_str
@@ -770,15 +783,50 @@ def fetch_quotes(api, stocks, counters, now_str, today):
     return counters["quotes_ok"]
 
 
+def fetch_candles_paged(api, sym, frm, to, counters):
+    """مواءمة 16-08 (بتر /historical الصامت): الوثيقة الرسمية تنص «limit default 500,
+    maximum 2000» مع has_more/offset — جلب تأسيسي (~1800 صف) بلا ترقيم يُبتر عند 500
+    صامتاً. يمرر limit=2000 ويرقّم حتى اكتمال النطاق (سقف أمان 10 صفحات = 20 ألف صف).
+    يعيد (rows, err, partial_excluded)."""
+    rows_all, partial_total, offset = [], 0, 0
+    err = None
+    for _pg in range(10):
+        resp, err = api.get("/historical/%s/?interval=1d&from=%s&to=%s&limit=2000&offset=%d"
+                            % (sym, frm, to, offset))
+        if resp is None:
+            break
+        page_rows, np_ = parse_candles(resp)
+        partial_total += np_
+        rows_all.extend(page_rows)
+        raw_n = (resp.get("count") if isinstance(resp, dict) and resp.get("count") is not None
+                 else len(rows_of(resp, "data", "candles", "history", "results")))
+        if not (isinstance(resp, dict) and resp.get("has_more") is True) or not raw_n:
+            break
+        offset += raw_n
+    return (rows_all if rows_all else None), err, partial_total
+
+
 def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
     """1d تزايدي → الفنية اليومية + الاشتقاق الأسبوعي + Z + القوة النسبية + بوابة السيولة"""
     def process(st):
         sym = st["symbol"]
         rows = load_candles(cdir, sym)
-        frm = (rows[-1][0] if rows else
-               (datetime.now(timezone.utc) - timedelta(days=FOUNDING_CAL_DAYS)).strftime("%Y-%m-%d"))
-        resp, err = api.get("/historical/%s/?interval=1d&from=%s&to=%s" % (sym, frm, today))
-        new, n_partial = parse_candles(resp)
+        if not rows:
+            # مسار التأسيس: نافذة كبيرة > 500 صف متوقعة → ترقيم إلزامي (مواءمة 16-08)
+            frm = (datetime.now(timezone.utc) - timedelta(days=FOUNDING_CAL_DAYS)).strftime("%Y-%m-%d")
+            new, err, n_partial = fetch_candles_paged(api, sym, frm, today, counters)
+            resp = {} if new is not None else None
+            new = new or []
+        else:
+            # التزايدي اليومي: نافذة صغيرة — نداء واحد بlimit=2000، وحارس فجوة مسموع
+            frm = rows[-1][0]
+            resp, err = api.get("/historical/%s/?interval=1d&from=%s&to=%s&limit=2000" % (sym, frm, today))
+            new, n_partial = parse_candles(resp)
+            if isinstance(resp, dict) and resp.get("has_more") is True:
+                counters["hist_gap_truncated"] += 1
+                if counters["hist_gap_truncated"] <= 3:
+                    print("  ⚠️⚠️ %s: التزايدي أعاد has_more=true (فجوة > 2000 صف؟!) —"
+                          " بتر محتمل، يحتاج جلباً تأسيسياً يدوياً" % sym)
         if n_partial:
             counters["partial_excluded"] += n_partial
         if resp is None and not rows:
@@ -1195,14 +1243,35 @@ def fetch_upcoming_dividends(api, data, stocks, counters, today):
 
     def process(st):
         sym = st["symbol"]
-        r, err = api.get("/dividends/%s/?upcoming=true&limit=50" % sym)
+        # مواءمة 16-08: النداء القياسي الموثق (المعامل الوحيد limit) وقراءة مصفوفة
+        # `upcoming` من الدرجة الأولى — بدل ?upcoming=true الذي نجح حياً لكنه غير معقود.
+        # حقول upcoming الموثقة أربعة فقط {value, period, eligibility_date,
+        # distribution_date} (التقاطة الناقد: بلا announcement_date ولا fiscal_year) —
+        # يُضمّان من سجل history المطابق (القيمة+الفترة) وإلا null بصدق.
+        r, err = api.get("/dividends/%s/?limit=50" % sym)
         if r is None:
             return False, err
-        for rec in rows_of(r, "history", "data", "results", "dividends"):
+        hist = r.get("history") if isinstance(r, dict) else None
+        upc = r.get("upcoming") if isinstance(r, dict) else None
+        if not isinstance(upc, list):
+            # تحوط عقدي: غياب المصفوفة (خادم أقدم؟) → اشتقاق من سجلات history المستقبلية
+            counters["divcal_noupc"] = counters.get("divcal_noupc", 0) + 1
+            upc = [h for h in (hist or [])
+                   if isinstance(h, dict) and ((h.get("eligibility_date") or "") >= today
+                                               or (h.get("distribution_date") or "") >= today)]
+        def _join(rec):
+            """ضم fy/annDate من history بالمطابقة (القيمة + الفترة)"""
+            for h in (hist or []):
+                if (isinstance(h, dict) and h.get("value") == rec.get("value")
+                        and h.get("period") == rec.get("period")):
+                    return (h.get("fiscal_year") or h.get("fy"),
+                            h.get("announcement_date") or None)
+            return None, None
+        for rec in upc:
             if not isinstance(rec, dict):
                 continue
             elig = (rec.get("eligibility_date") or None)
-            dist = (rec.get("distribution_date") or rec.get("payment_date") or None)
+            dist = (rec.get("distribution_date") or None)
             val = rec.get("value", rec.get("amount"))
             if val is None:
                 continue
@@ -1210,10 +1279,9 @@ def fetch_upcoming_dividends(api, data, stocks, counters, today):
             in_dist = bool(dist) and today <= str(dist)[:10] <= horizon
             if not (in_elig or in_dist):
                 continue   # يشمل: null+null، الماضي كلياً، وما بعد النافذة
+            fy, ann = _join(rec)
             out.append({"sym": sym, "name": st.get("name", ""), "value": val,
-                        "period": rec.get("period"),
-                        "fy": rec.get("fiscal_year") or rec.get("fy"),
-                        "annDate": rec.get("announcement_date") or None,
+                        "period": rec.get("period"), "fy": fy, "annDate": ann,
                         "eligDate": str(elig)[:10] if elig else None,
                         "distDate": str(dist)[:10] if dist else None})
         return True, None
@@ -1529,7 +1597,7 @@ def main():
         "company_ok", "company_fail", "dividends_ok", "dividends_fail",
         "adj_dropped_rows", "partial_excluded", "tasi_ok", "tasi_fail", "tasi_api_stale",
         "regime_ok", "regime_fail", "universe_ok", "universe_fail",
-        "divcal_ok", "divcal_fail")}
+        "divcal_ok", "divcal_fail", "hist_gap_truncated")}
     now_riyadh = datetime.now(RIYADH).strftime("%Y-%m-%d %H:%M")
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
