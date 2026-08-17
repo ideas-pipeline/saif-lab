@@ -1292,6 +1292,43 @@ def fetch_upcoming_dividends(api, data, stocks, counters, today):
         print("  ⚠️⚠️ مفكرة التوزيعات: فشل %d/%d — الكتلة السابقة تبقى بختمها القديم"
               " (عرض لا يحجب التقييم)" % (fl, ok + fl))
         return
+    # ── حارسا حادثة 2060/2080 (17-08 — إسناد المصدر الآلي حدثاً لرمز دخيل) ──
+    # 1) التكرار عبر الرموز: توقيع {value, eligDate, distDate} لدى أكثر من رمز =
+    #    شبهة خلط اسمي في تحليل المصدر — الحامل الشاذ (عائده الفردي >8% أو ≥3×وسيط
+    #    حملة التوقيع، أو سعره غائب فلا يُرجّح) يوسم suspectDup؛ كل الأسعار غائبة → الجميع.
+    # 2) العائد الاستثنائي المستقل: عائد فردي >8% → highYield ولو بلا توأم
+    #    (التوزيع الخاص الحقيقي يستحق تنبيهاً أيضاً).
+    price_of = {s["symbol"]: s.get("currentPrice") for s in stocks}
+    def _yield(u):
+        p = price_of.get(u["sym"])
+        return (u["value"] / p * 100) if (p and u.get("value")) else None
+    for u in out:
+        y = _yield(u)
+        if y is not None and y > 8.0:
+            u["highYield"] = True
+    sig_map = {}
+    for u in out:
+        sig_map.setdefault((u["value"], u["eligDate"], u["distDate"]), []).append(u)
+    suspects = []
+    for sig, holders in sig_map.items():
+        if len(holders) < 2:
+            continue
+        ys = [(u, _yield(u)) for u in holders]
+        known = [y for _, y in ys if y is not None]
+        if not known:
+            for u, _ in ys:
+                u["suspectDup"] = True
+                suspects.append(u["sym"])
+            continue
+        med = statistics.median(known)
+        for u, y in ys:
+            if y is None or y > 8.0 or (med > 0 and y >= 3 * med):
+                u["suspectDup"] = True
+                suspects.append(u["sym"])
+    counters["divcal_suspect"] = len(suspects)
+    if suspects:
+        print("  🚨 مفكرة التوزيعات: %d صفاً مشبوه الإسناد (توقيع مكرر عبر رموز — سابقة"
+              " 2060/2080): %s — موسومة suspectDup للعرض الحذر وبلاغ المصدر" % (len(suspects), suspects[:8]))
     out.sort(key=lambda x: (x["eligDate"] or x["distDate"] or "9999", x["sym"]))
     data["upcomingDividends"] = out
     data["upcomingDividendsAt"] = today

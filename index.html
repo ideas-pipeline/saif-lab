@@ -257,6 +257,9 @@ tr:hover{background:#1e293b88}
 .dv-kind.dist{background:#10b98115;color:#6ee7b7;border:1px solid #10b98155}
 .dv-port{display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.7em;background:#47556933;color:#cbd5e1;border:1px dashed #94a3b8;white-space:nowrap}
 .div-note{font-size:0.74em;color:#94a3b8;margin-top:10px;line-height:1.8;border-top:1px dashed #33415588;padding-top:8px}
+/* شارة الارتياب في صف المفكرة (حادثة 2080→2060 الموثقة): كهرماني-أحمر تحذيري بنمط
+   شارات المنصة — الصف يبقى ظاهراً كاملاً، الصدق لا الإخفاء */
+.dv-warn{display:inline-block;margin-top:5px;padding:4px 10px;border-radius:8px;background:#7f1d1d26;border:1px solid #d97706;color:#fcd34d;font-size:0.74em;font-weight:700;line-height:1.6}
 .search-fab{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:calc(18px + env(safe-area-inset-left,0px));width:56px;height:56px;border-radius:50%;background:#f59e0b;color:#000;border:none;font-size:1.4em;cursor:pointer;z-index:90;box-shadow:0 4px 14px #000a;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .search-fab:hover{background:#fbbf24}
 .search-fab.hidden{display:none} /* يختفي مع أي مودال مفتوح — لا يزاحم أزراره */
@@ -1009,10 +1012,20 @@ function renderDivCalendar() {
     if (kind === 'elig') meta.push(r.distDate ? 'الإيداع: <span dir="ltr">' + r.distDate + '</span>' : 'تاريخ الإيداع لم يُعلن');
     else meta.push(r.eligDate ? 'الأحقية كانت <span dir="ltr">' + r.eligDate + '</span>' : 'الأحقية: لم تُعتمد بعد');
     if (r.annDate) meta.push('أُعلن <span dir="ltr">' + String(r.annDate).slice(0, 10) + '</span>');
+    // شارة الارتياب (وسما الجالب الجديدان — حادثة إسناد توزيعة 2080 خطأً لـ2060):
+    // ‏suspectDup أقوى فيتقدم على highYield؛ الفحص === true حصراً (قراءة دفاعية:
+    // غياب الوسمين = لا شارة وصفر أثر على الصفوف النظيفة)، والصف يبقى كاملاً —
+    // الصدق لا الإخفاء، فقد يكون توزيعاً خاصاً حقيقياً
+    const warn = r.suspectDup === true
+      ? '<div><span class="dv-warn">⚠️ حدث مكرر عبر رمزين — تحقق من الإعلان الرسمي قبل الاعتماد</span></div>'
+      : (r.highYield === true
+        ? '<div><span class="dv-warn">⚠️ عائد استثنائي — تحقق من الإعلان الرسمي</span></div>'
+        : '');
     html += '<div class="div-row"' + (st ? ' onclick="openModal(\'' + r.sym + '\')"' : '') + '>' +
       '<div><span class="dv-name">' + name + '</span> <span class="dv-sym" dir="ltr">' + r.sym + '</span> ' + kindChip + port + '</div>' +
       '<div style="text-align:left"><span class="dv-val"><span dir="ltr">' + Number(r.value).toFixed(2) + '</span> ر.س/سهم</span>' +
       ' <span class="dv-yield" dir="ltr">' + (yieldPct != null ? '≈' + yieldPct.toFixed(1) + '%' : '—') + '</span></div>' +
+      warn +
       '<div class="dv-meta">' + meta.join(' • ') + '</div>' +
       '</div>';
   });
