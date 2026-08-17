@@ -133,7 +133,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.62
+   "maePct": -0.12
   },
   {
    "symbol": "2280",
@@ -169,7 +169,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -7.32
+   "maePct": -7.01
   },
   {
    "symbol": "2380",
@@ -396,8 +396,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.07,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -3.84
+   "tasiRet": 0.95,
+   "excessNet": -3.99
   },
   {
    "symbol": "2050",
@@ -422,8 +422,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -1.3
+   "tasiRet": 0.95,
+   "excessNet": -2.33
   },
   {
    "symbol": "3020",
@@ -448,8 +448,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": 0.43
+   "tasiRet": 0.95,
+   "excessNet": 0.16
   },
   {
    "symbol": "3080",
@@ -474,8 +474,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.95,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -1.55
+   "tasiRet": 0.95,
+   "excessNet": -2.13
   },
   {
    "symbol": "6010",
@@ -500,8 +500,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.98,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -1.2
+   "tasiRet": 0.95,
+   "excessNet": -0.88
   },
   {
    "symbol": "4012",
@@ -526,8 +526,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.42,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -5.34
+   "tasiRet": 0.95,
+   "excessNet": -5.44
   },
   {
    "symbol": "3010",
@@ -550,10 +550,10 @@
    "peAtEntry": 10.41,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -2.61,
+   "maePct": -0.54,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -3.53
+   "tasiRet": 0.95,
+   "excessNet": -0.93
   },
   {
    "symbol": "3005",
@@ -578,8 +578,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.46,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -3.97
+   "tasiRet": 0.95,
+   "excessNet": -5.24
   },
   {
    "symbol": "3030",
@@ -604,8 +604,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -1.84
+   "tasiRet": 0.95,
+   "excessNet": -2.15
   },
   {
    "symbol": "4323",
@@ -630,8 +630,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.75,
    "status": "open",
-   "tasiRet": 0.84,
-   "excessNet": -2.37
+   "tasiRet": 0.95,
+   "excessNet": -2.77
   },
   {
    "symbol": "1303",
@@ -941,7 +941,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.79
+   "maePct": -2.71
   },
   {
    "symbol": "4030",
@@ -977,7 +977,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.48
+   "maePct": -3.4
   },
   {
    "symbol": "7030",
@@ -1074,8 +1074,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.78,
-   "excessNet": 1.5
+   "tasiRet": 0.89,
+   "excessNet": 0.2
   },
   {
    "symbol": "4260",
@@ -1102,8 +1102,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.78,
-   "excessNet": 3.92
+   "tasiRet": 0.89,
+   "excessNet": 0.43
   },
   {
    "symbol": "4150",
@@ -1130,8 +1130,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.52,
    "status": "open",
-   "tasiRet": 0.78,
-   "excessNet": -1.21
+   "tasiRet": 0.89,
+   "excessNet": -1.43
   },
   {
    "symbol": "1180",
@@ -1191,7 +1191,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.85,
    "status": "open",
-   "maePct": -4.57
+   "maePct": 0.0
   },
   {
    "symbol": "7020",
@@ -1210,47 +1210,6 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.15,
-   "status": "open",
-   "maePct": -0.39
-  },
-  {
-   "symbol": "1212",
-   "name": "أسترا الصناعية",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 139.5,
-   "entryDate": "2026-08-17",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "conditional_buy",
-   "scoreAtEntry": 70,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 1.08,
-   "status": "open",
-   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "8280",
-   "name": "ليفا للتأمين",
-   "sector": "Financials",
-   "type": "buy",
-   "entryPrice": 15.2,
-   "entryDate": "2026-08-17",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 66,
-   "timingAtEntry": "ممتاز",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 1.27,
    "status": "open",
    "maePct": 0.0
   }
