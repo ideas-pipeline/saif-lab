@@ -1320,6 +1320,18 @@ def fetch_upcoming_dividends(api, data, stocks, counters, today):
                 u["suspectDup"] = True
                 suspects.append(u["sym"])
             continue
+        # ملزمة الناقد 17-08ب (ببرهانه الجبري، واعتماد المحلل «3× للزوج»):
+        # وسيط الزوج يجعل ≥3×الوسيط مستحيلاً جبرياً (y_max ≤ 2×وسيط الزوج دوماً) —
+        # فللحملة الثنائية حصراً: نسبة الزوج y_max ≥ 3×y_min توسم الأعلى.
+        # الحملات ≥3 على منطق الوسيط؛ فرعا 8% المطلق وغياب السعر كما هما في الكل.
+        if len(holders) == 2 and len(known) == 2:
+            y_min, y_max = min(known), max(known)
+            pair_bad = y_min > 0 and y_max >= 3 * y_min
+            for u, y in ys:
+                if y > 8.0 or (pair_bad and y == y_max):
+                    u["suspectDup"] = True
+                    suspects.append(u["sym"])
+            continue
         med = statistics.median(known)
         for u, y in ys:
             if y is None or y > 8.0 or (med > 0 and y >= 3 * med):
