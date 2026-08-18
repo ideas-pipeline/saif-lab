@@ -321,7 +321,8 @@ tr:hover{background:#1e293b88}
 
 <div class="filter-bar" id="filterBar">
   <input id="searchBox" type="search" placeholder="🔍 بحث بالاسم أو الرمز" oninput="setSearch(this.value)">
-  <span class="chips" id="classChips"></span>
+  <!-- شرائح التصنيف انتقلت لشريط القسم المدمج الموحد (#oppChips) — نسخة واحدة على
+       الصفحة كلها تعدّ وتفلتر البطاقات والجدول معاً (ملاحظة المالك: التكرار حشو) -->
   <select id="sectorFilter" onchange="filterBySector(this.value)">
     <option value="all">كل القطاعات</option>
   </select>
@@ -331,11 +332,11 @@ tr:hover{background:#1e293b88}
     <button onclick="setMinScore(65,this)">65+</button>
     <button onclick="setMinScore(50,this)">50+</button>
   </span>
-  <span id="resultCount" style="font-size:0.75em;color:#64748b"></span>
+  <span id="resultCount" dir="ltr" style="font-size:0.75em;color:#64748b"></span><!-- dir=ltr: ‏«50 / 248» كانت تنعكس «248 / 50» فتُقرأ مقلوبة -->
 </div>
 
-<div class="section-title">🏆 أفضل الفرص الاستثمارية</div>
-<div class="cards" id="topCards"></div>
+<!-- قسما «أبرز الفرص» و«أفضل الفرص» اندمجا في قسم واحد يُرسم كاملاً داخل #decisions
+     (ملاحظة المالك: «نفس بعض، مجرد حشو») — العنوان والشرائح والبطاقات من renderOpportunities -->
 
 <div class="section-title">🌱 إشارات انعكاس مبكرة <span style="font-size:0.6em;color:#64748b;font-weight:normal">تحت متوسط 200 أسبوع، عبرت الفلتر بفضل إشارات انعكاس — فئة رصد لا توصيات</span></div>
 <div id="reversals"></div>
@@ -685,7 +686,7 @@ function init() {
       'عمر البيانات — أسعار: ' + _priceAge + '  |  يومية: ' + _dailyAge + '  |  أسبوعية: ' + _weeklyAge;
   }
   
-  renderDecisions();
+  renderOpportunities();
 
   // Sector filter — يشمل الأسهم بلا قطاع (موجودة في البيانات الحقيقية)
   let secs = new Set(), hasNoSector = false;
@@ -707,19 +708,12 @@ function init() {
     sel.appendChild(o);
   }
 
-  // شرائح التصنيف — متعددة الاختيار. شريحة «شُطب» تظهر فقط حين توجد الحالة في البيانات
-  const hasDelisted = stocks.some(s => s.delisted);
-  document.getElementById('classChips').innerHTML = Object.entries(CLASS_LABELS)
-    .filter(([cc]) => cc !== 'delisted' || hasDelisted)
-    .map(([cc, lb]) => `<span class="chip ${cc}" onclick="toggleClass('${cc}',this)">${lb}</span>`).join('');
-
   // سطر الأوزان في التذييل بحسب نسخة المعايير الفعلية في البيانات — لا ادعاء مقام غير المعروض
   if (stocks.some(s => isV3sc(s.investmentScore))) {
     document.getElementById('footerWeights').textContent =
       'criteria v3 — الأوزان: جودة 30 • اتجاه 25 • قوة نسبية 15 • مخاطر 15 • تقييم 15 = 100 نقطة مباشرة';
   }
 
-  renderTopCards();
   renderReversals();
   renderDivCalendar();   // مفكرة التوزيعات — تظهر فقط حين تصل كتلتها
   renderTable();
@@ -741,110 +735,97 @@ function togglePeNote() {
   n.style.display = n.style.display === 'none' ? '' : 'none';
 }
 
-// شاشة أبرز الفرص: أعلى 5 فرص من عائلة الشراء + عدّ الفئات الثماني (بما فيها unrated —
-// مجموع الشرائح يجب أن يساوي «الإجمالي» دائماً) + تنبيه البيئة الهابطة
-function renderDecisions() {
-  const mr = DATA.marketRegime || {};
-  const BUY_FAMILY = ['strong_buy', 'buy', 'conditional_buy'];
-  // unrated لم يُختبر بالفلتر فلا يُرشَّح هنا، ودون حد السيولة لا يُرشَّح كفرصة
-  const top5 = stocks.filter(s => BUY_FAMILY.includes(classCodeOf(s)) && !isUnrated(s.investmentScore) && !liqBlocked(s))
-    .sort((a,b) => (b.investmentScore?.total||0) - (a.investmentScore?.total||0))
-    .slice(0, 5);
-
-  const counts = {};
-  stocks.forEach(s => { const c = classCodeOf(s); counts[c] = (counts[c]||0) + 1; });
-
-  let html = '<div class="section-title">🎯 أبرز الفرص <span style="font-size:0.6em;color:#64748b;font-weight:normal">وفق النموذج — ليست نصيحة استثمارية</span></div>';
-  if (mr.mood === 'Bearish') {
-    html += `<div class="bear-note">⚠️ ${mr.advice || 'بيئة ضاغطة'}</div>`;
-  }
-  // شريحة «شُطب» تُخفى فقط حين العدّ صفراً — إخفاء صفرٍ لا يمس ثبات مجموع الشرائح = الإجمالي
-  html += '<div class="count-bar">' +
-    Object.entries(CLASS_LABELS)
-      .filter(([cc]) => cc !== 'delisted' || (counts[cc] || 0) > 0)
-      .map(([cc, lb]) => `<span class="count-chip">${lb} <b>${counts[cc]||0}</b></span>`).join('') +
-    `<span class="count-chip">📊 الإجمالي <b>${stocks.length}</b></span></div>`;
-
-  if (top5.length) {
-    html += '<div class="cards">' + top5.map(s => {
-      const sc = s.investmentScore || {};
-      const e = entryOf(sc);
-      return `<div class="card" onclick="openModal('${s.symbol}')">
-        ${verdictBlock(s)}
-        <div style="display:flex;justify-content:space-between;align-items:start">
-          <div>
-            <div class="name">${s.name}</div>${sproutTag(sc)}
-            <div class="symbol">${s.symbol}</div>
-            <div class="sector-tag">${SECTOR_AR[secOf(s)] || secOf(s) || 'غير مصنف'}</div>
-          </div>
-          <div style="text-align:left">
-            <div class="score-num ${getScoreClass(sc.total)}">${sc.total}<span style="font-size:0.5em;color:#94a3b8">/100</span></div>
-            <div class="class-badge ${sc.classCode}">${sc.classification}</div>
-          </div>
-        </div>
-        <div style="margin-top:6px">${priceLine(s)}</div>
-        ${e ? entryStrip(sc)
-            : `<div class="timing" style="margin-top:6px"><span class="dot ${timingDotCls(sc.timing)}"></span> توقيت: ${sc.timing || '—'}${sc.timingSignals != null ? ' (' + sc.timingSignals + '/4)' : ''}</div>`}
-      </div>`;
-    }).join('') + '</div>';
-  } else {
-    html += '<div style="color:#64748b;padding:16px;text-align:center">لا فرص شراء اليوم وفق النموذج</div>';
-  }
-  document.getElementById('decisions').innerHTML = html;
-}
-
 function getScoreClass(score) {
   if (score >= 65) return 'high';
   if (score >= 40) return 'mid';
   return 'low';
 }
 
-function renderTopCards() {
-  // unrated يُستبعد هنا أيضاً (تصحيح 27-07): شاشة مرشَّحين والسهم لم يُختبر بالفلتر — يطابق فلتر أبرز الفرص
-  let top = stocks.filter(s => !s.delisted && !s.investmentScore?.filtered && s.investmentScore?.total >= 65 && !isUnrated(s.investmentScore) && !liqBlocked(s))
-    .sort((a,b) => (b.investmentScore?.total||0) - (a.investmentScore?.total||0))
-    .slice(0, 12);
+// ═══ القسم المدمج «أفضل الفرص الاستثمارية» (ملاحظة المالك: قسما أبرز/أفضل «نفس بعض،
+// مجرد حشو») — قسم واحد: تنبيه البيئة ← شريط شرائح موحد (يعدّ ويفلتر البطاقات والجدول
+// معاً — النسخة الوحيدة على الصفحة) ← البطاقات.
+// قاعدة الاختيار المصادق عليها: عائلة الشراء ∪ نقاط ≥65، ترتيباً بالنقاط، أعلى 12،
+// بالاستثناءات القائمة (لا مشطوب/مفلتر/غير مُقيَّم/محجوب سيولة).
+// شرط المحلل الملزم: بطاقة hold≥65 تبقى بتصنيفها «انتظار» وسطر حكمها كما هما —
+// فصل الجدارة عن التوقيت (البطاقة أدناه تعرض classification/verdict الحقيقيين بلا مساس)
+const BUY_FAMILY = ['strong_buy', 'buy', 'conditional_buy'];
+// مؤهل للترشيح كبطاقة فرصة (الاستثناءات المختومة القائمة)
+const oppEligible = (s) => !s.delisted && !s.investmentScore?.filtered && !isUnrated(s.investmentScore) && !liqBlocked(s);
 
-  let html = '';
-  top.forEach(s => {
-    let sc = s.investmentScore || {};
-    let scClass = getScoreClass(sc.total);
-    const e = entryOf(sc);
+// بطاقة الفرصة الموحدة (قالب «أفضل الفرص» الأغنى — أشرطة المحاور والدخول والسعر)
+function oppCardHtml(s) {
+  const sc = s.investmentScore || {};
+  const scClass = getScoreClass(sc.total);
+  const e = entryOf(sc);
+  return `<div class="card" onclick="openModal('${s.symbol}')">
+    ${verdictBlock(s)}
+    <div style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <div class="name">${s.name}</div>${sproutTag(sc)}
+        <div class="symbol">${s.symbol}</div>
+        <div class="sector-tag">${SECTOR_AR[secOf(s)] || secOf(s) || 'غير مصنف'}</div>
+      </div>
+      <div style="text-align:left">
+        <div class="score-num ${scClass}">${sc.total}<span style="font-size:0.5em;color:#94a3b8">/100</span></div>
+        <div class="class-badge ${sc.classCode}">${sc.classification}</div>
+      </div>
+    </div>
+    <div style="margin:6px 0;font-size:0.75em">
+      <div class="score-bar"><div class="score-fill ${scClass}" style="width:${sc.total}%"></div></div>
+    </div>
+    ${isV3sc(sc) ? '' /* شارتا C/I وND/EBITDA أُسقط مؤشراهما نهائياً في v3 (§5) — لا تُعرضان ولو بقيت حقولهما القديمة في البيانات */ : `<div style="display:flex;gap:6px;margin:4px 0;font-size:0.65em;flex-wrap:wrap">
+      ${s.liquidityScore ? `<span style="padding:2px 6px;border-radius:4px;background:${s.liquidityScore.color==='green'?'#065f46':s.liquidityScore.color==='yellow'?'#78350f':'#7f1d1d'};color:${s.liquidityScore.color==='green'?'#6ee7b7':s.liquidityScore.color==='yellow'?'#fcd34d':'#fca5a5'}">🔄 ${s.liquidityScore.turnoverPct != null ? s.liquidityScore.turnoverPct+'%' : '—'} ${s.liquidityScore.label}</span>` : ''}
+      ${s.debtHealth ? `<span style="padding:2px 6px;border-radius:4px;background:${s.debtHealth.color==='green'?'#065f46':s.debtHealth.color==='yellow'?'#78350f':s.debtHealth.color==='red'?'#7f1d1d':'#374151'};color:${s.debtHealth.color==='green'?'#6ee7b7':s.debtHealth.color==='yellow'?'#fcd34d':s.debtHealth.color==='red'?'#fca5a5':'#9ca3af'}">💰 ${s.debtHealth.type==='bank' ? (s.debtHealth.costToIncome ? 'C/I '+s.debtHealth.costToIncome+'%' : '—') : (s.debtHealth.netDebtToEbitda != null ? 'ND/E '+s.debtHealth.netDebtToEbitda+'x' : (s.debtHealth.netDebt != null && s.debtHealth.netDebt < 0 ? 'فوائض' : '—'))} ${s.debtHealth.label}</span>` : ''}
+    </div>`}
+    <div class="pillars">
+      ${axesOf(sc).map(a => { const p = a.max ? (a.val || 0) / a.max : 0;
+        return `<span class="pillar ${p >= 0.65 ? 'g' : p >= 0.4 ? 'y' : 'r'}">${a.short} ${a.val != null ? a.val : '—'}/${a.max}</span>`; }).join('')}
+    </div>
+    ${e ? entryStrip(sc) : ''}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:8px;flex-wrap:wrap">
+      ${priceLine(s)}
+      ${e ? '' : (sc.timing != null ? `<div class="timing"><span class="dot ${timingDotCls(sc.timing)}"></span> توقيت: ${sc.timing}${sc.timingSignals != null ? ' (' + sc.timingSignals + '/4)' : ''}</div>` : '')}
+    </div>
+  </div>`;
+}
 
-    html += `<div class="card" onclick="openModal('${s.symbol}')">
-      ${verdictBlock(s)}
-      <div style="display:flex;justify-content:space-between;align-items:start">
-        <div>
-          <div class="name">${s.name}</div>${sproutTag(sc)}
-          <div class="symbol">${s.symbol}</div>
-          <div class="sector-tag">${SECTOR_AR[secOf(s)] || secOf(s) || ''}</div>
-        </div>
-        <div style="text-align:left">
-          <div class="score-num ${scClass}">${sc.total}</div>
-          <div class="class-badge ${sc.classCode}">${sc.classification}</div>
-        </div>
-      </div>
-      <div style="margin:6px 0;font-size:0.75em">
-        <div style="color:#94a3b8;margin-bottom:2px">استثمار</div>
-        <div class="score-bar"><div class="score-fill ${scClass}" style="width:${sc.total}%"></div></div>
-      </div>
-      ${isV3sc(sc) ? '' /* شارتا C/I وND/EBITDA أُسقط مؤشراهما نهائياً في v3 (§5) — لا تُعرضان ولو بقيت حقولهما القديمة في البيانات */ : `<div style="display:flex;gap:6px;margin:4px 0;font-size:0.65em;flex-wrap:wrap">
-        ${s.liquidityScore ? `<span style="padding:2px 6px;border-radius:4px;background:${s.liquidityScore.color==='green'?'#065f46':s.liquidityScore.color==='yellow'?'#78350f':'#7f1d1d'};color:${s.liquidityScore.color==='green'?'#6ee7b7':s.liquidityScore.color==='yellow'?'#fcd34d':'#fca5a5'}">🔄 ${s.liquidityScore.turnoverPct != null ? s.liquidityScore.turnoverPct+'%' : '—'} ${s.liquidityScore.label}</span>` : ''}
-        ${s.debtHealth ? `<span style="padding:2px 6px;border-radius:4px;background:${s.debtHealth.color==='green'?'#065f46':s.debtHealth.color==='yellow'?'#78350f':s.debtHealth.color==='red'?'#7f1d1d':'#374151'};color:${s.debtHealth.color==='green'?'#6ee7b7':s.debtHealth.color==='yellow'?'#fcd34d':s.debtHealth.color==='red'?'#fca5a5':'#9ca3af'}">💰 ${s.debtHealth.type==='bank' ? (s.debtHealth.costToIncome ? 'C/I '+s.debtHealth.costToIncome+'%' : '—') : (s.debtHealth.netDebtToEbitda != null ? 'ND/E '+s.debtHealth.netDebtToEbitda+'x' : (s.debtHealth.netDebt != null && s.debtHealth.netDebt < 0 ? 'فوائض' : '—'))} ${s.debtHealth.label}</span>` : ''}
-      </div>`}
-      <div class="pillars">
-        ${axesOf(sc).map(a => { const p = a.max ? (a.val || 0) / a.max : 0;
-          return `<span class="pillar ${p >= 0.65 ? 'g' : p >= 0.4 ? 'y' : 'r'}">${a.short} ${a.val != null ? a.val : '—'}/${a.max}</span>`; }).join('')}
-      </div>
-      ${e ? entryStrip(sc) : ''}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:8px;flex-wrap:wrap">
-        ${priceLine(s)}
-        ${e ? '' : `<div class="timing"><span class="dot ${timingDotCls(sc.timing)}"></span> توقيت: ${sc.timing} (${sc.timingSignals}/4)</div>`}
-      </div>
-    </div>`;
-  });
-  
-  document.getElementById('topCards').innerHTML = html || '<div style="color:#64748b;padding:20px;text-align:center">لا أسهم مؤهلة اليوم (65+ نقطة وفوق حد السيولة)</div>';
+function renderOpportunities() {
+  const mr = DATA.marketRegime || {};
+  // العدّ ثابت باستقلال تام عن الفلتر (مبدأ ثبات الإحصاءات المختوم) — من الكون كله
+  const counts = {};
+  stocks.forEach(s => { const c = classCodeOf(s); counts[c] = (counts[c]||0) + 1; });
+
+  let html = '<div class="section-title">🏆 أفضل الفرص الاستثمارية <span style="font-size:0.6em;color:#64748b;font-weight:normal">وفق النموذج — ليست نصيحة استثمارية</span></div>';
+  if (mr.mood === 'Bearish') {
+    html += `<div class="bear-note">⚠️ ${mr.advice || 'بيئة ضاغطة'}</div>`;
+  }
+  // شريط الشرائح الموحد: عدّ + فلترة بنقرة واحدة (بطاقات وجدول معاً).
+  // «شُطب» تُخفى فقط حين العدّ صفراً — إخفاء صفرٍ لا يمس ثبات مجموع الشرائح = الإجمالي
+  const filterOn = activeClasses.size > 0;
+  html += '<div class="count-bar" id="oppChips">' +
+    `<span class="chip all ${filterOn ? '' : 'active'}" onclick="clearClassFilter()" style="${filterOn ? '' : 'background:#f59e0b22;color:#fbbf24;border-color:#f59e0b'}">الكل</span>` +
+    Object.entries(CLASS_LABELS)
+      .filter(([cc]) => cc !== 'delisted' || (counts[cc] || 0) > 0)
+      .map(([cc, lb]) => `<span class="chip ${cc} ${activeClasses.has(cc) ? 'active' : ''}" onclick="toggleClass('${cc}',this)">${lb} <b>${counts[cc]||0}</b></span>`).join('') +
+    `<span class="count-chip">📊 الإجمالي <b>${stocks.length}</b></span></div>`;
+
+  // البطاقات: بلا فلتر = القاعدة المدمجة (عائلة الشراء ∪ ≥65)؛ مع فلتر = الفئات المختارة
+  // وحدها (بالفئة فقط — لا تقاطع مع قطاع/نقاط الجدول: البطاقات واجهة ترشيح لا جدول ثانٍ)
+  let pool = stocks.filter(s => oppEligible(s) &&
+    (filterOn ? activeClasses.has(classCodeOf(s))
+              : (BUY_FAMILY.includes(classCodeOf(s)) || (s.investmentScore?.total || 0) >= 65)));
+  pool.sort((a, b) => (b.investmentScore?.total||0) - (a.investmentScore?.total||0));
+  const top = pool.slice(0, 12);
+
+  if (top.length) {
+    html += '<div class="cards">' + top.map(oppCardHtml).join('') + '</div>';
+  } else if (filterOn) {
+    // فئة كل أعضائها خارج شروط الترشيح (مفلتر/غير مُقيَّم/محجوب/مشطوب) — رسالة صادقة لا فراغ صامت
+    html += '<div style="color:#64748b;padding:16px;text-align:center">لا بطاقات لهذه الفئة — أسهمها خارج شروط الترشيح (مستبعدة أو غير مُقيَّمة أو دون حد السيولة)، وتجدها كاملة في الجدول أدناه</div>';
+  } else {
+    html += '<div style="color:#64748b;padding:16px;text-align:center">لا فرص شراء اليوم وفق النموذج</div>';
+  }
+  document.getElementById('decisions').innerHTML = html;
 }
 
 // شاشة استثناء الانعكاس: أسهم عبرت فلتر SMA200W الإقصائي بإشارات الانعكاس الثلاث وهي بعدُ تحته.
@@ -1134,9 +1115,15 @@ function applyFilters() {
   document.getElementById('resultCount').textContent = visible + ' / ' + stocks.length;
 }
 
-function toggleClass(cc, el) {
-  if (activeClasses.has(cc)) { activeClasses.delete(cc); el.classList.remove('active'); }
-  else { activeClasses.add(cc); el.classList.add('active'); }
+function toggleClass(cc) {
+  if (activeClasses.has(cc)) activeClasses.delete(cc);
+  else activeClasses.add(cc);
+  renderOpportunities();   // البطاقات + حالة الشرائح النشطة (الشريط يعاد رسمه بحالته)
+  applyFilters();          // الجدول — السلوك القائم (يتقاطع مع قطاع/نقاط/بحث كما اليوم)
+}
+function clearClassFilter() {   // «الكل» — العودة للقاعدة المدمجة وكامل الجدول
+  activeClasses.clear();
+  renderOpportunities();
   applyFilters();
 }
 
