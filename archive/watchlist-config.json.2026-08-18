@@ -56,7 +56,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.68,
+   "maePct": 0.0,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -115,8 +115,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.87,
-   "twinNote": "تخرّج لمطبق بتاريخه"
+   "maePct": -0.87
   },
   {
    "symbol": "2230",
@@ -134,7 +133,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.35
+   "maePct": -0.62
   },
   {
    "symbol": "2280",
@@ -226,7 +225,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.04
+   "maePct": -1.05
   },
   {
    "symbol": "4280",
@@ -354,8 +353,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.93,
-   "twinNote": "تخرّج لمطبق بتاريخه"
+   "maePct": -2.93
   },
   {
    "symbol": "7010",
@@ -398,8 +396,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.07,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -3.82
+   "tasiRet": 0.84,
+   "excessNet": -3.84
   },
   {
    "symbol": "2050",
@@ -424,8 +422,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -2.97
+   "tasiRet": 0.84,
+   "excessNet": -1.3
   },
   {
    "symbol": "3020",
@@ -450,8 +448,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -0.13
+   "tasiRet": 0.84,
+   "excessNet": 0.43
   },
   {
    "symbol": "3080",
@@ -476,8 +474,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.95,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -2.23
+   "tasiRet": 0.84,
+   "excessNet": -1.55
   },
   {
    "symbol": "6010",
@@ -502,8 +500,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.98,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -0.4
+   "tasiRet": 0.84,
+   "excessNet": -1.2
   },
   {
    "symbol": "4012",
@@ -526,10 +524,10 @@
    "peAtEntry": 13.99,
    "peSectorMedianAtEntry": 22.44,
    "tasiAtEntry": 10817.01,
-   "maePct": -4.97,
+   "maePct": -4.42,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -5.93
+   "tasiRet": 0.84,
+   "excessNet": -5.34
   },
   {
    "symbol": "3010",
@@ -554,8 +552,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.61,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -2.99
+   "tasiRet": 0.84,
+   "excessNet": -3.53
   },
   {
    "symbol": "3005",
@@ -580,8 +578,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.46,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -5.42
+   "tasiRet": 0.84,
+   "excessNet": -3.97
   },
   {
    "symbol": "3030",
@@ -606,8 +604,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -2.02
+   "tasiRet": 0.84,
+   "excessNet": -1.84
   },
   {
    "symbol": "4323",
@@ -632,8 +630,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.75,
    "status": "open",
-   "tasiRet": 0.87,
-   "excessNet": -3.1
+   "tasiRet": 0.84,
+   "excessNet": -2.37
   },
   {
    "symbol": "1303",
@@ -925,7 +923,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.01
+   "maePct": -2.25
   },
   {
    "symbol": "2020",
@@ -1076,8 +1074,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.81,
-   "excessNet": 1.54
+   "tasiRet": 0.78,
+   "excessNet": 1.5
   },
   {
    "symbol": "4260",
@@ -1104,8 +1102,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.81,
-   "excessNet": 4.44
+   "tasiRet": 0.78,
+   "excessNet": 3.92
   },
   {
    "symbol": "4150",
@@ -1130,10 +1128,10 @@
    "peAtEntry": 10.69,
    "peSectorMedianAtEntry": 13.57,
    "tasiAtEntry": 10823.6,
-   "maePct": -0.77,
+   "maePct": -0.52,
    "status": "open",
-   "tasiRet": 0.81,
-   "excessNet": -1.63
+   "tasiRet": 0.78,
+   "excessNet": -1.21
   },
   {
    "symbol": "1180",
@@ -1153,7 +1151,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.06,
    "status": "open",
-   "maePct": -0.14
+   "maePct": 0.0
   },
   {
    "symbol": "1212",
@@ -1173,7 +1171,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.02,
    "status": "open",
-   "maePct": -1.44
+   "maePct": 0.0
   },
   {
    "symbol": "1322",
@@ -1234,7 +1232,7 @@
    "volTrendAtEntry": 1.08,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -1.79
+   "maePct": 0.0
   },
   {
    "symbol": "8280",
@@ -1253,70 +1251,6 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.27,
-   "status": "closed",
-   "maePct": -1.64,
-   "closeDate": "2026-08-18",
-   "closePrice": 14.95,
-   "closeReason": "sma200w_weekly_break"
-  },
-  {
-   "symbol": "2190",
-   "name": "مستدام",
-   "sector": "Industrials",
-   "type": "buy",
-   "entryPrice": 36.6,
-   "entryDate": "2026-08-18",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 65,
-   "timingAtEntry": "ممتاز",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 1.29,
-   "status": "open",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "4190",
-   "name": "جرير",
-   "sector": "Consumer Discretionary",
-   "type": "buy",
-   "entryPrice": 16.59,
-   "entryDate": "2026-08-18",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "buy_wait",
-   "scoreAtEntry": 81,
-   "timingAtEntry": "انتظر",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 0.76,
-   "status": "open",
-   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "4291",
-   "name": "الوطنية للتعليم",
-   "sector": "Consumer Staples",
-   "type": "buy",
-   "entryPrice": 143.0,
-   "entryDate": "2026-08-18",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 67,
-   "timingAtEntry": "ممتاز",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 1.4,
    "status": "open",
    "maePct": 0.0
   }
