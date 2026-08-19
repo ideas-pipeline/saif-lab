@@ -354,7 +354,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.68,
+   "maePct": -2.93,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -398,8 +398,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.07,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -3.16
+   "tasiRet": 0.87,
+   "excessNet": -3.82
   },
   {
    "symbol": "2050",
@@ -424,8 +424,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -2.64
+   "tasiRet": 0.87,
+   "excessNet": -2.97
   },
   {
    "symbol": "3020",
@@ -450,8 +450,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": 0.2
+   "tasiRet": 0.87,
+   "excessNet": -0.13
   },
   {
    "symbol": "3080",
@@ -476,8 +476,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.95,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -2.53
+   "tasiRet": 0.87,
+   "excessNet": -2.23
   },
   {
    "symbol": "6010",
@@ -502,8 +502,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.98,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -1.1
+   "tasiRet": 0.87,
+   "excessNet": -0.4
   },
   {
    "symbol": "4012",
@@ -528,8 +528,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.97,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -6.07
+   "tasiRet": 0.87,
+   "excessNet": -5.93
   },
   {
    "symbol": "3010",
@@ -554,8 +554,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.61,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -2.45
+   "tasiRet": 0.87,
+   "excessNet": -2.99
   },
   {
    "symbol": "3005",
@@ -580,8 +580,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.46,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -5.24
+   "tasiRet": 0.87,
+   "excessNet": -5.42
   },
   {
    "symbol": "3030",
@@ -606,8 +606,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -1.95
+   "tasiRet": 0.87,
+   "excessNet": -2.02
   },
   {
    "symbol": "4323",
@@ -632,8 +632,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.75,
    "status": "open",
-   "tasiRet": 1.0,
-   "excessNet": -3.7
+   "tasiRet": 0.87,
+   "excessNet": -3.1
   },
   {
    "symbol": "1303",
@@ -1076,8 +1076,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.94,
-   "excessNet": 2.84
+   "tasiRet": 0.81,
+   "excessNet": 1.54
   },
   {
    "symbol": "4260",
@@ -1104,8 +1104,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.94,
-   "excessNet": 4.23
+   "tasiRet": 0.81,
+   "excessNet": 4.44
   },
   {
    "symbol": "4150",
@@ -1132,8 +1132,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.77,
    "status": "open",
-   "tasiRet": 0.94,
-   "excessNet": -0.48
+   "tasiRet": 0.81,
+   "excessNet": -1.63
   },
   {
    "symbol": "1180",
@@ -1173,7 +1173,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.02,
    "status": "open",
-   "maePct": -1.51
+   "maePct": -1.44
   },
   {
    "symbol": "1322",
@@ -1193,8 +1193,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.85,
    "status": "open",
-   "maePct": -8.23,
-   "twinNote": "تخرّج لمطبق بتاريخه"
+   "maePct": -4.57
   },
   {
    "symbol": "7020",
@@ -1235,7 +1234,7 @@
    "volTrendAtEntry": 1.08,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -1.86
+   "maePct": -1.79
   },
   {
    "symbol": "8280",
@@ -1318,46 +1317,6 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.4,
-   "status": "open",
-   "maePct": -1.12
-  },
-  {
-   "symbol": "1080",
-   "name": "البنك العربي الوطني",
-   "sector": "Financials",
-   "type": "buy",
-   "entryPrice": 22.35,
-   "entryDate": "2026-08-19",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "conditional_buy",
-   "scoreAtEntry": 65,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": false,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": true,
-   "volTrendAtEntry": 0.86,
-   "status": "open",
-   "maePct": 0.0
-  },
-  {
-   "symbol": "1322",
-   "name": "المعادن الكبرى",
-   "sector": "Materials",
-   "type": "buy",
-   "entryPrice": 80.3,
-   "entryDate": "2026-08-19",
-   "track": "auto",
-   "category": "buy",
-   "engineClass": "buy",
-   "scoreAtEntry": 65,
-   "timingAtEntry": "ممتاز",
-   "regimeAtEntry": "حذر",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 0.87,
    "status": "open",
    "maePct": 0.0
   }
