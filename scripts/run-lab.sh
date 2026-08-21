@@ -44,8 +44,18 @@ case "$MODE" in
   weekly)   python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --weekly --watchlist-config "$WLCFG" ;;
   universe) python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --maintain-universe --watchlist-config "$WLCFG"
             python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" ;;
+  divcal)   # مفكرة الويكند الخفيفة (طلب المالك 21-08): كتلتا المفكرة حصراً ثم البناء والنشر.
+            # كرونا المالك المقترحان (توقيت السيرفر الرياض):
+            #   20 12 * * 5  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # الجمعة 12:20
+            #   20 12 * * 6  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # السبت 12:20
+            python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --divcal-only --watchlist-config "$WLCFG" ;;
   *)        python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" ;;
 esac
+
+if [ "$MODE" = "divcal" ]; then
+  # الوضع الخفيف: لا محرك ولا مغذٍ ولا إغلاقات ولا L1/digest — بناء ونشر فقط
+  python3 build.py
+else
 
 python3 scripts/scoring-engine.py "$DATA"
 
@@ -65,6 +75,7 @@ CONFIG_JSON="$LAB/watchlist-config.json" STOCKS_JSON="$DATA" \
 
 python3 build.py
 python3 scripts/self-check-L1.py "$DATA"
+fi   # نهاية فرع الوضع الكامل — كتلة النشر مشتركة لكل الأوضاع
 
 # الطبقة 2 (أسبوعي): التقرير الوصفي — فشله يُنبه ولا يُسقط السلسلة (قرار مقر 05-08ب)،
 # ويسبق النشر كي يُدفع docs/weekly-digest.md مع التشغيلة
