@@ -1267,23 +1267,36 @@ def fetch_upcoming_dividends(api, data, stocks, counters, today):
                     return (h.get("fiscal_year") or h.get("fy"),
                             h.get("announcement_date") or None)
             return None, None
-        for rec in upc:
-            if not isinstance(rec, dict):
-                continue
+        seen_sigs = set()   # إزالة تكرار **داخل الرمز الواحد فقط** — التوقيع عبر الرموز شأن حارس 2060/2080
+        def _emit(rec, fy, ann):
             elig = (rec.get("eligibility_date") or None)
             dist = (rec.get("distribution_date") or None)
             val = rec.get("value", rec.get("amount"))
             if val is None:
-                continue
+                return
             in_elig = bool(elig) and today <= str(elig)[:10] <= horizon
             in_dist = bool(dist) and today <= str(dist)[:10] <= horizon
             if not (in_elig or in_dist):
-                continue   # يشمل: null+null، الماضي كلياً، وما بعد النافذة
-            fy, ann = _join(rec)
+                return   # يشمل: null+null، الماضي كلياً، وما بعد النافذة
+            sig = (val, str(elig)[:10] if elig else None, str(dist)[:10] if dist else None)
+            if sig in seen_sigs:
+                return   # سجل انتقالي ظهر في upcoming وhistory معاً — مرة واحدة
+            seen_sigs.add(sig)
             out.append({"sym": sym, "name": st.get("name", ""), "value": val,
                         "period": rec.get("period"), "fy": fy, "annDate": ann,
                         "eligDate": str(elig)[:10] if elig else None,
                         "distDate": str(dist)[:10] if dist else None})
+        for rec in upc:
+            if isinstance(rec, dict):
+                fy, ann = _join(rec)
+                _emit(rec, fy, ann)
+        # (إصلاح 21-08 — العلة المثبتة بجرير/أرامكو/الحمادي): المصدر يُسقط السجل من
+        # upcoming بعد مرور أحقيته ولو كان إيداعه قادماً، فتفقد المفكرة «يوم وصول
+        # النقد» في أقرب لحظاته. الإكمال من history (نفس النداء — صفر طلبات إضافية):
+        # كل سجل إيداعه مستقبلي يدخل بحقوله الكاملة (أحقية ماضية، إعلان، fy أصليان).
+        for h in (hist or []):
+            if isinstance(h, dict) and str(h.get("distribution_date") or "")[:10] >= today:
+                _emit(h, h.get("fiscal_year") or h.get("fy"), h.get("announcement_date") or None)
         return True, None
 
     run_with_429_sweep(stocks, process, counters, "divcal_ok", "divcal_fail", "مفكرة التوزيعات")
@@ -1346,6 +1359,39 @@ def fetch_upcoming_dividends(api, data, stocks, counters, today):
     data["upcomingDividendsAt"] = today
     print("  📅 مفكرة التوزيعات: %d حدثاً قادماً في نافذة %d يوماً (نجح %d | فشل %d)"
           % (len(out), DIVCAL_WINDOW_DAYS, ok, fl))
+
+
+def divcal_only_run(api, data_path, data, stocks):
+    """وضع divcal الخفيف (طلب المالك 21-08 — مفكرة تتحدث كل الأسبوع شاملاً الويكند):
+    يجلب التوزيعات فقط (~عدد الأسهم طلباً بإيقاع 1.5/ث) ويحدّث **حصراً** كتلتي
+    upcomingDividends/upcomingDividendsAt. **حارس صريح**: أي فرق خارج الكتلتين
+    (أسعار/محرك/مغذٍ/عينة/أي شيء) = إجهاض بصوت عالٍ بلا كتابة. ‏fail-open القائم
+    يسري (فشل الجلب = الكتلة السابقة بختمها + إنذار — وعندها لا شيء يتغير أصلاً)."""
+    import copy as _copy
+    KEYS = ("upcomingDividends", "upcomingDividendsAt")
+    orig = _copy.deepcopy(data)
+    counters = {"divcal_ok": 0, "divcal_fail": 0}
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    print("📅 وضع divcal الخفيف: %d طلباً بإيقاع %.1f/ث ≈ %.1f دقيقة — الكتلتان فقط"
+          % (len(stocks), RATE_PER_SEC, len(stocks) / RATE_PER_SEC / 60))
+    fetch_upcoming_dividends(api, data, stocks, counters, today)
+    a = json.dumps({k: v for k, v in orig.items() if k not in KEYS}, sort_keys=True, ensure_ascii=False)
+    b = json.dumps({k: v for k, v in data.items() if k not in KEYS}, sort_keys=True, ensure_ascii=False)
+    if a != b:
+        print("⛔⛔ حارس divcal: رُصد تغير خارج كتلتي المفكرة — إجهاض بلا أي كتابة")
+        sys.exit(1)
+    out_dir = os.path.dirname(os.path.abspath(data_path)) or "."
+    fd, tmp = tempfile.mkstemp(dir=out_dir, suffix=".tmp")
+    with os.fdopen(fd, "w") as f:
+        json.dump(data, f, separators=(",", ":"), ensure_ascii=False)
+    os.replace(tmp, data_path)
+    try:
+        os.chmod(data_path, 0o664)
+    except OSError:
+        pass
+    print("✅ divcal: كُتبت كتلتا المفكرة حصراً (%d صفاً، ختم %s) — %s"
+          % (len(data.get("upcomingDividends") or []), data.get("upcomingDividendsAt"), data_path))
+    sys.exit(0)
 
 
 def fetch_tasi(api, counters, hist_file, data):
@@ -1597,6 +1643,8 @@ def main():
     ap.add_argument("--symbols", default="")
     ap.add_argument("--probe-financials", action="store_true")
     ap.add_argument("--probe-ratios", action="store_true")
+    ap.add_argument("--divcal-only", action="store_true",
+                    help="وضع الويكند الخفيف: تحديث كتلتي المفكرة حصراً")
     ap.add_argument("--key-file", default="")
     ap.add_argument("--tasi-history", default="")
     ap.add_argument("--watchlist-config", default="", help="لإغلاق delisted (افتراضي بجوار --data)")
@@ -1623,6 +1671,8 @@ def main():
         stocks = [s for s in stocks if s["symbol"] in want]
     if not stocks:
         sys.exit("⛔ لا أسهم مطابقة")
+    if args.divcal_only:
+        divcal_only_run(api, args.data, data, stocks)   # يخرج داخلياً — لا يصل لبقية الخط
     for s in stocks:   # لقطة الماليات السابقة لحارس الانزياح — لا تُكتب للملف
         s["_prevFinancials"] = dict(s.get("financials") or {})
         s["guardRejected"] = []   # §8: تُعاد بناؤها كل تشغيلة بمرفوضات التشغيلة نفسها
