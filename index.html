@@ -1753,6 +1753,9 @@ function openModal(sym) {
   // Financial health — دين/ملكية ونسبة التداول يُخفيان لقطاع Financials كله (بنوك وتأمين وتمويل):
   // هيكل ميزانيات القطاع يجعل المقياسين مضللين كمؤشري صحة مستقلين (عرض فقط — التقييم لا يتغير)
   const isFinSector = (sc.sector || s.sector) === 'Financials';
+  // مرآة is_bank في المحرك (ملزمة ختم 20-08): فرع OCF يخص البنوك حصراً — غير البنوك
+  // في القطاع المالي (تأمين/تمويل، 33 سهماً) تقييمهم يستخدم OCF فعلاً فبلاطتهم تبقى
+  const isBankMod = isFinSector && /bank|بنك|مصرف/i.test(s.industry || '');
   body += `<div class="modal-section">
     <h3>🏦 الصحة المالية</h3>
     <div class="indicator-grid">
@@ -1761,7 +1764,11 @@ function openModal(sym) {
       <div class="indicator ${fin.revenueGrowth > 5 ? 'green' : (fin.revenueGrowth >= 0 ? 'yellow' : 'red')}"><div class="val">${fin.revenueGrowth != null ? fin.revenueGrowth+'%' : '—'}</div><div class="lbl">نمو الإيرادات</div>${indDesc('revGrowth')}</div>
       ${isFinSector ? '' : `<div class="indicator"><div class="val">${fin.debtToEquity != null ? fin.debtToEquity+'%' : '—'}</div><div class="lbl">دين/ملكية</div>${indDesc('debtEquity')}</div>
       ${fin.currentRatio != null ? `<div class="indicator"><div class="val">${fin.currentRatio}</div><div class="lbl">نسبة التداول</div>${indDesc('currentRatio')}</div>` : '' /* currentRatio أُسقط في v3 (§5) — بلاطته تُحذف بدل «—» دائم */}`}
-      ${isV3sc(sc) && fin.ocf != null ? `<div class="indicator ${fin.ocf > 0 && fin.netIncome != null && fin.ocf >= fin.netIncome ? 'green' : fin.ocf > 0 ? 'yellow' : 'red'}"><div class="val">${fin.ocf > 0 ? (fin.netIncome != null && fin.ocf >= fin.netIncome ? 'يغطي الأرباح' : 'موجب') : 'سالب'}</div><div class="lbl">النقد التشغيلي OCF</div><div class="ind-desc">هل الأرباح المعلنة يقابلها نقد حقيقي دخل الشركة فعلاً؟ — «يغطي الأرباح» أفضل حالة</div></div>` : ''}
+      ${isV3sc(sc) && fin.ocf != null ? (isBankMod
+        /* بلاطة OCF تُخفى للبنوك حصراً (حكم المحلل 20-08 + ملزمة الختم: المفتاح is_bank لا القطاع —
+           تأمين/تمويل القطاع المالي يستخدم تقييمهم OCF فبلاطتهم تبقى): سطر صادق هادئ بدل بلاطة الحكم */
+        ? `<div class="ind-desc" style="grid-column:1/-1;padding:8px 10px;color:#94a3b8">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية)</div>`
+        : `<div class="indicator ${fin.ocf > 0 && fin.netIncome != null && fin.ocf >= fin.netIncome ? 'green' : fin.ocf > 0 ? 'yellow' : 'red'}"><div class="val">${fin.ocf > 0 ? (fin.netIncome != null && fin.ocf >= fin.netIncome ? 'يغطي الأرباح' : 'موجب') : 'سالب'}</div><div class="lbl">النقد التشغيلي OCF</div><div class="ind-desc">هل الأرباح المعلنة يقابلها نقد حقيقي دخل الشركة فعلاً؟ — «يغطي الأرباح» أفضل حالة</div></div>`) : ''}
     </div>
   </div>`;
   
