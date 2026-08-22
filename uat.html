@@ -531,7 +531,10 @@ function renderPulse(){
   const strong=ratedList.filter(s=>isc(s).total>=80);
   const entryOps=ratedList.filter(s=>isc(s).total>=65&&timingState(s)==="green");
   const revs=STOCKS.filter(s=>isc(s).viaReversal===true||isc(s).filterReason==="تحت SMA200W لكن إشارات انعكاس");
-  const best=ratedList.filter(buyFamily).sort((a,b)=>isc(b).total-isc(a).total)[0]
+  /* «الآن» تستثني buy_wait (توقيته «انتظر») — ملاحظة الناقد */
+  const nowFamily=s=>["strong_buy","buy","conditional_buy"].includes(isc(s).classCode);
+  const best=ratedList.filter(nowFamily).sort((a,b)=>isc(b).total-isc(a).total)[0]
+          || ratedList.filter(buyFamily).sort((a,b)=>isc(b).total-isc(a).total)[0]
           || ratedList.sort((a,b)=>isc(b).total-isc(a).total)[0];
   const rg=DATA.marketRegime||{};
   let bestHtml="";
@@ -812,9 +815,9 @@ function drawerHtml(s){
   const isBank=secOf(s)==="Financials"&&/bank|بنك|مصرف/i.test(s.industry||"");
   const pts=pointsFromDetails(s);
   const drv=(i.topDrivers||[]);
-  drv.forEach(d=>{ (d.type==="positive"?pts.pos:pts.neg).unshift(d.text); });
   const uniq=a=>[...new Set(a)];
-  const posL=uniq(pts.pos).slice(0,5), negL=uniq(pts.neg).slice(0,5);
+  const posL=uniq([...drv.filter(d=>d.type==="positive").map(d=>d.text), ...pts.pos]).slice(0,5);
+  const negL=uniq([...drv.filter(d=>d.type==="negative").map(d=>d.text), ...pts.neg]).slice(0,5);
   const upDiv=(DATA.upcomingDividends||[]).filter(d=>d.sym===s.symbol);
   const reading=buildReading(s);
   const wc=buildWhatChanges(s);
@@ -854,7 +857,9 @@ function drawerHtml(s){
     </div>
 
     ${rated(s)||i.axes?`<div class="dr-sec">
-      <div class="dr-t">لماذا حصل على ${i.total??"هذه الدرجة"}؟ — تفكيك درجة سيف</div>
+      <div class="dr-t">${rated(s)
+        ?`لماذا حصل على ${i.total}؟ — تفكيك درجة سيف`
+        :`تفكيك المحاور — بلا درجة (${i.unrated?"غير مقيّم":"مستبعد قبل التقييم"})`}</div>
       ${axisRows(s)}
     </div>`:""}
 
@@ -894,7 +899,7 @@ function drawerHtml(s){
         <div class="fin-cell"><div class="k">ATR%</div><div class="v num">${(s.dailyExtra||{}).atrPct!=null?fmt(s.dailyExtra.atrPct,1)+"%":"—"}</div></div>
       </div>
       ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
-      ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${g.value})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
+      ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
     </div>
 
     ${upDiv.length||((s.dividends||{}).history||[]).length?`<div class="dr-sec">
