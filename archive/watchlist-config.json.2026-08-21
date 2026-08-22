@@ -399,7 +399,7 @@
    "maePct": -4.07,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -4.25
+   "excessNet": -4.24
   },
   {
    "symbol": "2050",
@@ -425,7 +425,7 @@
    "maePct": -2.24,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -0.54
+   "excessNet": -0.53
   },
   {
    "symbol": "3020",
@@ -451,7 +451,7 @@
    "maePct": 0.0,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": 0.31
+   "excessNet": 0.32
   },
   {
    "symbol": "3080",
@@ -477,7 +477,7 @@
    "maePct": -1.95,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -2.02
+   "excessNet": -2.01
   },
   {
    "symbol": "6010",
@@ -503,7 +503,7 @@
    "maePct": -0.98,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": 0.36
+   "excessNet": 0.37
   },
   {
    "symbol": "4012",
@@ -529,7 +529,7 @@
    "maePct": -4.97,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -5.25
+   "excessNet": -5.24
   },
   {
    "symbol": "3010",
@@ -555,7 +555,7 @@
    "maePct": -2.61,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -3.55
+   "excessNet": -3.54
   },
   {
    "symbol": "3005",
@@ -581,7 +581,7 @@
    "maePct": -4.46,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -4.28
+   "excessNet": -4.27
   },
   {
    "symbol": "3030",
@@ -607,7 +607,7 @@
    "maePct": -1.7,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -1.32
+   "excessNet": -1.31
   },
   {
    "symbol": "4323",
@@ -633,7 +633,7 @@
    "maePct": -2.75,
    "status": "open",
    "tasiRet": 1.27,
-   "excessNet": -2.99
+   "excessNet": -2.98
   },
   {
    "symbol": "1303",
@@ -1077,7 +1077,7 @@
    "maePct": 0.0,
    "status": "open",
    "tasiRet": 1.21,
-   "excessNet": 1.51
+   "excessNet": 1.52
   },
   {
    "symbol": "4260",
@@ -1136,7 +1136,7 @@
    "maePct": -0.77,
    "status": "open",
    "tasiRet": 1.21,
-   "excessNet": 0.13
+   "excessNet": 0.14
   },
   {
    "symbol": "1180",
@@ -1429,9 +1429,7 @@
    "peSectorMedianAtEntry": 19.2,
    "tasiAtEntry": 10954.46,
    "maePct": 0.0,
-   "status": "open",
-   "tasiRet": 0.0,
-   "excessNet": -0.01
+   "status": "open"
   }
  ]
 }
