@@ -36,11 +36,13 @@ a{color:var(--gold); text-decoration:none}
 
 /* ═══ Header ═══ */
 .hd{
-  height:58px; display:flex; align-items:center; justify-content:space-between;
-  padding:0 20px; border-bottom:1px solid var(--border);
+  min-height:58px; display:flex; align-items:center; justify-content:space-between;
+  padding:6px 20px; border-bottom:1px solid var(--border);
   background:rgba(11,13,16,0.85); backdrop-filter:blur(10px);
   position:sticky; top:0; z-index:60;
 }
+/* ‏sticky بلا أرقام سحرية (P5): الارتفاعان يُقاسان فعلياً ويُحقنان كمتغيرين */
+:root{--hd-h:58px; --cmd-h:60px}
 .hd-brand{display:flex; align-items:baseline; gap:10px}
 .hd-brand .mark{display:flex; align-items:center; gap:9px}
 .hd-name{font-size:19px; font-weight:700; letter-spacing:-0.2px}
@@ -78,8 +80,18 @@ a{color:var(--gold); text-decoration:none}
 .p-best .tchip{margin-top:3px}
 .regime-line{grid-column:1/-1; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); padding:2px 2px 0; flex-wrap:wrap}
 .regime-line b{color:var(--text); font-weight:600}
-@media(max-width:1023px){ .pulse{grid-template-columns:repeat(2,1fr)} .p-best{grid-column:1/-1} }
-@media(max-width:640px){ .pulse{padding:12px 14px 4px; gap:8px} .p-tile .v{font-size:19px} }
+@media(max-width:1023px) and (min-width:768px){ .pulse{grid-template-columns:repeat(3,1fr)} .p-best{grid-column:1/-1} }
+/* نبض الموبايل (P13): شريط أفقي مدمج — الوصول لأول سهم بسرعة */
+@media(max-width:767px){
+  .pulse{display:flex; overflow-x:auto; padding:10px 14px 2px; gap:8px; scrollbar-width:none}
+  .pulse::-webkit-scrollbar{display:none}
+  .p-tile{flex:0 0 auto; min-width:118px; padding:9px 12px; scroll-snap-align:start; justify-content:center}
+  .p-tile .v{font-size:17px} .p-tile .s{display:none} .p-tile .k{font-size:10.5px; white-space:nowrap}
+  .p-best{flex:0 0 auto; min-width:250px; padding:9px 12px; gap:10px}
+  .p-best svg{display:none} .p-best .sc{font-size:19px}
+  .regime-line{flex:0 0 100%; order:9; font-size:11px; white-space:nowrap; overflow-x:auto; flex-wrap:nowrap; padding-bottom:6px; scrollbar-width:none}
+  .regime-line::-webkit-scrollbar{display:none}
+}
 
 /* ═══ مفكرة التوزيعات ═══ */
 .divcal{margin:14px 0 22px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); overflow:hidden}
@@ -127,8 +139,14 @@ a{color:var(--gold); text-decoration:none}
 @media(max-width:520px){ .fin-grid{grid-template-columns:repeat(2,1fr)} }
 
 /* ═══ Smart Views ═══ */
+.views-wrap{position:relative}
 .views{display:flex; gap:4px; padding:12px 20px 0; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none}
 .views::-webkit-scrollbar{display:none}
+/* دلالة «في خيارات خارج الشاشة» (P14): تلاشي طرفي + جزء من التبويب التالي */
+.views-wrap::after{content:""; position:absolute; top:0; bottom:1px; left:0; width:44px; pointer-events:none;
+  background:linear-gradient(90deg, var(--bg) 8%, transparent); opacity:0; transition:opacity var(--dur)}
+.views-wrap.can-scroll::after{opacity:1}
+@media(max-width:767px){ .views{padding:10px 14px 0 40px} }
 .view-tab{
   padding:9px 15px 11px; font-size:13.5px; color:var(--text2); white-space:nowrap;
   border-bottom:2px solid transparent; transition:color var(--dur);
@@ -143,7 +161,7 @@ a{color:var(--gold); text-decoration:none}
 /* ═══ Command bar ═══ */
 .cmd{
   display:flex; align-items:center; gap:9px; flex-wrap:wrap;
-  padding:12px 20px; position:sticky; top:58px; z-index:50;
+  padding:12px 20px; position:sticky; top:var(--hd-h); z-index:50;
   background:rgba(11,13,16,0.92); backdrop-filter:blur(10px);
   border-bottom:1px solid var(--border);
 }
@@ -175,11 +193,28 @@ a{color:var(--gold); text-decoration:none}
 .cmd .count{margin-right:auto; font-size:12.5px; color:var(--text3)}
 .cmd .count b{color:var(--text2); font-weight:600}
 @media(max-width:767px){
-  .cmd{top:0; padding:10px 14px}
+  .cmd{padding:10px 14px}
   .cmd .desktop-only{display:none}
   .cmd .search{max-width:none}
 }
 @media(min-width:768px){ .cmd .mobile-only{display:none} }
+/* تابلت (P6): البحث يأخذ صفاً كاملاً عند الضيق فيلتف الباقي بنظام */
+@media(min-width:768px) and (max-width:1100px){
+  .cmd .search{flex:1 1 100%; max-width:none}
+  .cmd select{flex:0 1 auto}
+}
+
+/* شرائح الفلاتر النشطة (P4) — مدمجة، تختفي كلياً بلا فلاتر */
+.fchips{display:none; align-items:center; gap:6px; flex-wrap:wrap; padding:7px 20px;
+  border-bottom:1px solid var(--border); background:rgba(11,13,16,0.92)}
+.fchips.on{display:flex}
+.fchip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--gold);
+  background:var(--gold-dim); border:1px solid rgba(212,168,82,0.3); border-radius:999px; padding:3px 5px 3px 10px}
+.fchip button{color:inherit; font-size:12px; line-height:1; padding:1px 5px; border-radius:50%; opacity:0.8}
+.fchip button:hover{opacity:1; background:rgba(212,168,82,0.2)}
+.fchips .clear-all{font-size:11.5px; color:var(--text3); padding:3px 8px}
+.fchips .clear-all:hover{color:var(--text)}
+@media(max-width:767px){ .fchips{padding:7px 14px} }
 
 /* Advanced panel */
 .adv{
@@ -199,7 +234,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .scr th{
   text-align:right; font-size:11.5px; font-weight:600; color:var(--text3);
   padding:10px 10px; border-bottom:1px solid var(--border2);
-  position:sticky; top:118px; background:var(--bg); z-index:10; white-space:nowrap;
+  position:sticky; top:calc(var(--hd-h) + var(--cmd-h)); background:var(--bg); z-index:10; white-space:nowrap;
 }
 .scr th button{font-size:inherit; color:inherit; font-weight:inherit; display:inline-flex; align-items:center; gap:4px}
 .scr th button:hover{color:var(--text2)}
@@ -229,9 +264,10 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
   display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
   padding:3px 9px; border-radius:6px; white-space:nowrap; cursor:help; position:relative;
 }
+/* دلالات ألوان التوقيت منفصلة نفسياً عن الجودة (P7): «انتظار» ليست خطراً — Slate بارد لا أحمر */
 .t-green{color:var(--green); background:var(--green-dim)}
 .t-yellow{color:var(--amber); background:var(--gold-dim)}
-.t-red{color:var(--red); background:var(--red-dim)}
+.t-red{color:#A9B6C6; background:rgba(150,165,185,0.10)}
 .t-neutral{color:var(--text3); background:rgba(154,164,176,0.06)}
 .tchip .tdot{width:5px; height:5px; border-radius:50%; background:currentColor}
 .col-p3{display:table-cell} .col-p2{display:table-cell}
@@ -308,7 +344,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
   font-size:13px; color:var(--text2); line-height:1.7;
 }
 .dr-timing-phrase.g{border-right-color:var(--green)}
-.dr-timing-phrase.r{border-right-color:var(--red)}
+.dr-timing-phrase.w{border-right-color:#8B99AA}
 /* chart */
 .chart-tabs{display:flex; gap:4px; margin-bottom:10px}
 .chart-tabs button{
@@ -335,13 +371,13 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .pt-list{display:flex; flex-direction:column; gap:7px}
 .pt{display:flex; gap:9px; font-size:13px; color:var(--text2); align-items:flex-start}
 .pt svg{flex-shrink:0; margin-top:3px}
-/* saif reading */
+/* قراءة سيف (P11): ملخص محلل هادئ — لا تدرجات ولا أيقونات */
 .reading{
-  background:linear-gradient(135deg, var(--surface2), var(--surface));
-  border:1px solid rgba(212,168,82,0.18); border-radius:var(--radius);
-  padding:15px 16px; font-size:13.5px; line-height:1.85; color:var(--text);
+  background:var(--surface2); border-right:2px solid var(--border2);
+  border-radius:var(--radius-sm);
+  padding:13px 15px; font-size:13.5px; line-height:1.85; color:var(--text);
 }
-.reading .rt{display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--gold); margin-bottom:8px}
+.reading .rt{font-size:11px; font-weight:600; color:var(--text3); letter-spacing:0.4px; margin-bottom:7px}
 /* fin grid */
 .fin-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
 .fin-cell{background:var(--surface2); border-radius:var(--radius-sm); padding:9px 11px}
@@ -428,7 +464,7 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
 
 <section class="pulse" id="pulse" aria-label="نبض سيف"></section>
 
-<nav class="views" id="views" aria-label="عروض ذكية"></nav>
+<div class="views-wrap" id="viewsWrap"><nav class="views" id="views" aria-label="عروض ذكية"></nav></div>
 
 <div class="cmd" id="cmd">
   <div class="search">
@@ -442,9 +478,6 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
   <select id="fTiming" class="desktop-only" aria-label="توقيت الدخول">
     <option value="">التوقيت: الكل</option><option value="green">توقيت مناسب</option><option value="yellow">دخول تدريجي</option><option value="red">انتظار</option>
   </select>
-  <select id="fQuality" class="desktop-only" aria-label="فئة الجودة">
-    <option value="">الجودة: الكل</option><option value="strong">قوي (80+)</option><option value="good">جيد (65-79)</option><option value="neutral">محايد (50-64)</option><option value="weak">ضعيف (&lt;50)</option><option value="excluded">مستبعد / غير مقيّم</option>
-  </select>
   <button class="cmd-btn desktop-only" id="advBtn" aria-expanded="false">
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 4 h12 M4 8 h8 M6 12 h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     فلاتر متقدمة
@@ -453,7 +486,15 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
   <span class="count" id="count"></span>
 </div>
 
+<div class="fchips" id="fchips" aria-label="الفلاتر النشطة"></div>
+
 <div class="adv" id="advPanel">
+  <div class="grp">
+    <span class="grp-t">فئة الجودة (مشتقة من الدرجة)</span>
+    <select id="fQuality" aria-label="فئة الجودة" style="height:32px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:7px;padding:0 8px;font-family:inherit;font-size:12.5px">
+      <option value="">الكل</option><option value="strong">قوي (80+)</option><option value="good">جيد (65-79)</option><option value="neutral">محايد (50-64)</option><option value="weak">ضعيف (&lt;50)</option><option value="excluded">مستبعد / غير مقيّم</option>
+    </select>
+  </div>
   <div class="grp">
     <span class="grp-t">فني</span>
     <label><input type="checkbox" id="aSma"> فوق SMA200W</label>
@@ -589,7 +630,7 @@ function renderPulse(){
     const up=d30&&d30.length>1&&d30[d30.length-1]>=d30[0];
     bestHtml=`<div class="p-best" data-sym="${best.symbol}" role="button" tabindex="0">
       <div style="flex:1">
-        <div class="lbl">أفضل فرصة الآن</div>
+        <div class="lbl">أبرز فرصة بحسب سيف</div>
         <div class="nm">${esc(best.name)}</div>
         <div class="tick num">${best.symbol}</div> <span class="tick">· ${esc(secAr(best))}</span>
         <div class="tchip t-${ts} tchip" style="margin-top:5px">${TIMING_AR[ts]||""}</div>
@@ -613,10 +654,9 @@ function renderPulse(){
       <span class="num ${rg.changePct>=0?"chg-up":"chg-dn"}">${rg.changePct!=null?(rg.changePct>=0?"+":"")+rg.changePct+"%":""}</span>
       · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}</div>`;
   $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>{
-    /* البلاطة وعد برقمها: تصفير كل الفلاتر ثم ضبط فلتر الدرجة على قيمتها إن وجدت */
-    resetFilters();
-    state.minScore=Number(el.dataset.min||0);
-    $("fScore").value=String(state.minScore);
+    /* قاعدة UX الموحدة (P3): العروض لا تمسح فلاتر المستخدم أبداً —
+       بلاطة «فرص قوية» تضيف فلتر الدرجة 80+ (يظهر شريحة قابلة للإزالة) */
+    if(el.dataset.min){ state.minScore=Number(el.dataset.min); $("fScore").value=el.dataset.min; }
     setView(el.dataset.goto);
   }));
   const pb=$("pulse").querySelector(".p-best");
@@ -644,6 +684,8 @@ function setView(id){
   state.view=id;
   const v=VIEWS.find(x=>x.id===id);
   if(v&&v.sort) state.sort={...v.sort};
+  /* وضوح الفرز (P18): مفتاح فرز بلا عمود ظاهر (كعائد «التوزيعات») لا يُحمل لعرض آخر */
+  else if(!COLS.some(c=>c.sortable&&c.key===state.sort.key)) state.sort={key:"score",dir:-1};
   renderViews(); renderBody();
 }
 
@@ -708,9 +750,37 @@ function syncSelectStyles(){
   $("fSector").classList.toggle("set",!!state.sector);
   $("fScore").classList.toggle("set",state.minScore>0);
   $("fTiming").classList.toggle("set",!!state.timing);
-  $("fQuality").classList.toggle("set",!!state.quality);
-  $("advBtn").classList.toggle("set",Object.values(state.adv).some(Boolean));
+  $("advBtn").classList.toggle("set",Object.values(state.adv).some(Boolean)||!!state.quality);
   $("fabCount").textContent=activeFilterCount()?` · ${activeFilterCount()}`:"";
+  renderChips();
+}
+/* شرائح الفلاتر النشطة (P4): المستخدم يعرف دائماً لماذا يرى هذه النتائج */
+const ADV_LABELS={sma:"فوق SMA200W",rev:"انعكاس مبكر",div:"توزيعات >2%",pe:"أرخص من قطاعه",liq:"سيولة نشطة"};
+const QUAL_LABELS={strong:"قوي 80+",good:"جيد",neutral:"محايد",weak:"ضعيف",excluded:"مستبعد/غير مقيّم"};
+function renderChips(){
+  const chips=[];
+  if(state.q.trim()) chips.push({k:"q",l:`بحث: ${state.q.trim()}`});
+  if(state.sector) chips.push({k:"sector",l:SECTOR_AR[state.sector]||state.sector});
+  if(state.minScore>0) chips.push({k:"minScore",l:`‎${state.minScore}+‎`});
+  if(state.timing) chips.push({k:"timing",l:TIMING_AR[state.timing]});
+  if(state.quality) chips.push({k:"quality",l:`الجودة: ${QUAL_LABELS[state.quality]||state.quality}`});
+  Object.keys(state.adv).forEach(k=>{ if(state.adv[k]) chips.push({k:"adv:"+k,l:ADV_LABELS[k]}); });
+  const box=$("fchips");
+  box.classList.toggle("on",chips.length>0);
+  if(!chips.length){ box.innerHTML=""; return; }
+  box.innerHTML=chips.map(c=>`<span class="fchip">${esc(c.l)}<button data-rm="${c.k}" aria-label="إزالة فلتر ${esc(c.l)}">✕</button></span>`).join("")
+    +`<button class="clear-all" id="chipsClear">مسح الكل</button>`;
+  box.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click",()=>{ removeFilter(b.dataset.rm); renderBody(); }));
+  $("chipsClear").addEventListener("click",resetFilters);
+}
+function removeFilter(key){
+  if(key==="q"){ state.q=""; $("q").value=""; }
+  else if(key==="sector"){ state.sector=""; $("fSector").value=""; }
+  else if(key==="minScore"){ state.minScore=0; $("fScore").value="0"; }
+  else if(key==="timing"){ state.timing=""; $("fTiming").value=""; }
+  else if(key==="quality"){ state.quality=""; $("fQuality").value=""; }
+  else if(key.startsWith("adv:")){ const k=key.slice(4); state.adv[k]=false;
+    const el=$({sma:"aSma",rev:"aRev",div:"aDiv",pe:"aPe",liq:"aLiq"}[k]); if(el) el.checked=false; }
 }
 
 /* ─── الجدول والبطاقات ─── */
@@ -805,9 +875,15 @@ function renderBody(){
   $("count").innerHTML=`<b class="num">${list.length}</b> نتيجة`;
   const calHtml=state.view==="dividends"?divCalendarHtml():"";
   if(!list.length&&!calHtml){
-    $("body").innerHTML=`<div class="state"><div class="t">لا توجد أسهم تطابق الفلاتر الحالية</div>
-      <div class="d">جرّب توسيع المعايير أو إعادة التعيين.</div>
-      <button class="cmd-btn" style="margin:0 auto" onclick="resetFilters()">إعادة تعيين الفلاتر</button></div>`;
+    /* الحالة الصفرية (P3/P17): لا مسح صامت — الإزالة بزر صريح بقرار المستخدم */
+    const hasFilters=activeFilterCount()>0;
+    const viewBtn=(hasFilters&&state.view!=="market")
+      ?`<button class="cmd-btn" style="margin:0 auto 8px" id="emptyViewBtn">إزالة الفلاتر وعرض كل «${view.label}»</button>`:"";
+    $("body").innerHTML=`<div class="state"><div class="t">${hasFilters?"لا توجد نتائج ضمن الفلاتر الحالية":"لا توجد أسهم في هذا العرض حالياً"}</div>
+      <div class="d">${hasFilters?"الفلاتر النشطة ظاهرة أعلاه — أزل ما يلزم أو:":""}</div>
+      ${viewBtn}
+      ${hasFilters?`<button class="cmd-btn" style="margin:0 auto" onclick="resetFilters()">إعادة تعيين الفلاتر</button>`:""}</div>`;
+    const evb=$("emptyViewBtn"); if(evb) evb.addEventListener("click",resetFilters);
     return;
   }
   const ths=COLS.map(c=>{
@@ -816,7 +892,8 @@ function renderBody(){
     const inner=c.sortable
       ?`<button data-sort="${c.key}" aria-label="ترتيب حسب ${c.label}">${c.label}<span class="arr">${arrow}</span></button>`
       :c.label;
-    return `<th class="${c.p||""} ${sorted?"sorted":""}" ${c.tip?`data-tip="${esc(c.tip)}"`:""}>${inner}</th>`;
+    const ariaSort=sorted?` aria-sort="${state.sort.dir===-1?"descending":"ascending"}"`:"";
+    return `<th class="${c.p||""} ${sorted?"sorted":""}"${ariaSort} ${c.tip?`data-tip="${esc(c.tip)}"`:""}>${inner}</th>`;
   }).join("");
   const rows=list.map(s=>`
     <tr data-sym="${s.symbol}" tabindex="0">
@@ -827,8 +904,8 @@ function renderBody(){
       <td class="num">${fmt(priceOf(s))}</td>
       <td>${chgHtml(s)}</td>
       <td class="num col-p2">${roeOf(s)!=null?fmt(roeOf(s),1)+"%":"—"}</td>
-      <td class="num col-p2">${peOf(s)!=null?fmt(peOf(s),1):"—"}</td>
-      <td class="num col-p3">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}</td>
+      <td class="num col-p2">${peOf(s)!=null?fmt(peOf(s),1):"—"}${frzMark(s,"pe")}</td>
+      <td class="num col-p3">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}${frzMark(s,"pb")}</td>
       <td class="num col-p3">${rs6Of(s)!=null?(rs6Of(s)>0?"+":"")+fmt(rs6Of(s),1)+"%":"—"}</td>
     </tr>`).join("");
   const cards=list.map(s=>`
@@ -1047,9 +1124,21 @@ function drawerHtml(s){
           ${i.classification?`<span style="font-size:11.5px;color:var(--text3)">تصنيف النظام: ${esc(i.classification)}</span>`:""}
         </div>
       </div>
-      ${e&&e.phrase?`<div class="dr-timing-phrase ${ts==="green"?"g":ts==="red"?"r":""}">${esc(e.phrase)}</div>`:""}
-      ${(!rated(s)&&i.filterReason)?`<div class="dr-timing-phrase r">سبب الاستبعاد: ${esc(i.filterReason)}</div>`:""}
+      ${e&&e.phrase?`<div class="dr-timing-phrase ${ts==="green"?"g":ts==="red"?"w":""}">${esc(e.phrase)}</div>`:""}
+      ${(!rated(s)&&i.filterReason)?`<div class="dr-timing-phrase w">سبب الاستبعاد: ${esc(i.filterReason)}</div>`:""}
     </div>
+
+    ${reading?`<div class="dr-sec"><div class="reading">
+      <div class="rt">قراءة سيف</div>
+      ${reading}
+    </div></div>`:""}
+
+    ${posL.length||negL.length?`<div class="dr-sec">
+      ${posL.length?`<div class="dr-t">نقاط القوة</div><div class="pt-list" style="margin-bottom:16px">${posL.map(t=>`
+        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#34D399" stroke-width="1.4"/><path d="M4.5 7 L6.3 8.8 L9.6 5.2" stroke="#34D399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${esc(t)}</div>`).join("")}</div>`:""}
+      ${negL.length?`<div class="dr-t">عوامل تستحق الانتباه</div><div class="pt-list">${negL.map(t=>`
+        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#E0B458" stroke-width="1.4"/><path d="M7 4 V8 M7 10.2 V10.3" stroke="#E0B458" stroke-width="1.5" stroke-linecap="round"/></svg>${esc(t)}</div>`).join("")}</div>`:""}
+    </div>`:""}
 
     <div class="dr-sec">
       <div class="dr-t">السعر</div>
@@ -1066,17 +1155,13 @@ function drawerHtml(s){
       ${axisRows(s)}
     </div>`:""}
 
-    ${posL.length||negL.length?`<div class="dr-sec">
-      ${posL.length?`<div class="dr-t">نقاط القوة</div><div class="pt-list" style="margin-bottom:16px">${posL.map(t=>`
-        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#34D399" stroke-width="1.4"/><path d="M4.5 7 L6.3 8.8 L9.6 5.2" stroke="#34D399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${esc(t)}</div>`).join("")}</div>`:""}
-      ${negL.length?`<div class="dr-t">عوامل تستحق الانتباه</div><div class="pt-list">${negL.map(t=>`
-        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#E0B458" stroke-width="1.4"/><path d="M7 4 V8 M7 10.2 V10.3" stroke="#E0B458" stroke-width="1.5" stroke-linecap="round"/></svg>${esc(t)}</div>`).join("")}</div>`:""}
-    </div>`:""}
-
-    ${reading?`<div class="dr-sec"><div class="reading">
-      <div class="rt"><svg width="14" height="14" viewBox="0 0 40 40" fill="none"><rect x="6" y="22" width="5" height="11" rx="1" stroke="#D4A852" stroke-width="3"/><rect x="16" y="15" width="5" height="18" rx="1" stroke="#D4A852" stroke-width="3"/><rect x="26" y="8" width="5" height="25" rx="1" stroke="#D4A852" stroke-width="3"/></svg>قراءة سيف</div>
-      ${reading}
-    </div></div>`:""}
+    <div class="dr-sec">
+      <div class="dr-t">مؤشرات مالية</div>
+      <div class="fin-grid">${finCells(s)}</div>
+      ${s.valuationUpdatedAt?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span class="num">${esc(String(s.valuationUpdatedAt).slice(0,16))}</span></div>`:""}
+      ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
+      ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
+    </div>
 
     ${wc?`<div class="dr-sec">
       <div class="dr-t">ما الذي قد يغيّر تقييم سيف؟</div>
@@ -1085,13 +1170,6 @@ function drawerHtml(s){
         <div class="colm"><div class="ct dn">عوامل سلبية محتملة</div>${wc.dn.map(t=>`<div class="it">${esc(t)}</div>`).join("")||'<div class="it">—</div>'}</div>
       </div>
     </div>`:""}
-
-    <div class="dr-sec">
-      <div class="dr-t">مؤشرات مالية</div>
-      <div class="fin-grid">${finCells(s)}</div>
-      ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
-      ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
-    </div>
 
     ${upDiv.length||((s.dividends||{}).history||[]).length?`<div class="dr-sec">
       <div class="dr-t">التوزيعات</div>
@@ -1129,6 +1207,10 @@ const FIN_DESC={
   ocf:"هل الأرباح المعلنة يقابلها نقد حقيقي دخل الشركة فعلاً؟ — «يغطي الأرباح» أفضل حالة",
   equityAssets:"أموال الملاك كنسبة من أصول البنك — البديل المعتمد للدين/الملكية لدى البنوك",
 };
+/* نضارة التقييم (P2) — مرآة آلية الإنتاج: valuationParts frozen/live + نص VAL_STALE_NOTE الحرفي */
+const VAL_STALE_NOTE="غير محدّث — مصدر البيانات قيد المعالجة";
+const frz=(s,k)=>((s.valuationParts||{})[k]==="frozen");
+const frzMark=(s,k)=>frz(s,k)?` <span class="frz" data-tip="${VAL_STALE_NOTE}" tabindex="0" style="cursor:help;font-size:10px">❄️</span>`:"";
 function finCells(s){
   /* عتبات الألوان حرفياً من الإنتاج (template قسمي الصحة والمخاطر) — عرض فقط */
   const fin=s.financials||{}, dx=s.dailyExtra||{};
@@ -1143,9 +1225,9 @@ function finCells(s){
   out+=cell("ROE", roe!=null?fmt(roe,1)+"%":"—", roe!=null?(roe>12?"green":roe>0?"amber":"red"):"", FIN_DESC.roe);
   out+=cell("هامش الربح", pm!=null?fmt(pm,1)+"%":"—", pm!=null?(pm>12?"green":pm>0?"amber":"red"):"", FIN_DESC.margin);
   out+=cell("نمو الإيرادات", rg!=null?fmt(rg,1)+"%":"—", rg!=null?(rg>5?"green":rg>=0?"amber":"red"):"", FIN_DESC.revGrowth);
-  out+=cell("P/E", peOf(s)!=null?fmt(peOf(s),1):"—", "", FIN_DESC.pe);
-  out+=cell("P/B", pbOf(s)!=null?fmt(pbOf(s),2):"—", "", FIN_DESC.pb);
-  out+=cell("عائد التوزيعات", dyOf(s)!=null?fmt(dyOf(s),1)+"%":"—", "", FIN_DESC.divYield);
+  out+=cell("P/E"+frzMark(s,"pe"), peOf(s)!=null?fmt(peOf(s),1):"—", "", FIN_DESC.pe);
+  out+=cell("P/B"+frzMark(s,"pb"), pbOf(s)!=null?fmt(pbOf(s),2):"—", "", FIN_DESC.pb);
+  out+=cell("عائد التوزيعات"+frzMark(s,"dividendYield"), dyOf(s)!=null?fmt(dyOf(s),1)+"%":"—", "", FIN_DESC.divYield);
   if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
   else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);
   if(!isBank&&ocf!=null) out+=cell("النقد التشغيلي OCF",
@@ -1190,6 +1272,22 @@ function buildWhatChanges(s){
   return (up.length||dn.length)?{up:up.slice(0,4),dn:dn.slice(0,4)}:null;
 }
 let lastFocus=null;
+/* وصولية المودال (P15): المحتوى الخلفي inert + حصر التنقل داخل الدرج */
+function setBgInert(on){
+  document.querySelectorAll("body > *").forEach(el=>{
+    if(el.id==="drawer"||el.id==="ovl"||el.id==="tip"||el.id==="sheet"||el.tagName==="SCRIPT") return;
+    if(on) el.setAttribute("inert",""); else el.removeAttribute("inert");
+  });
+}
+function trapFocus(container,ev){
+  if(ev.key!=="Tab") return;
+  const f=[...container.querySelectorAll('button,[href],input,select,[tabindex]:not([tabindex="-1"])')]
+    .filter(x=>!x.disabled&&x.offsetParent!==null);
+  if(!f.length) return;
+  const first=f[0], last=f[f.length-1];
+  if(ev.shiftKey&&document.activeElement===first){ ev.preventDefault(); last.focus(); }
+  else if(!ev.shiftKey&&document.activeElement===last){ ev.preventDefault(); first.focus(); }
+}
 function openDrawer(sym){
   const s=STOCKS.find(x=>x.symbol===sym); if(!s)return;
   state.drawerSym=sym; state.chartRange="d90";
@@ -1198,6 +1296,8 @@ function openDrawer(sym){
   dr.innerHTML=drawerHtml(s);
   dr.classList.add("open"); $("ovl").classList.add("open");
   document.body.style.overflow="hidden";
+  setBgInert(true);
+  dr.onkeydown=ev=>trapFocus(dr,ev);
   $("drX").addEventListener("click",closeDrawer);
   dr.querySelector("#chartTabs").addEventListener("click",ev=>{
     const b=ev.target.closest("button[data-r]"); if(!b)return;
@@ -1223,6 +1323,7 @@ function openDrawer(sym){
 function closeDrawer(){
   $("drawer").classList.remove("open"); $("ovl").classList.remove("open");
   document.body.style.overflow=""; state.drawerSym=null;
+  setBgInert(false); $("drawer").onkeydown=null;
   if(lastFocus&&lastFocus.focus) lastFocus.focus();
 }
 
@@ -1251,44 +1352,66 @@ document.addEventListener("focusin",e=>{
   const el=e.target.closest("[data-tip]"); if(el) showTip(el); else hideTip();
 });
 
-/* ─── Mobile sheet ─── */
+/* ─── Mobile sheet — بمسودة فلاتر (P9): لا يتغير شيء قبل «تطبيق» ─── */
+let draft=null, sheetOpener=null;
 function renderSheet(){
   const secs=[...new Set(STOCKS.map(secOf))].sort((a,b)=>(SECTOR_AR[a]||a).localeCompare(SECTOR_AR[b]||b,"ar"));
   $("sheet").innerHTML=`
-    <div class="sh-t">الفلاتر<button class="dr-x" id="shX" aria-label="إغلاق">✕</button></div>
+    <div class="sh-t">الفلاتر<button class="dr-x" id="shX" aria-label="إغلاق بدون تطبيق">✕</button></div>
     <div class="fgroup"><div class="gt">درجة سيف</div><div class="opts" data-g="score">
-      ${[["0","الكل"],["50","‎50+‎"],["65","‎65+‎"],["80","‎80+‎"]].map(([v,l])=>`<button class="opt ${String(state.minScore)===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
+      ${[["0","الكل"],["50","‎50+‎"],["65","‎65+‎"],["80","‎80+‎"]].map(([v,l])=>`<button class="opt ${String(draft.minScore)===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
     </div></div>
     <div class="fgroup"><div class="gt">توقيت الدخول</div><div class="opts" data-g="timing">
-      ${[["","الكل"],["green","مناسب"],["yellow","تدريجي"],["red","انتظار"]].map(([v,l])=>`<button class="opt ${state.timing===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
+      ${[["","الكل"],["green","مناسب"],["yellow","تدريجي"],["red","انتظار"]].map(([v,l])=>`<button class="opt ${draft.timing===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
     </div></div>
-    <div class="fgroup"><div class="gt">فئة الجودة</div><div class="opts" data-g="quality">
-      ${[["","الكل"],["strong","قوي"],["good","جيد"],["neutral","محايد"],["weak","ضعيف"],["excluded","مستبعد/غير مقيّم"]].map(([v,l])=>`<button class="opt ${state.quality===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
+    <div class="fgroup"><div class="gt">فئة الجودة (مشتقة من الدرجة)</div><div class="opts" data-g="quality">
+      ${[["","الكل"],["strong","قوي"],["good","جيد"],["neutral","محايد"],["weak","ضعيف"],["excluded","مستبعد/غير مقيّم"]].map(([v,l])=>`<button class="opt ${draft.quality===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
     </div></div>
     <div class="fgroup"><div class="gt">القطاع</div>
-      <select id="shSector"><option value="">الكل</option>${secs.map(x=>`<option value="${esc(x)}" ${state.sector===x?"selected":""}>${esc(SECTOR_AR[x]||x)}</option>`).join("")}</select>
+      <select id="shSector"><option value="">الكل</option>${secs.map(x=>`<option value="${esc(x)}" ${draft.sector===x?"selected":""}>${esc(SECTOR_AR[x]||x)}</option>`).join("")}</select>
     </div>
     <div class="fgroup"><div class="gt">متقدم</div><div class="opts" data-g="adv">
-      ${[["sma","فوق SMA200W"],["rev","انعكاس مبكر"],["div","توزيعات >2%"],["pe","أرخص من قطاعه"],["liq","سيولة نشطة"]].map(([v,l])=>`<button class="opt ${state.adv[v]?"on":""}" data-v="${v}">${l}</button>`).join("")}
+      ${[["sma","فوق SMA200W"],["rev","انعكاس مبكر"],["div","توزيعات >2%"],["pe","أرخص من قطاعه"],["liq","سيولة نشطة"]].map(([v,l])=>`<button class="opt ${draft.adv[v]?"on":""}" data-v="${v}">${l}</button>`).join("")}
     </div></div>
-    <button class="apply" id="shApply">عرض النتائج</button>
+    <button class="apply" id="shApply">تطبيق</button>
     <button class="cmd-btn" style="width:100%;margin-top:8px;justify-content:center" id="shReset">إعادة تعيين</button>`;
   $("shX").addEventListener("click",closeSheet);
   $("sheet").querySelectorAll(".opts").forEach(g=>g.addEventListener("click",e=>{
     const b=e.target.closest(".opt"); if(!b)return;
     const grp=g.dataset.g, v=b.dataset.v;
-    if(grp==="adv"){ state.adv[v]=!state.adv[v]; b.classList.toggle("on"); return; }
+    if(grp==="adv"){ draft.adv[v]=!draft.adv[v]; b.classList.toggle("on"); return; }
     g.querySelectorAll(".opt").forEach(x=>x.classList.remove("on")); b.classList.add("on");
-    if(grp==="score") state.minScore=Number(v);
-    if(grp==="timing") state.timing=v;
-    if(grp==="quality") state.quality=v;
+    if(grp==="score") draft.minScore=Number(v);
+    if(grp==="timing") draft.timing=v;
+    if(grp==="quality") draft.quality=v;
   }));
-  $("shSector").addEventListener("change",e=>state.sector=e.target.value);
-  $("shApply").addEventListener("click",()=>{ closeSheet(); renderBody(); });
-  $("shReset").addEventListener("click",()=>{ resetFilters(); renderSheet(); });
+  $("shSector").addEventListener("change",e=>draft.sector=e.target.value);
+  $("shApply").addEventListener("click",applySheet);
+  $("shReset").addEventListener("click",()=>{
+    draft={minScore:0,timing:"",quality:"",sector:"",adv:{sma:false,rev:false,div:false,pe:false,liq:false}};
+    renderSheet();
+  });
 }
-function openSheet(){ renderSheet(); $("sheet").classList.add("open"); $("ovl").classList.add("open"); document.body.style.overflow="hidden"; }
-function closeSheet(){ $("sheet").classList.remove("open"); if(!state.drawerSym){$("ovl").classList.remove("open"); document.body.style.overflow="";} }
+function applySheet(){
+  state.minScore=draft.minScore; state.timing=draft.timing; state.quality=draft.quality;
+  state.sector=draft.sector; state.adv={...draft.adv};
+  $("fScore").value=String(state.minScore); $("fTiming").value=state.timing;
+  $("fQuality").value=state.quality; $("fSector").value=state.sector;
+  [["aSma","sma"],["aRev","rev"],["aDiv","div"],["aPe","pe"],["aLiq","liq"]].forEach(([id,k])=>$(id).checked=state.adv[k]);
+  closeSheet(); renderBody();
+}
+function openSheet(){
+  sheetOpener=document.activeElement;
+  draft={minScore:state.minScore,timing:state.timing,quality:state.quality,sector:state.sector,adv:{...state.adv}};
+  renderSheet();
+  $("sheet").classList.add("open"); $("ovl").classList.add("open"); document.body.style.overflow="hidden";
+  $("shX").focus();
+}
+function closeSheet(){
+  $("sheet").classList.remove("open"); draft=null;
+  if(!state.drawerSym){$("ovl").classList.remove("open"); document.body.style.overflow="";}
+  if(sheetOpener&&sheetOpener.focus) sheetOpener.focus();
+}
 
 /* ─── ربط الأحداث ─── */
 function bind(){
@@ -1315,8 +1438,26 @@ function bind(){
 
 function renderAll(){
   renderHeader(); renderPulse(); renderViews(); sectorOptions(); renderBody();
+  updateViewsScrollHint();
 }
-bind(); boot();
+/* ‏sticky بلا أرقام سحرية (P5): قياس فعلي لارتفاعي الهيدر وشريط الأوامر بعد الالتفاف */
+function measureSticky(){
+  const hd=document.querySelector(".hd"), cmd=$("cmd");
+  if(hd) document.documentElement.style.setProperty("--hd-h",hd.offsetHeight+"px");
+  if(cmd) document.documentElement.style.setProperty("--cmd-h",cmd.offsetHeight+"px");
+}
+if(typeof ResizeObserver!=="undefined"){
+  const ro=new ResizeObserver(measureSticky);
+  ro.observe(document.querySelector(".hd")); ro.observe($("cmd"));
+}
+window.addEventListener("resize",measureSticky);
+/* دلالة تمرير العروض (P14) */
+function updateViewsScrollHint(){
+  const v=$("views"), wrap=$("viewsWrap");
+  if(v&&wrap) wrap.classList.toggle("can-scroll",v.scrollWidth>v.clientWidth+4);
+}
+window.addEventListener("resize",updateViewsScrollHint);
+bind(); measureSticky(); boot();
 </script>
 </body>
 </html>
