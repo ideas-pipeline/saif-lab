@@ -73,6 +73,12 @@ CONFIG_JSON="$LAB/watchlist-config.json" STOCKS_JSON="$DATA" \
   bash scripts/update-watchlist-accuracy.sh \
   || echo "⚠️ ALERT: update-watchlist-accuracy فشل — التشغيلة تكمل"
 
+# الأخبار اليومية (طلب المالك 22-08 «أبغاها تتحدث دائماً») — كانت متجمدة منذ 29-07
+# لأن كاتبها القديم fetch-stock-analysis.sh غير مجدول هنا. حارس داخلي يعزل الكتابة
+# في news[] حصراً، وفشله يُنبه ولا يُسقط السلسلة (~4 دقائق بمهلة ثانية/طلب)
+python3 scripts/fetch-news.py --data "$DATA" \
+  || echo "⚠️ ALERT: fetch-news فشل — التشغيلة تكمل بالأخبار القديمة"
+
 python3 build.py
 python3 scripts/self-check-L1.py "$DATA"
 fi   # نهاية فرع الوضع الكامل — كتلة النشر مشتركة لكل الأوضاع

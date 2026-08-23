@@ -52,7 +52,7 @@ a{color:var(--gold); text-decoration:none}
 @media(max-width:640px){ .hd{padding:0 14px} .hd-sub{display:none} .hd-sys .mkt{display:none} }
 
 /* ═══ Pulse ═══ */
-.pulse{display:grid; grid-template-columns:repeat(4,1fr) 1.7fr; gap:10px; padding:16px 20px 6px}
+.pulse{display:grid; grid-template-columns:repeat(5,1fr) 1.6fr; gap:10px; padding:16px 20px 6px}
 .p-tile{
   background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
   padding:13px 15px; display:flex; flex-direction:column; gap:3px; cursor:pointer;
@@ -76,10 +76,55 @@ a{color:var(--gold); text-decoration:none}
 .p-best .scmax{font-size:11px; color:var(--text3); font-weight:400}
 .p-best svg{flex-shrink:0}
 .p-best .tchip{margin-top:3px}
-.regime-line{grid-column:1/-1; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); padding:2px 2px 0}
+.regime-line{grid-column:1/-1; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); padding:2px 2px 0; flex-wrap:wrap}
 .regime-line b{color:var(--text); font-weight:600}
 @media(max-width:1023px){ .pulse{grid-template-columns:repeat(2,1fr)} .p-best{grid-column:1/-1} }
 @media(max-width:640px){ .pulse{padding:12px 14px 4px; gap:8px} .p-tile .v{font-size:19px} }
+
+/* ═══ مفكرة التوزيعات ═══ */
+.divcal{margin:14px 0 22px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); overflow:hidden}
+.divcal-hd{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:13px 16px; border-bottom:1px solid var(--border); flex-wrap:wrap}
+.divcal-hd .t{font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px}
+.divcal-hd .stamp{font-size:11px; color:var(--text3)}
+.divcal-hd .age-warn{font-size:11px; color:var(--amber); font-weight:600}
+.dc-day{padding:10px 16px 4px; font-size:12px; font-weight:700; color:var(--gold); border-bottom:1px solid rgba(255,255,255,0.03)}
+.dc-row{display:flex; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid rgba(255,255,255,0.04); cursor:pointer; transition:background 120ms}
+.dc-row:hover{background:var(--surface2)}
+.dc-kind{font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:6px; white-space:nowrap}
+.dc-kind.elig{color:var(--amber); background:var(--gold-dim)}
+.dc-kind.dist{color:var(--green); background:var(--green-dim)}
+.dc-main{flex:1; min-width:0}
+.dc-main .nm{font-size:13px; font-weight:600}
+.dc-main .meta{font-size:11px; color:var(--text3); margin-top:1px}
+.dc-val{text-align:left; white-space:nowrap}
+.dc-val .v{font-size:13.5px; font-weight:700}
+.dc-val .y{font-size:10.5px; color:var(--text3)}
+.dc-port{font-size:10px; color:var(--gold); font-weight:600}
+.dc-warn{font-size:10.5px; color:var(--amber)}
+.dc-note{padding:10px 16px 13px; font-size:11px; color:var(--text3); line-height:1.8}
+@media(max-width:640px){ .dc-row{padding:10px 12px; gap:8px} .dc-day{padding:9px 12px 4px} }
+
+/* ═══ chart interactivity + levels ═══ */
+.chart-wrap{position:relative}
+.chart-wrap svg{display:block}
+.ch-cross{position:absolute; top:0; bottom:0; width:1px; background:rgba(212,168,82,0.5); pointer-events:none; display:none}
+.ch-dot{position:absolute; width:7px; height:7px; border-radius:50%; background:var(--gold); border:1.5px solid var(--bg); pointer-events:none; display:none; transform:translate(-50%,-50%)}
+.ch-tip{position:absolute; top:2px; background:#1D242E; border:1px solid var(--border2); border-radius:7px; padding:4px 10px; font-size:11.5px; pointer-events:none; display:none; white-space:nowrap; z-index:5}
+.entry-box{margin-top:12px; display:flex; align-items:flex-start; gap:12px; background:var(--surface2); border:1px solid rgba(212,168,82,0.2); border-radius:var(--radius-sm); padding:11px 13px}
+.entry-box .ev{font-size:17px; font-weight:700; color:var(--gold); white-space:nowrap}
+.entry-box .ed{font-size:11.5px; color:var(--text3); line-height:1.7}
+.entry-box .et{font-size:12.5px; font-weight:600; margin-bottom:1px}
+.levels-line{margin-top:9px; font-size:11.5px; color:var(--text3); line-height:1.9}
+.levels-line b{color:var(--text2); font-weight:600}
+.levels-line .disc{color:var(--amber)}
+
+/* fin cells with colors + desc */
+.fin-cell{position:relative}
+.fin-cell .d{font-size:10px; color:var(--text3); line-height:1.6; margin-top:4px}
+.fin-cell.fc-green{border-right:2px solid var(--green)} .fin-cell.fc-green .v{color:var(--green)}
+.fin-cell.fc-amber{border-right:2px solid var(--amber)} .fin-cell.fc-amber .v{color:var(--amber)}
+.fin-cell.fc-red{border-right:2px solid var(--red)} .fin-cell.fc-red .v{color:var(--red)}
+@media(max-width:520px){ .fin-grid{grid-template-columns:repeat(2,1fr)} }
 
 /* ═══ Smart Views ═══ */
 .views{display:flex; gap:4px; padding:12px 20px 0; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none}
@@ -556,16 +601,24 @@ function renderPulse(){
       ${sparkline(d30,86,38,up?"#34D399":"#E5737F")}
     </div>`;
   }
+  const divCount=(DATA.upcomingDividends||[]).filter(d=>(d.eligDate&&d.eligDate>=todayStr())||(d.distDate&&d.distDate>=todayStr())).length;
   $("pulse").innerHTML=`
     <div class="p-tile" data-goto="market"><span class="k">الشركات المحللة</span><span class="v num">${STOCKS.length}</span><span class="s">منها ${ratedList.length} مقيّمة</span></div>
-    <div class="p-tile" data-goto="top"><span class="k">فرص قوية ‎80+‎</span><span class="v num" style="color:var(--band-strong)">${strong.length}</span><span class="s">جودة عالية</span></div>
+    <div class="p-tile" data-goto="top" data-min="80"><span class="k">فرص قوية ‎80+‎</span><span class="v num" style="color:var(--band-strong)">${strong.length}</span><span class="s">جودة عالية</span></div>
     <div class="p-tile" data-goto="entry"><span class="k">فرص دخول</span><span class="v num" style="color:var(--green)">${entryOps.length}</span><span class="s">جودة ‎65+‎ وتوقيت مناسب</span></div>
     <div class="p-tile" data-goto="reversal"><span class="k">انعكاس مبكر</span><span class="v num" style="color:var(--amber)">${revs.length}</span><span class="s">تحت المتوسط بإشارات تعافٍ</span></div>
+    <div class="p-tile" data-goto="dividends"><span class="k">مفكرة التوزيعات</span><span class="v num" style="color:var(--gold)">${divCount}</span><span class="s">حدثاً قادماً في النافذة</span></div>
     ${bestHtml}
     <div class="regime-line">${esc(rg.icon||"")} السوق: <b>${esc(rg.regime||"—")}</b> · تاسي <b class="num">${fmt(rg.indexValue,0)}</b>
       <span class="num ${rg.changePct>=0?"chg-up":"chg-dn"}">${rg.changePct!=null?(rg.changePct>=0?"+":"")+rg.changePct+"%":""}</span>
       · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}</div>`;
-  $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>setView(el.dataset.goto)));
+  $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>{
+    /* البلاطة وعد برقمها: تصفير كل الفلاتر ثم ضبط فلتر الدرجة على قيمتها إن وجدت */
+    resetFilters();
+    state.minScore=Number(el.dataset.min||0);
+    $("fScore").value=String(state.minScore);
+    setView(el.dataset.goto);
+  }));
   const pb=$("pulse").querySelector(".p-best");
   if(pb){ pb.addEventListener("click",()=>openDrawer(pb.dataset.sym));
           pb.addEventListener("keydown",e=>{if(e.key==="Enter")openDrawer(pb.dataset.sym);}); }
@@ -689,13 +742,69 @@ const COLS=[
   {key:"pb",     label:"P/B", sortable:true, p:"col-p3"},
   {key:"rs6",    label:"RS 6M", sortable:true, p:"col-p3", tip:"أداء السهم مقابل مؤشر تاسي في آخر 6 أشهر"}
 ];
+/* ─── مفكرة التوزيعات الشاملة (عزل تام عن التوصيات — لا درجات في الصفوف) ─── */
+const AR_DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const AR_MONTHS=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+function arDate(iso){ const d=new Date(iso+"T00:00:00Z"); return AR_DAYS[d.getUTCDay()]+" "+d.getUTCDate()+" "+AR_MONTHS[d.getUTCMonth()]; }
+function divCalendarHtml(){
+  const ud=DATA.upcomingDividends||[];
+  const today=todayStr();
+  const port=new Set(DATA.portfolioSymbols||[]);
+  const priceBySym={}; STOCKS.forEach(s=>priceBySym[s.symbol]=priceOf(s));
+  const rows=[];
+  ud.forEach(r=>{
+    /* صلابة العقد: صف بلا رمز أو بقيمة غير صالحة يُسقط */
+    if(!r.sym||!(typeof r.value==="number"&&r.value>0)) return;
+    /* الصف تحت حدثه الأقرب المستقبلي: أحقية قادمة أولاً، وإلا الإيداع القادم */
+    if(r.eligDate&&r.eligDate>=today) rows.push({...r,_kind:"elig",_at:r.eligDate});
+    else if(r.distDate&&r.distDate>=today) rows.push({...r,_kind:"dist",_at:r.distDate});
+  });
+  if(!rows.length) return `<div class="divcal"><div class="divcal-hd"><span class="t">مفكرة التوزيعات</span></div><div class="dc-note">لا أحداث توزيعات قادمة في نافذة المتابعة حالياً.</div></div>`;
+  const yldOf=r=>{const px=priceBySym[String(r.sym)]; return (px&&r.value)?r.value/px:-1;};
+  /* فرز العقد: باليوم، وداخله الأحقيات قبل الإيداعات، ثم العائد تنازلياً، ثم الرمز (ثبات) */
+  rows.sort((a,b)=>a._at<b._at?-1:a._at>b._at?1
+    :(a._kind==="elig"&&b._kind==="dist")?-1:(a._kind==="dist"&&b._kind==="elig")?1
+    :(yldOf(b)-yldOf(a))||String(a.sym).localeCompare(String(b.sym)));
+  const stampRaw=DATA.upcomingDividendsAt||"";
+  const age=stampRaw?Math.floor((new Date(today)-new Date(String(stampRaw).slice(0,10)))/86400000):null;
+  let html="", lastDay="";
+  rows.forEach(r=>{
+    if(r._at!==lastDay){ lastDay=r._at; html+=`<div class="dc-day">${arDate(r._at)} <span class="num" style="color:var(--text3);font-weight:400">${r._at}</span></div>`; }
+    const px=priceBySym[String(r.sym)];
+    const yld=(px&&r.value)?(r.value/px*100):null;
+    const meta=r._kind==="elig"
+      ?(r.distDate?`الإيداع: <span class="num">${esc(r.distDate)}</span>`:"تاريخ الإيداع لم يُعلن")
+      :(r.eligDate?`الأحقية كانت <span class="num">${esc(r.eligDate)}</span>`:"الأحقية: لم تُعتمد بعد");
+    const warns=[r.suspectDup?"⚠️ حدث مكرر عبر رمزين — تحقق من الإعلان الرسمي قبل الاعتماد":null,
+                 r.highYield?"⚠️ عائد استثنائي — تحقق من الإعلان الرسمي":null].filter(Boolean);
+    html+=`<div class="dc-row" data-sym="${esc(r.sym)}" role="button" tabindex="0">
+      <span class="dc-kind ${r._kind}">${r._kind==="elig"?"📌 يوم الأحقية":"💵 يوم الإيداع"}</span>
+      <div class="dc-main">
+        <div class="nm">${esc(r.name||r.sym)} <span class="num" style="color:var(--text3);font-weight:400;font-size:11px">${esc(r.sym)}</span> ${port.has(String(r.sym))?'<span class="dc-port">💼 في محفظتك</span>':""}</div>
+        <div class="meta">${meta}${r.period?` · ${esc(r.period)}${r.fy?" "+esc(r.fy):""}`:""}${r.annDate?` · أُعلن <span class="num">${esc(r.annDate)}</span>`:""}${warns.length?` <span class="dc-warn">${warns.join(" · ")}</span>`:""}</div>
+      </div>
+      <div class="dc-val"><div class="v num">${fmt(r.value)} ريال</div><div class="y num">${yld!=null?"≈"+yld.toFixed(1)+"%":""}</div></div>
+    </div>`;
+  });
+  return `<div class="divcal">
+    <div class="divcal-hd">
+      <span class="t">📅 مفكرة التوزيعات <span style="font-size:11px;color:var(--text3);font-weight:400">(${rows.length} حدثاً)</span></span>
+      <span class="stamp">آخر تحديث للمفكرة: <span class="num">${esc(String(stampRaw).slice(0,10))}</span>
+        ${age!=null&&age>1?`<span class="age-warn">⚠️ المفكرة بعمر ${age} أيام</span>`:""}</span>
+    </div>
+    ${html}
+    <div class="dc-note">المواعيد من إعلانات الشركات كما وردت من المصدر وقد تتعدل — العبرة بإعلان السوق الرسمي.<br>العائد المعروض لهذه الدفعة وحدها محسوب من آخر سعر لدينا وليس عائداً سنوياً، ويوم الأحقية ينخفض سعر السهم عادة بقيمة التوزيع تقريباً — معلومة تقويمية لا توصية.<br>المفكرة معلوماتية مستقلة تماماً عن التوصيات والدرجات.</div>
+  </div>`;
+}
+
 function renderBody(){
   syncSelectStyles();
   const view=VIEWS.find(v=>v.id===state.view)||VIEWS[0];
   let list=applyFilters(STOCKS.filter(view.fn));
   list=sortList(list);
   $("count").innerHTML=`<b class="num">${list.length}</b> نتيجة`;
-  if(!list.length){
+  const calHtml=state.view==="dividends"?divCalendarHtml():"";
+  if(!list.length&&!calHtml){
     $("body").innerHTML=`<div class="state"><div class="t">لا توجد أسهم تطابق الفلاتر الحالية</div>
       <div class="d">جرّب توسيع المعايير أو إعادة التعيين.</div>
       <button class="cmd-btn" style="margin:0 auto" onclick="resetFilters()">إعادة تعيين الفلاتر</button></div>`;
@@ -735,7 +844,7 @@ function renderBody(){
         ${timingChip(s,false)}
       </div>
     </div>`).join("");
-  $("body").innerHTML=`
+  $("body").innerHTML=calHtml+`
     <table class="scr"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>
     <div class="cards">${cards}</div>`;
   $("body").querySelectorAll("[data-sym]").forEach(el=>{
@@ -750,29 +859,123 @@ function renderBody(){
   }));
 }
 
-/* ─── Drawer ─── */
-function chartSvg(s,rangeKey){
+/* ─── Drawer: الشارت (شموع حقيقية بتواريخ + crosshair + مستويات) ─── */
+/* محاذاة نوافذ الشموع لنوافذ سلاسل المحرك نفسها (d30=30، d90=90 جلسة) —
+   كي لا يتغير «التغير في النطاق» أمام المستخدم لحظة اكتمال الجلب الكسول */
+const CANDLE_SESSIONS={d30:30,d90:90,w52:248,w156:744,mAll:Infinity};
+const candleCache={};
+async function loadCandles(sym){
+  if(candleCache[sym]!==undefined) return candleCache[sym];
+  try{
+    const r=await fetch(`candles/${sym}.json`,{cache:"no-cache"});
+    if(!r.ok) throw 0;
+    const j=await r.json();
+    const pts=(j.rows||[]).map(row=>({t:row[0],v:row[1]})).filter(p=>p.t&&p.v!=null);
+    candleCache[sym]=pts.length>=2?pts:null;
+  }catch(e){ candleCache[sym]=null; }
+  return candleCache[sym];
+}
+function chartPoints(s,rangeKey){
+  /* شموع حقيقية إن حُمّلت (تواريخ فعلية)، وإلا سقوط لسلاسل المحرك */
+  const c=candleCache[s.symbol];
+  if(c&&c.length>=2){
+    const n=CANDLE_SESSIONS[rangeKey]||66;
+    let pts=n===Infinity?c:c.slice(-n);
+    if(pts.length>600){ const step=Math.ceil(pts.length/600);
+      pts=pts.filter((_,i)=>i%step===0||i===pts.length-1); }
+    if(pts.length>=2) return {pts,dated:true};
+  }
   const ser=((s.series||{})[rangeKey]||{}).p;
-  if(!ser||ser.length<2) return '<div style="font-size:12px;color:var(--text3);padding:20px 0">لا تتوفر بيانات سعرية لهذا النطاق</div>';
+  if(ser&&ser.length>=2) return {pts:ser.map(v=>({t:null,v})),dated:false};
+  return null;
+}
+let CHART={pts:[],X:null,Y:null,W:560,dated:false};
+function chartSvg(s,rangeKey){
+  const data=chartPoints(s,rangeKey);
+  if(!data) return '<div style="font-size:12px;color:var(--text3);padding:20px 0">لا تتوفر بيانات سعرية لهذا النطاق</div>';
+  const ser=data.pts.map(p=>p.v);
   const W=560,H=170,PAD=6;
-  const mn=Math.min(...ser), mx=Math.max(...ser), sp=(mx-mn)||1;
+  const e=entryOf(s), ref=e&&e.referenceLevel;
+  let mn=Math.min(...ser), mx=Math.max(...ser);
+  if(ref!=null&&ref>=mn*0.9&&ref<=mx*1.1){ mn=Math.min(mn,ref); mx=Math.max(mx,ref); }
+  const sp=(mx-mn)||1;
   const X=i=>PAD+(i/(ser.length-1))*(W-2*PAD);
   const Y=v=>H-PAD-((v-mn)/sp)*(H-2*PAD-14)-7;
+  CHART={pts:data.pts,X,Y,W,dated:data.dated};
   const pts=ser.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
   const up=ser[ser.length-1]>=ser[0];
   const col=up?"#34D399":"#E5737F";
   const chg=((ser[ser.length-1]-ser[0])/ser[0]*100);
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="مخطط السعر">
+  const refLine=(ref!=null&&ref>=mn&&ref<=mx)
+    ?`<line x1="${PAD}" x2="${W-PAD}" y1="${Y(ref).toFixed(1)}" y2="${Y(ref).toFixed(1)}" stroke="#D4A852" stroke-width="1" stroke-dasharray="5 4" opacity="0.75"/>
+      <text x="${PAD+2}" y="${(Y(ref)-4).toFixed(1)}" font-size="9.5" fill="#D4A852" style="direction:ltr">◂ ${fmt(ref)} مرجع الدخول</text>`
+    :"";
+  return `<div class="chart-wrap" id="chartWrap">
+  <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="مخطط السعر">
     <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="${col}" stop-opacity="0.14"/><stop offset="1" stop-color="${col}" stop-opacity="0"/>
     </linearGradient></defs>
     <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round"/>
     <polygon points="${PAD},${H-PAD} ${pts} ${W-PAD},${H-PAD}" fill="url(#ga)" stroke="none"/>
+    ${refLine}
     <text x="${W-PAD}" y="12" text-anchor="end" font-size="10" fill="#66707D" style="direction:ltr">H ${fmt(mx)}</text>
     <text x="${W-PAD}" y="${H-2}" text-anchor="end" font-size="10" fill="#66707D" style="direction:ltr">L ${fmt(mn)}</text>
   </svg>
+  <div class="ch-cross" id="chCross"></div><div class="ch-dot" id="chDot"></div><div class="ch-tip num" id="chTip"></div>
+  </div>
   <div class="chart-meta"><span>التغير في النطاق <b class="num ${chg>=0?"chg-up":"chg-dn"}">${chg>=0?"+":""}${chg.toFixed(1)}%</b></span>
-  <span>البداية <b class="num">${fmt(ser[0])}</b></span><span>الآن <b class="num">${fmt(ser[ser.length-1])}</b></span></div>`;
+  <span>البداية <b class="num">${fmt(ser[0])}</b></span><span>الآن <b class="num">${fmt(ser[ser.length-1])}</b></span>
+  ${data.dated?"":'<span style="color:var(--text3)">مرّر على المخطط بعد اكتمال تحميل التواريخ</span>'}</div>
+  ${entryLevelsHtml(s)}`;
+}
+function entryLevelsHtml(s){
+  const e=entryOf(s);
+  let out="";
+  if(e&&e.referenceLevel!=null){
+    out+=`<div class="entry-box">
+      <div class="ev num">${fmt(e.referenceLevel)}</div>
+      <div><div class="et">${e.referenceLevelType==="reclaim"?"مستوى الاستعادة المرجعي (فوق السعر الحالي)":"سعر الدخول المناسب (تقريباً)"}</div>
+      <div class="ed">مستوى سعري تقريبي يُستأنس به للدخول أو للمراقبة — ليس وعداً ولا هدفاً مضموناً</div></div>
+    </div>`;
+  }
+  const lv=s.levels||{};
+  /* ألفاظ الإنتاج الحرفية (zoneRangeTxt): «قوي/متوسط»، «تقريبي/تقريبية» ملزمة */
+  const zoneTxt=z=>`<b class="num">${fmt(z.lo)}–${fmt(z.hi)}</b> (${z.strength==="strong"?"قوي":"متوسط"} · ${z.touches} لمسات)`;
+  const parts=[];
+  const sup=(lv.supports||[])[0], res=(lv.resistances||[])[0];
+  if(lv.inside) parts.push(`📍 السعر داخل منطقة تقريبية الآن (<b class="num">${fmt(lv.inside.lo)}–${fmt(lv.inside.hi)}</b>)`);
+  if(sup) parts.push(`أقرب دعم تقريبي: ${zoneTxt(sup)}`);
+  if(res) parts.push(`أقرب مقاومة تقريبية: ${zoneTxt(res)}`);
+  /* ملزمة الختم: جملة غياب المقاومات لا تُدّعى إلا بعلم المولّد الصريح — وإلا صمت */
+  if(lv.noResistanceAbove===true) parts.push("⛰️ لا مقاومة معروفة فوق السعر — عند أعلى المتاح");
+  if(parts.length) out+=`<div class="levels-line">${parts.join(" · ")}<br><span class="disc">⚠️ مستويات تقريبية إرشادية — ليست ضماناً ولا توصية</span></div>`;
+  return out;
+}
+function bindChartHover(){
+  const wrap=document.getElementById("chartWrap");
+  if(!wrap) return;
+  const cross=document.getElementById("chCross"), dot=document.getElementById("chDot"), tip=document.getElementById("chTip");
+  const show=cx=>{
+    const r=wrap.getBoundingClientRect();
+    const frac=Math.max(0,Math.min(1,(cx-r.left)/r.width));
+    const svgX=frac*CHART.W;
+    const n=CHART.pts.length; if(n<2) return;
+    const i=Math.max(0,Math.min(n-1,Math.round((svgX-6)/(CHART.W-12)*(n-1))));
+    const p=CHART.pts[i];
+    const px=CHART.X(i)/CHART.W*r.width, py=CHART.Y(p.v)/170*r.height;
+    cross.style.display="block"; cross.style.left=px+"px";
+    dot.style.display="block"; dot.style.left=px+"px"; dot.style.top=py+"px";
+    tip.style.display="block";
+    tip.textContent=fmt(p.v)+(p.t?" · "+p.t:"");
+    const tw=tip.offsetWidth;
+    tip.style.left=Math.max(0,Math.min(px-tw/2,r.width-tw))+"px";
+  };
+  const hide=()=>{ cross.style.display="none"; dot.style.display="none"; tip.style.display="none"; };
+  wrap.addEventListener("mousemove",ev=>show(ev.clientX));
+  wrap.addEventListener("mouseleave",hide);
+  wrap.addEventListener("touchstart",ev=>show(ev.touches[0].clientX),{passive:true});
+  wrap.addEventListener("touchmove",ev=>show(ev.touches[0].clientX),{passive:true});
+  wrap.addEventListener("touchend",hide);
 }
 function axesOf(s){
   /* المحرك يخزن قيم المحاور مسطّحة للمقيَّمة وتحت axes للمستبعدة — نقرأ الشكلين */
@@ -885,19 +1088,7 @@ function drawerHtml(s){
 
     <div class="dr-sec">
       <div class="dr-t">مؤشرات مالية</div>
-      <div class="fin-grid">
-        <div class="fin-cell"><div class="k">ROE</div><div class="v num">${roeOf(s)!=null?fmt(roeOf(s),1)+"%":"—"}</div></div>
-        <div class="fin-cell"><div class="k">هامش الربح</div><div class="v num">${fin.profitMargins!=null?fmt(fin.profitMargins,1)+"%":"—"}</div></div>
-        <div class="fin-cell"><div class="k">نمو الإيرادات</div><div class="v num">${fin.revenueGrowth!=null?fmt(fin.revenueGrowth,1)+"%":"—"}</div></div>
-        <div class="fin-cell"><div class="k">P/E</div><div class="v num">${peOf(s)!=null?fmt(peOf(s),1):"—"}</div></div>
-        <div class="fin-cell"><div class="k">P/B</div><div class="v num">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}</div></div>
-        <div class="fin-cell"><div class="k">عائد التوزيعات</div><div class="v num">${dyOf(s)!=null?fmt(dyOf(s),1)+"%":"—"}</div></div>
-        ${isBank
-          ?`<div class="fin-cell"><div class="k">ملكية/أصول</div><div class="v num">${fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—"}</div></div>`
-          :`<div class="fin-cell"><div class="k">D/E</div><div class="v num">${fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—"}</div></div>`}
-        <div class="fin-cell"><div class="k">RS 6M مقابل تاسي</div><div class="v num">${rs6Of(s)!=null?(rs6Of(s)>0?"+":"")+fmt(rs6Of(s),1)+"%":"—"}</div></div>
-        <div class="fin-cell"><div class="k">ATR%</div><div class="v num">${(s.dailyExtra||{}).atrPct!=null?fmt(s.dailyExtra.atrPct,1)+"%":"—"}</div></div>
-      </div>
+      <div class="fin-grid">${finCells(s)}</div>
       ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
       ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
     </div>
@@ -909,13 +1100,63 @@ function drawerHtml(s){
       ${((s.dividends||{}).history||[]).slice(0,4).map(h=>`<div class="dv-row"><span>توزيع سابق ${fmt(h.amount)} ريال</span><span class="num">${esc(h.date)}</span></div>`).join("")}
     </div>`:""}
 
-    ${(s.news||[]).length?`<div class="dr-sec">
+    <div class="dr-sec">
       <div class="dr-t">آخر الأخبار</div>
-      ${s.news.slice(0,3).map(n=>`<a class="news-row" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}<div class="src">${esc(n.source||"")}</div></a>`).join("")}
-    </div>`:""}
+      ${(s.news||[]).length
+        ?s.news.slice(0,5).map(n=>`<a class="news-row" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}<div class="src">${esc(n.source||"")}${newsDate(n.date)?" · "+newsDate(n.date):""}</div></a>`).join("")
+        :'<div style="font-size:12.5px;color:var(--text3)">لا أخبار محدثة لهذا السهم حالياً.</div>'}
+    </div>
   </div>`;
 }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
+function newsDate(d){
+  const t=Date.parse(d||""); if(isNaN(t)) return "";
+  const x=new Date(t); return `${x.getUTCDate()}-${String(x.getUTCMonth()+1).padStart(2,"0")}-${x.getUTCFullYear()}`;
+}
+/* أوصاف المؤشرات — حرفياً من قاموس الإنتاج IND_DESC */
+const FIN_DESC={
+  pe:"كم سنة من الأرباح الحالية تحتاج لاسترداد سعر السهم — الأقل أرخص عموماً",
+  pb:"سعر السهم مقارنة بصافي ممتلكات الشركة — الأقل أرخص عموماً",
+  divYield:"ما توزعه الشركة نقداً كل سنة كنسبة من سعر السهم",
+  roe:"كم ربحاً تولّده الشركة من أموال ملاكها — الأعلى أفضل عموماً",
+  margin:"كم يتبقى ربحاً صافياً من كل 100 ريال مبيعات",
+  revGrowth:"هل مبيعات الشركة تزيد أم تنقص عن العام السابق؟",
+  debtEquity:"حجم الديون مقارنة بأموال الملاك — الأقل أكثر أماناً عموماً",
+  atr:"متوسط تحرك السعر اليومي — الأقل يعني حركة أهدأ",
+  rs:"أداء السهم مقارنة بمؤشر السوق خلال المدة — الموجب يعني تفوقاً على السوق",
+  zExt:"كم يبتعد السعر عن متوسطه الطويل مقارنة بعادته التاريخية — قرب الصفر طبيعي، وفوق 2 امتداد يستدعي الحذر",
+  liqValue:"كم ريالاً يُتداول من السهم يومياً — الأهم لمعرفة سهولة الدخول والخروج",
+  ocf:"هل الأرباح المعلنة يقابلها نقد حقيقي دخل الشركة فعلاً؟ — «يغطي الأرباح» أفضل حالة",
+  equityAssets:"أموال الملاك كنسبة من أصول البنك — البديل المعتمد للدين/الملكية لدى البنوك",
+};
+function finCells(s){
+  /* عتبات الألوان حرفياً من الإنتاج (template قسمي الصحة والمخاطر) — عرض فقط */
+  const fin=s.financials||{}, dx=s.dailyExtra||{};
+  const isFinSector=secOf(s)==="Financials";
+  const isBank=isFinSector&&/bank|بنك|مصرف/i.test(s.industry||"");
+  const lg=s.liquidityGate||null;
+  const cls=c=>c?` fc-${c}`:"";
+  const cell=(k,v,color,desc)=>`<div class="fin-cell${cls(color)}"><div class="k">${k}</div><div class="v num">${v}</div>${desc?`<div class="d">${desc}</div>`:""}</div>`;
+  const roe=fin.returnOnEquity, pm=fin.profitMargins, rg=fin.revenueGrowth;
+  const ocf=fin.ocf, ni=fin.netIncome, atr=dx.atrPct, z=dx.zExt, rs6=rs6Of(s);
+  let out="";
+  out+=cell("ROE", roe!=null?fmt(roe,1)+"%":"—", roe!=null?(roe>12?"green":roe>0?"amber":"red"):"", FIN_DESC.roe);
+  out+=cell("هامش الربح", pm!=null?fmt(pm,1)+"%":"—", pm!=null?(pm>12?"green":pm>0?"amber":"red"):"", FIN_DESC.margin);
+  out+=cell("نمو الإيرادات", rg!=null?fmt(rg,1)+"%":"—", rg!=null?(rg>5?"green":rg>=0?"amber":"red"):"", FIN_DESC.revGrowth);
+  out+=cell("P/E", peOf(s)!=null?fmt(peOf(s),1):"—", "", FIN_DESC.pe);
+  out+=cell("P/B", pbOf(s)!=null?fmt(pbOf(s),2):"—", "", FIN_DESC.pb);
+  out+=cell("عائد التوزيعات", dyOf(s)!=null?fmt(dyOf(s),1)+"%":"—", "", FIN_DESC.divYield);
+  if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
+  else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);
+  if(!isBank&&ocf!=null) out+=cell("النقد التشغيلي OCF",
+    ocf>0?(ni!=null&&ocf>=ni?"يغطي الأرباح":"موجب"):"سالب",
+    ocf>0&&ni!=null&&ocf>=ni?"green":ocf>0?"amber":"red", FIN_DESC.ocf);
+  out+=cell("RS 6M مقابل تاسي", rs6!=null?(rs6>0?"+":"")+fmt(rs6,1)+"%":"—", rs6!=null?(rs6>0?"green":"red"):"", FIN_DESC.rs);
+  out+=cell("التقلب ATR%", atr!=null?fmt(atr,1)+"%":"—", atr!=null?(atr<2.5?"green":"red"):"", FIN_DESC.atr);
+  if(z!=null) out+=cell("Z-الامتداد", (z>0?"+":"")+fmt(z,1), Math.abs(z)<1?"green":Math.abs(z)<2?"amber":"red", FIN_DESC.zExt);
+  if(lg&&lg.valueSar!=null) out+=cell("قيمة التداول ريال/يوم", fmt(lg.valueSar,0), lg.passed===true?"green":lg.passed===false?"red":"", FIN_DESC.liqValue);
+  return out;
+}
 function buildReading(s){
   /* تركيب من الحقول الحقيقية حصراً — لا اختلاق */
   const i=isc(s), e=entryOf(s);
@@ -963,6 +1204,15 @@ function openDrawer(sym){
     state.chartRange=b.dataset.r;
     dr.querySelectorAll("#chartTabs button").forEach(x=>x.classList.toggle("on",x===b));
     dr.querySelector("#chartBox").innerHTML=chartSvg(s,state.chartRange);
+    bindChartHover();
+  });
+  bindChartHover();
+  /* جلب كسول للشموع الحقيقية — يعيد رسم الشارت بتواريخ فعلية فور وصولها */
+  loadCandles(s.symbol).then(c=>{
+    if(c&&state.drawerSym===s.symbol&&dr.querySelector("#chartBox")){
+      dr.querySelector("#chartBox").innerHTML=chartSvg(s,state.chartRange);
+      bindChartHover();
+    }
   });
   dr.querySelectorAll(".ax-toggle").forEach(b=>b.addEventListener("click",()=>{
     b.closest(".ax").classList.toggle("exp");
