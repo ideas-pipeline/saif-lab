@@ -37,6 +37,7 @@ def fetch_news(stock_name):
             g = lambda tag: (item.find(tag).text or "") if item.find(tag) is not None else ""
             news.append({"title": g("title")[:100], "date": g("pubDate"),
                          "source": g("source"), "url": g("link")})
+        # استجابة سليمة صفرية العناصر = «لا أخبار» صادقة تُكتب []، لا فشلاً يجمّد عناوين بائتة
         return news
     except Exception:
         return None  # فشل ⇒ لا مساس بالقديم
@@ -63,7 +64,7 @@ def main():
     ok = fail = 0
     for s in stocks:
         news = fetch_news(s.get("name") or s["symbol"])
-        if news:
+        if news is not None:
             s["news"] = news
             ok += 1
         else:

@@ -613,7 +613,8 @@ function renderPulse(){
       <span class="num ${rg.changePct>=0?"chg-up":"chg-dn"}">${rg.changePct!=null?(rg.changePct>=0?"+":"")+rg.changePct+"%":""}</span>
       · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}</div>`;
   $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>{
-    /* كل بلاطة تضبط فلتر الدرجة على قيمتها (أو تصفّره) فيطابق العدّ رقمها دائماً */
+    /* البلاطة وعد برقمها: تصفير كل الفلاتر ثم ضبط فلتر الدرجة على قيمتها إن وجدت */
+    resetFilters();
     state.minScore=Number(el.dataset.min||0);
     $("fScore").value=String(state.minScore);
     setView(el.dataset.goto);
@@ -748,18 +749,24 @@ function arDate(iso){ const d=new Date(iso+"T00:00:00Z"); return AR_DAYS[d.getUT
 function divCalendarHtml(){
   const ud=DATA.upcomingDividends||[];
   const today=todayStr();
+  const port=new Set(DATA.portfolioSymbols||[]);
+  const priceBySym={}; STOCKS.forEach(s=>priceBySym[s.symbol]=priceOf(s));
   const rows=[];
   ud.forEach(r=>{
+    /* صلابة العقد: صف بلا رمز أو بقيمة غير صالحة يُسقط */
+    if(!r.sym||!(typeof r.value==="number"&&r.value>0)) return;
     /* الصف تحت حدثه الأقرب المستقبلي: أحقية قادمة أولاً، وإلا الإيداع القادم */
     if(r.eligDate&&r.eligDate>=today) rows.push({...r,_kind:"elig",_at:r.eligDate});
     else if(r.distDate&&r.distDate>=today) rows.push({...r,_kind:"dist",_at:r.distDate});
   });
   if(!rows.length) return `<div class="divcal"><div class="divcal-hd"><span class="t">مفكرة التوزيعات</span></div><div class="dc-note">لا أحداث توزيعات قادمة في نافذة المتابعة حالياً.</div></div>`;
-  rows.sort((a,b)=>a._at<b._at?-1:a._at>b._at?1:(a._kind==="elig"&&b._kind==="dist")?-1:(a._kind==="dist"&&b._kind==="elig")?1:String(a.sym).localeCompare(String(b.sym)));
+  const yldOf=r=>{const px=priceBySym[String(r.sym)]; return (px&&r.value)?r.value/px:-1;};
+  /* فرز العقد: باليوم، وداخله الأحقيات قبل الإيداعات، ثم العائد تنازلياً، ثم الرمز (ثبات) */
+  rows.sort((a,b)=>a._at<b._at?-1:a._at>b._at?1
+    :(a._kind==="elig"&&b._kind==="dist")?-1:(a._kind==="dist"&&b._kind==="elig")?1
+    :(yldOf(b)-yldOf(a))||String(a.sym).localeCompare(String(b.sym)));
   const stampRaw=DATA.upcomingDividendsAt||"";
   const age=stampRaw?Math.floor((new Date(today)-new Date(String(stampRaw).slice(0,10)))/86400000):null;
-  const port=new Set(DATA.portfolioSymbols||[]);
-  const priceBySym={}; STOCKS.forEach(s=>priceBySym[s.symbol]=priceOf(s));
   let html="", lastDay="";
   rows.forEach(r=>{
     if(r._at!==lastDay){ lastDay=r._at; html+=`<div class="dc-day">${arDate(r._at)} <span class="num" style="color:var(--text3);font-weight:400">${r._at}</span></div>`; }
@@ -774,7 +781,7 @@ function divCalendarHtml(){
       <span class="dc-kind ${r._kind}">${r._kind==="elig"?"📌 يوم الأحقية":"💵 يوم الإيداع"}</span>
       <div class="dc-main">
         <div class="nm">${esc(r.name||r.sym)} <span class="num" style="color:var(--text3);font-weight:400;font-size:11px">${esc(r.sym)}</span> ${port.has(String(r.sym))?'<span class="dc-port">💼 في محفظتك</span>':""}</div>
-        <div class="meta">${meta}${r.period?` · ${esc(r.period)}${r.fy?" "+esc(r.fy):""}`:""}${warns.length?` <span class="dc-warn">${warns.join(" · ")}</span>`:""}</div>
+        <div class="meta">${meta}${r.period?` · ${esc(r.period)}${r.fy?" "+esc(r.fy):""}`:""}${r.annDate?` · أُعلن <span class="num">${esc(r.annDate)}</span>`:""}${warns.length?` <span class="dc-warn">${warns.join(" · ")}</span>`:""}</div>
       </div>
       <div class="dc-val"><div class="v num">${fmt(r.value)} ريال</div><div class="y num">${yld!=null?"≈"+yld.toFixed(1)+"%":""}</div></div>
     </div>`;
@@ -786,7 +793,7 @@ function divCalendarHtml(){
         ${age!=null&&age>1?`<span class="age-warn">⚠️ المفكرة بعمر ${age} أيام</span>`:""}</span>
     </div>
     ${html}
-    <div class="dc-note">المواعيد من إعلانات الشركات كما وردت من المصدر وقد تتعدل — العبرة بإعلان السوق الرسمي. العائد التقريبي محسوب على سعرنا الحالي. المفكرة معلوماتية مستقلة تماماً عن التوصيات والدرجات.</div>
+    <div class="dc-note">المواعيد من إعلانات الشركات كما وردت من المصدر وقد تتعدل — العبرة بإعلان السوق الرسمي.<br>العائد المعروض لهذه الدفعة وحدها محسوب من آخر سعر لدينا وليس عائداً سنوياً، ويوم الأحقية ينخفض سعر السهم عادة بقيمة التوزيع تقريباً — معلومة تقويمية لا توصية.<br>المفكرة معلوماتية مستقلة تماماً عن التوصيات والدرجات.</div>
   </div>`;
 }
 
@@ -853,7 +860,9 @@ function renderBody(){
 }
 
 /* ─── Drawer: الشارت (شموع حقيقية بتواريخ + crosshair + مستويات) ─── */
-const CANDLE_SESSIONS={d30:22,d90:66,w52:248,w156:744,mAll:Infinity};
+/* محاذاة نوافذ الشموع لنوافذ سلاسل المحرك نفسها (d30=30، d90=90 جلسة) —
+   كي لا يتغير «التغير في النطاق» أمام المستخدم لحظة اكتمال الجلب الكسول */
+const CANDLE_SESSIONS={d30:30,d90:90,w52:248,w156:744,mAll:Infinity};
 const candleCache={};
 async function loadCandles(sym){
   if(candleCache[sym]!==undefined) return candleCache[sym];
@@ -930,17 +939,15 @@ function entryLevelsHtml(s){
     </div>`;
   }
   const lv=s.levels||{};
-  const px=lv.price||priceOf(s);
-  const zoneTxt=z=>`<b class="num">${fmt(z.lo)}–${fmt(z.hi)}</b> (${z.strength==="strong"?"قوية":"عادية"} · ${z.touches} لمسات)`;
+  /* ألفاظ الإنتاج الحرفية (zoneRangeTxt): «قوي/متوسط»، «تقريبي/تقريبية» ملزمة */
+  const zoneTxt=z=>`<b class="num">${fmt(z.lo)}–${fmt(z.hi)}</b> (${z.strength==="strong"?"قوي":"متوسط"} · ${z.touches} لمسات)`;
   const parts=[];
-  if(px){
-    const sup=(lv.supports||[]).filter(z=>z.c<=px).sort((a,b)=>b.c-a.c)[0];
-    const res=(lv.resistances||[]).filter(z=>z.c>=px).sort((a,b)=>a.c-b.c)[0];
-    if(lv.inside) parts.push(`📍 السعر داخل منطقة تقريبية الآن (<b class="num">${fmt(lv.inside.lo)}–${fmt(lv.inside.hi)}</b>)`);
-    if(sup) parts.push(`الدعم الأولي: ${zoneTxt(sup)}`);
-    if(res) parts.push(`أقرب مقاومة: ${zoneTxt(res)}`);
-    else if(lv.supports) parts.push("لا مقاومات مرصودة فوق السعر الحالي");
-  }
+  const sup=(lv.supports||[])[0], res=(lv.resistances||[])[0];
+  if(lv.inside) parts.push(`📍 السعر داخل منطقة تقريبية الآن (<b class="num">${fmt(lv.inside.lo)}–${fmt(lv.inside.hi)}</b>)`);
+  if(sup) parts.push(`أقرب دعم تقريبي: ${zoneTxt(sup)}`);
+  if(res) parts.push(`أقرب مقاومة تقريبية: ${zoneTxt(res)}`);
+  /* ملزمة الختم: جملة غياب المقاومات لا تُدّعى إلا بعلم المولّد الصريح — وإلا صمت */
+  if(lv.noResistanceAbove===true) parts.push("⛰️ لا مقاومة معروفة فوق السعر — عند أعلى المتاح");
   if(parts.length) out+=`<div class="levels-line">${parts.join(" · ")}<br><span class="disc">⚠️ مستويات تقريبية إرشادية — ليست ضماناً ولا توصية</span></div>`;
   return out;
 }
