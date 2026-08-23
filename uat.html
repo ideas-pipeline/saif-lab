@@ -886,14 +886,19 @@ function renderBody(){
     const evb=$("emptyViewBtn"); if(evb) evb.addEventListener("click",resetFilters);
     return;
   }
+  /* نهج الإنتاج: التجميد الشامل يوسم رأس العمود مرة واحدة لا كل صف (ملاحظة الناقد) */
+  const frzCol=k=>list.length&&list.filter(s=>frz(s,k)).length>list.length/2;
   const ths=COLS.map(c=>{
     const sorted=state.sort.key===c.key;
     const arrow=sorted?(state.sort.dir===-1?"▼":"▲"):"▼";
+    const colFrozen=(c.key==="pe"||c.key==="pb")&&frzCol(c.key);
+    const label=c.label+(colFrozen?" ❄️":"");
+    const tip=colFrozen?VAL_STALE_NOTE:c.tip;
     const inner=c.sortable
-      ?`<button data-sort="${c.key}" aria-label="ترتيب حسب ${c.label}">${c.label}<span class="arr">${arrow}</span></button>`
-      :c.label;
+      ?`<button data-sort="${c.key}" aria-label="ترتيب حسب ${c.label}">${label}<span class="arr">${arrow}</span></button>`
+      :label;
     const ariaSort=sorted?` aria-sort="${state.sort.dir===-1?"descending":"ascending"}"`:"";
-    return `<th class="${c.p||""} ${sorted?"sorted":""}"${ariaSort} ${c.tip?`data-tip="${esc(c.tip)}"`:""}>${inner}</th>`;
+    return `<th class="${c.p||""} ${sorted?"sorted":""}"${ariaSort} ${tip?`data-tip="${esc(tip)}"`:""}>${inner}</th>`;
   }).join("");
   const rows=list.map(s=>`
     <tr data-sym="${s.symbol}" tabindex="0">
@@ -904,8 +909,8 @@ function renderBody(){
       <td class="num">${fmt(priceOf(s))}</td>
       <td>${chgHtml(s)}</td>
       <td class="num col-p2">${roeOf(s)!=null?fmt(roeOf(s),1)+"%":"—"}</td>
-      <td class="num col-p2">${peOf(s)!=null?fmt(peOf(s),1):"—"}${frzMark(s,"pe")}</td>
-      <td class="num col-p3">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}${frzMark(s,"pb")}</td>
+      <td class="num col-p2">${peOf(s)!=null?fmt(peOf(s),1):"—"}</td>
+      <td class="num col-p3">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}</td>
       <td class="num col-p3">${rs6Of(s)!=null?(rs6Of(s)>0?"+":"")+fmt(rs6Of(s),1)+"%":"—"}</td>
     </tr>`).join("");
   const cards=list.map(s=>`
@@ -1158,7 +1163,7 @@ function drawerHtml(s){
     <div class="dr-sec">
       <div class="dr-t">مؤشرات مالية</div>
       <div class="fin-grid">${finCells(s)}</div>
-      ${s.valuationUpdatedAt?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span class="num">${esc(String(s.valuationUpdatedAt).slice(0,16))}</span></div>`:""}
+      ${valUpdOf(s)?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span class="num">${esc(String(valUpdOf(s)).slice(0,16))}</span></div>`:""}
       ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
       ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
     </div>
@@ -1209,7 +1214,10 @@ const FIN_DESC={
 };
 /* نضارة التقييم (P2) — مرآة آلية الإنتاج: valuationParts frozen/live + نص VAL_STALE_NOTE الحرفي */
 const VAL_STALE_NOTE="غير محدّث — مصدر البيانات قيد المعالجة";
-const frz=(s,k)=>((s.valuationParts||{})[k]==="frozen");
+/* احتياط الإنتاج نفسه: الحقلان قد يكونان في الجذر أو تحت valuation */
+const valPartsOf=s=>(s.valuationParts||(s.valuation&&s.valuation.valuationParts))||{};
+const valUpdOf=s=>s.valuationUpdatedAt||(s.valuation&&s.valuation.valuationUpdatedAt)||"";
+const frz=(s,k)=>(valPartsOf(s)[k]==="frozen");
 const frzMark=(s,k)=>frz(s,k)?` <span class="frz" data-tip="${VAL_STALE_NOTE}" tabindex="0" style="cursor:help;font-size:10px">❄️</span>`:"";
 function finCells(s){
   /* عتبات الألوان حرفياً من الإنتاج (template قسمي الصحة والمخاطر) — عرض فقط */
