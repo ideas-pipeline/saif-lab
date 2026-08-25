@@ -354,7 +354,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -4.56,
+   "maePct": -4.36,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -398,8 +398,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.07,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -6.96
+   "tasiRet": 3.3,
+   "excessNet": -5.51
   },
   {
    "symbol": "2050",
@@ -424,8 +424,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -3.68
+   "tasiRet": 3.3,
+   "excessNet": -1.9
   },
   {
    "symbol": "3020",
@@ -450,8 +450,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -2.16
+   "tasiRet": 3.3,
+   "excessNet": -1.49
   },
   {
    "symbol": "3080",
@@ -476,8 +476,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.95,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -2.71
+   "tasiRet": 3.3,
+   "excessNet": -2.73
   },
   {
    "symbol": "6010",
@@ -502,8 +502,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.98,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": 0.62
+   "tasiRet": 3.3,
+   "excessNet": -1.28
   },
   {
    "symbol": "4012",
@@ -528,8 +528,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.97,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -7.3
+   "tasiRet": 3.3,
+   "excessNet": -6.48
   },
   {
    "symbol": "3010",
@@ -554,8 +554,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.61,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -5.79
+   "tasiRet": 3.3,
+   "excessNet": -4.89
   },
   {
    "symbol": "3005",
@@ -580,8 +580,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.46,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -6.96
+   "tasiRet": 3.3,
+   "excessNet": -5.48
   },
   {
    "symbol": "3030",
@@ -606,8 +606,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -2.36
+   "tasiRet": 3.3,
+   "excessNet": -1.61
   },
   {
    "symbol": "4323",
@@ -632,8 +632,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.75,
    "status": "open",
-   "tasiRet": 3.83,
-   "excessNet": -2.46
+   "tasiRet": 3.3,
+   "excessNet": -2.3
   },
   {
    "symbol": "1303",
@@ -1048,11 +1048,8 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 0.82,
-   "status": "closed",
-   "maePct": -0.76,
-   "closeDate": "2026-08-25",
-   "closePrice": 15.6,
-   "closeReason": "score_below_50"
+   "status": "open",
+   "maePct": -0.76
   },
   {
    "symbol": "4003",
@@ -1079,8 +1076,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 3.77,
-   "excessNet": 1.72
+   "tasiRet": 3.24,
+   "excessNet": 1.62
   },
   {
    "symbol": "4260",
@@ -1138,8 +1135,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.77,
    "status": "open",
-   "tasiRet": 3.77,
-   "excessNet": -0.72
+   "tasiRet": 3.24,
+   "excessNet": -0.7
   },
   {
    "symbol": "1180",
@@ -1325,7 +1322,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.4,
    "status": "open",
-   "maePct": -2.03
+   "maePct": -1.82
   },
   {
    "symbol": "1080",
@@ -1476,11 +1473,8 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.7,
-   "status": "closed",
-   "maePct": -3.03,
-   "closeDate": "2026-08-25",
-   "closePrice": 5.32,
-   "closeReason": "score_below_50"
+   "status": "open",
+   "maePct": -3.03
   },
   {
    "symbol": "7020",
@@ -1502,32 +1496,6 @@
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
    "maePct": 0.0
-  },
-  {
-   "symbol": "4020",
-   "name": "العقارية السعودية",
-   "sector": "Real Estate",
-   "type": "buy",
-   "entryPrice": 15.6,
-   "entryDate": "2026-08-25",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 20,
-   "timingAtEntry": "انتظر",
-   "regimeAtEntry": "حذر",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 0.98,
-   "priceVsSmaPct": -9.77,
-   "peAtEntry": 9.07,
-   "peSectorMedianAtEntry": 14.47,
-   "tasiAtEntry": 11231.61,
-   "maePct": 0.0,
-   "status": "open"
   }
  ]
 }
