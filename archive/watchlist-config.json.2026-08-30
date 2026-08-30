@@ -56,7 +56,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -2.4,
+   "maePct": -1.78,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -398,8 +398,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.07,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -4.91
+   "tasiRet": 3.89,
+   "excessNet": -4.58
   },
   {
    "symbol": "2050",
@@ -424,8 +424,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -3.44
+   "tasiRet": 3.89,
+   "excessNet": -1.83
   },
   {
    "symbol": "3020",
@@ -450,8 +450,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -0.88
+   "tasiRet": 3.89,
+   "excessNet": -1.32
   },
   {
    "symbol": "3080",
@@ -476,8 +476,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.95,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -2.72
+   "tasiRet": 3.89,
+   "excessNet": -3.27
   },
   {
    "symbol": "6010",
@@ -502,8 +502,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.98,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": 3.48
+   "tasiRet": 3.89,
+   "excessNet": 2.63
   },
   {
    "symbol": "4012",
@@ -528,8 +528,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.97,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -5.84
+   "tasiRet": 3.89,
+   "excessNet": -7.66
   },
   {
    "symbol": "3010",
@@ -554,8 +554,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.61,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -5.02
+   "tasiRet": 3.89,
+   "excessNet": -5.86
   },
   {
    "symbol": "3005",
@@ -580,7 +580,7 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.46,
    "status": "open",
-   "tasiRet": 3.16,
+   "tasiRet": 3.89,
    "excessNet": -6.49
   },
   {
@@ -606,8 +606,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -1.38
+   "tasiRet": 3.89,
+   "excessNet": -1.73
   },
   {
    "symbol": "4323",
@@ -632,8 +632,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.75,
    "status": "open",
-   "tasiRet": 3.16,
-   "excessNet": -1.53
+   "tasiRet": 3.89,
+   "excessNet": -2.69
   },
   {
    "symbol": "1303",
@@ -925,7 +925,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -4.7
+   "maePct": -4.08
   },
   {
    "symbol": "2020",
@@ -1079,8 +1079,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 3.09,
-   "excessNet": 3.46
+   "tasiRet": 3.83,
+   "excessNet": 2.76
   },
   {
    "symbol": "4260",
@@ -1138,8 +1138,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.77,
    "status": "open",
-   "tasiRet": 3.09,
-   "excessNet": 0.87
+   "tasiRet": 3.83,
+   "excessNet": 0.81
   },
   {
    "symbol": "1180",
@@ -1345,7 +1345,7 @@
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 0.86,
    "status": "open",
-   "maePct": -0.94,
+   "maePct": -0.72,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -1386,7 +1386,7 @@
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 0.86,
    "status": "open",
-   "maePct": -0.23
+   "maePct": 0.0
   },
   {
    "symbol": "8250",
@@ -1457,7 +1457,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.04,
    "status": "open",
-   "maePct": -3.02
+   "maePct": 0.0
   },
   {
    "symbol": "2200",
@@ -1554,59 +1554,7 @@
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 1.66,
    "status": "open",
-   "maePct": -1.11
-  },
-  {
-   "symbol": "4020",
-   "name": "العقارية السعودية",
-   "sector": "Real Estate",
-   "type": "buy",
-   "entryPrice": 15.65,
-   "entryDate": "2026-08-30",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 20,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "حذر",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 0.99,
-   "priceVsSmaPct": -9.59,
-   "peAtEntry": 9.09,
-   "peSectorMedianAtEntry": 14.32,
-   "tasiAtEntry": 11158.54,
-   "maePct": 0.0,
-   "status": "open"
-  },
-  {
-   "symbol": "7030",
-   "name": "زين السعودية",
-   "sector": "Communication Services",
-   "type": "buy",
-   "entryPrice": 10.48,
-   "entryDate": "2026-08-30",
-   "track": "auto",
-   "sampleType": "value-shadow",
-   "category": "value-shadow",
-   "engineClass": "filtered",
-   "scoreAtEntry": 0,
-   "qualityAtEntry": 19,
-   "timingAtEntry": "ممتاز",
-   "regimeAtEntry": "حذر",
-   "scoreScaleAtEntry": "criteria-v3",
-   "aboveSmaAtEntry": false,
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 0.87,
-   "priceVsSmaPct": -9.81,
-   "peAtEntry": 10.69,
-   "peSectorMedianAtEntry": 13.44,
-   "tasiAtEntry": 11158.54,
-   "maePct": 0.0,
-   "status": "open"
+   "maePct": -1.01
   }
  ]
 }
