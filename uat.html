@@ -592,12 +592,17 @@ const buyFamily=s=>["strong_buy","buy","buy_wait","conditional_buy"].includes(is
 
 /* ─── تحميل ─── */
 function skeleton(){ $("body").innerHTML='<div class="skel">'+'<div class="row"></div>'.repeat(9)+"</div>"; }
+/* مرساة الترقية: مصدر البيانات معزول في دالة واحدة — مولّد القالب
+   (scripts/make-template.py) يستبدل جسمها ببيانات مضمّنة لصفحة الإنتاج */
+async function loadData(){
+  const r=await fetch("stocks-data.json",{cache:"no-cache"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
 async function boot(){
   skeleton();
   try{
-    const r=await fetch("stocks-data.json",{cache:"no-cache"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    DATA=await r.json();
+    DATA=await loadData();
     STOCKS=(DATA.stocks||[]).filter(s=>s.symbol&&!s.delisted);
     renderAll();
   }catch(e){
