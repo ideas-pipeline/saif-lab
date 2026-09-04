@@ -325,8 +325,16 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .dr-hd .px{text-align:left}
 .dr-hd .px .p{font-size:18px; font-weight:700}
 .dr-hd .px .c{font-size:12.5px}
+.dr-return{
+  display:block; width:100%; margin:22px 0 calc(10px + env(safe-area-inset-bottom));
+  min-height:48px; border-radius:12px; background:var(--surface3); color:var(--text);
+  border:1px solid var(--border2); font-size:14px; font-weight:600;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.dr-return:hover{border-color:var(--gold)}
 .dr-x{
-  width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  width:44px; height:44px; min-width:44px; min-height:44px; border-radius:8px;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent; display:flex; align-items:center; justify-content:center;
   color:var(--text3); border:1px solid var(--border); flex-shrink:0; font-size:15px;
   transition:all var(--dur);
 }
@@ -551,6 +559,9 @@ let DATA=null, STOCKS=[], state={
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 const fmt=(n,d=2)=>n==null?"—":Number(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:d});
+/* عزل الأرقام السالبة عن انعكاس RTL — «‎-14.4%» كانت تُرسم «14.4-%» فتُقرأ الخسارة ربحاً
+   (منقول حرفياً من ltrNums في الإنتاج — فجوة تدقيق التكافؤ 04-09) */
+const ltrNums=t=>String(t).replace(/-\d[\d.,]*x?%?/g, m=>`<span dir="ltr">${m}</span>`);
 const normalizeAr=s=>String(s||"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ـ/g,"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).toLowerCase();
 
 /* ─── مشتقات عرض فقط (لا تغيير منطق) ─── */
@@ -1092,7 +1103,7 @@ function axisRows(s){
   return Object.keys(AXES_MAX).map(k=>{
     const v=ax[k], mx=AXES_MAX[k];
     const pct=v!=null?Math.round(v/mx*100):0;
-    const lines=(det[k]||[]).map(x=>`<div>${esc(x)}</div>`).join("");
+    const lines=(det[k]||[]).map(x=>`<div>${ltrNums(esc(x))}</div>`).join("");
     return `<div class="ax" data-ax="${k}">
       <div class="r"><span class="l">${AXES_AR[k]}</span><span class="v num">${v??"—"} / ${mx}</span></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
@@ -1151,7 +1162,7 @@ function drawerHtml(s){
           ${i.classification?`<span style="font-size:11.5px;color:var(--text3)">تصنيف النظام: ${esc(i.classification)}</span>`:""}
         </div>
       </div>
-      ${e&&e.phrase?`<div class="dr-timing-phrase ${ts==="green"?"g":ts==="red"?"w":""}">${esc(e.phrase)}</div>`:""}
+      ${e&&e.phrase?`<div class="dr-timing-phrase ${ts==="green"?"g":ts==="red"?"w":""}">${ltrNums(esc(e.phrase))}</div>`:""}
       ${(!rated(s)&&i.filterReason)?`<div class="dr-timing-phrase w">سبب الاستبعاد: ${esc(i.filterReason)}</div>`:""}
     </div>
 
@@ -1162,9 +1173,9 @@ function drawerHtml(s){
 
     ${posL.length||negL.length?`<div class="dr-sec">
       ${posL.length?`<div class="dr-t">نقاط القوة</div><div class="pt-list" style="margin-bottom:16px">${posL.map(t=>`
-        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#34D399" stroke-width="1.4"/><path d="M4.5 7 L6.3 8.8 L9.6 5.2" stroke="#34D399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${esc(t)}</div>`).join("")}</div>`:""}
+        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#34D399" stroke-width="1.4"/><path d="M4.5 7 L6.3 8.8 L9.6 5.2" stroke="#34D399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>${ltrNums(esc(t))}</div>`).join("")}</div>`:""}
       ${negL.length?`<div class="dr-t">عوامل تستحق الانتباه</div><div class="pt-list">${negL.map(t=>`
-        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#E0B458" stroke-width="1.4"/><path d="M7 4 V8 M7 10.2 V10.3" stroke="#E0B458" stroke-width="1.5" stroke-linecap="round"/></svg>${esc(t)}</div>`).join("")}</div>`:""}
+        <div class="pt"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#E0B458" stroke-width="1.4"/><path d="M7 4 V8 M7 10.2 V10.3" stroke="#E0B458" stroke-width="1.5" stroke-linecap="round"/></svg>${ltrNums(esc(t))}</div>`).join("")}</div>`:""}
     </div>`:""}
 
     <div class="dr-sec">
@@ -1193,8 +1204,8 @@ function drawerHtml(s){
     ${wc?`<div class="dr-sec">
       <div class="dr-t">ما الذي قد يغيّر تقييم سيف؟</div>
       <div class="wc">
-        <div class="colm"><div class="ct up">عوامل إيجابية محتملة</div>${wc.up.map(t=>`<div class="it">${esc(t)}</div>`).join("")||'<div class="it">—</div>'}</div>
-        <div class="colm"><div class="ct dn">عوامل سلبية محتملة</div>${wc.dn.map(t=>`<div class="it">${esc(t)}</div>`).join("")||'<div class="it">—</div>'}</div>
+        <div class="colm"><div class="ct up">عوامل إيجابية محتملة</div>${wc.up.map(t=>`<div class="it">${ltrNums(esc(t))}</div>`).join("")||'<div class="it">—</div>'}</div>
+        <div class="colm"><div class="ct dn">عوامل سلبية محتملة</div>${wc.dn.map(t=>`<div class="it">${ltrNums(esc(t))}</div>`).join("")||'<div class="it">—</div>'}</div>
       </div>
     </div>`:""}
 
@@ -1211,6 +1222,7 @@ function drawerHtml(s){
         ?s.news.slice(0,5).map(n=>`<a class="news-row" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}<div class="src">${esc(n.source||"")}${newsDate(n.date)?" · "+newsDate(n.date):""}</div></a>`).join("")
         :'<div style="font-size:12.5px;color:var(--text3)">لا أخبار محدثة لهذا السهم حالياً.</div>'}
     </div>
+    <button class="dr-return" id="drReturn">↩ العودة للقائمة</button>
   </div>`;
 }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -1302,6 +1314,39 @@ function buildWhatChanges(s){
   return (up.length||dn.length)?{up:up.slice(0,4),dn:dn.slice(0,4)}:null;
 }
 let lastFocus=null;
+/* ═══ تكامل زر الرجوع في iPhone وقفل تمرير الخلفية — منقول حرفياً من الإنتاج
+   (موجة 13-08 التي عالجت شكوى المالك). فجوة حاكمة كشفها تدقيق التكافؤ 04-09 ═══ */
+try{ history.scrollRestoration="manual"; }catch(e){}
+let bodyScrollY=0, drawerHistActive=false, drawerFromPop=false, histPending=null, histTimer=null;
+function lockBodyScroll(){
+  if(document.body.style.position==="fixed") return;   // فتح فوق مفتوح: لا إعادة قفل تفسد Y
+  bodyScrollY=window.scrollY||document.documentElement.scrollTop||0;
+  const b=document.body.style;
+  b.position="fixed"; b.top=(-bodyScrollY)+"px"; b.left="0"; b.right="0"; b.width="100%";
+}
+function unlockBodyScroll(){
+  if(document.body.style.position!=="fixed") return;
+  const b=document.body.style;
+  b.position=""; b.top=""; b.left=""; b.right=""; b.width="";
+  try{ window.scrollTo(0,bodyScrollY); }catch(e){}
+}
+/* الدفع مؤجل 60ms: pushState المتزامن مع اللمس يعطل تمرير الحاويات في سفاري iOS */
+function commitDrawerHistory(){
+  if(histTimer){ clearTimeout(histTimer); histTimer=null; }
+  if(histPending==null) return;
+  const sym=histPending; histPending=null;
+  if(!$("drawer").classList.contains("open")) return;   // أُغلق قبل التنفيذ — لا حالة يتيمة
+  try{
+    if(drawerHistActive) history.replaceState({d:sym},"");
+    else { history.pushState({d:sym},""); drawerHistActive=true; }
+  }catch(e){}
+}
+window.addEventListener("popstate",()=>{
+  if($("drawer").classList.contains("open")){
+    drawerFromPop=true;
+    try{ closeDrawer(); } finally { drawerFromPop=false; }
+  }
+});
 /* وصولية المودال (P15): المحتوى الخلفي inert + حصر التنقل داخل الدرج */
 function setBgInert(on){
   document.querySelectorAll("body > *").forEach(el=>{
@@ -1325,10 +1370,14 @@ function openDrawer(sym){
   const dr=$("drawer");
   dr.innerHTML=drawerHtml(s);
   dr.classList.add("open"); $("ovl").classList.add("open");
-  document.body.style.overflow="hidden";
+  lockBodyScroll();
+  histPending=sym;
+  if(histTimer) clearTimeout(histTimer);
+  histTimer=setTimeout(commitDrawerHistory,60);
   setBgInert(true);
   dr.onkeydown=ev=>trapFocus(dr,ev);
   $("drX").addEventListener("click",closeDrawer);
+  const rb=$("drReturn"); if(rb) rb.addEventListener("click",closeDrawer);
   dr.querySelector("#chartTabs").addEventListener("click",ev=>{
     const b=ev.target.closest("button[data-r]"); if(!b)return;
     state.chartRange=b.dataset.r;
@@ -1351,9 +1400,20 @@ function openDrawer(sym){
   $("drX").focus();
 }
 function closeDrawer(){
-  $("drawer").classList.remove("open"); $("ovl").classList.remove("open");
-  document.body.style.overflow=""; state.drawerSym=null;
-  setBgInert(false); $("drawer").onkeydown=null;
+  const dr=$("drawer");
+  if(!dr.classList.contains("open")) return;   // حارس: لا back() على درج مغلق
+  dr.classList.remove("open"); $("ovl").classList.remove("open");
+  state.drawerSym=null;
+  unlockBodyScroll();
+  setBgInert(false); dr.onkeydown=null;
+  histPending=null;
+  if(histTimer){ clearTimeout(histTimer); histTimer=null; }
+  /* القنوات اليدوية (✕/خارج/Escape/زر العودة) تستهلك الحالة بـback؛
+     ومسار popstate استهلكها المتصفح أصلاً — العلم يمنع الدوران */
+  if(drawerHistActive){
+    drawerHistActive=false;
+    if(!drawerFromPop){ try{ history.back(); }catch(e){} }
+  }
   if(lastFocus&&lastFocus.focus) lastFocus.focus();
 }
 
@@ -1434,12 +1494,12 @@ function openSheet(){
   sheetOpener=document.activeElement;
   draft={minScore:state.minScore,timing:state.timing,quality:state.quality,sector:state.sector,adv:{...state.adv}};
   renderSheet();
-  $("sheet").classList.add("open"); $("ovl").classList.add("open"); document.body.style.overflow="hidden";
+  $("sheet").classList.add("open"); $("ovl").classList.add("open"); lockBodyScroll();
   $("shX").focus();
 }
 function closeSheet(){
   $("sheet").classList.remove("open"); draft=null;
-  if(!state.drawerSym){$("ovl").classList.remove("open"); document.body.style.overflow="";}
+  if(!state.drawerSym){ $("ovl").classList.remove("open"); unlockBodyScroll(); }
   if(sheetOpener&&sheetOpener.focus) sheetOpener.focus();
 }
 
