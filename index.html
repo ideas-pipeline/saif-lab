@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
-/* ═══ SAIF UAT — نظام تصميم مستقل بالكامل عن الإنتاج ═══ */
+/* ═══ سيف — نظام التصميم ═══ */
 :root{
   --bg:#0B0D10; --surface:#11151A; --surface2:#151A21; --surface3:#1A202A;
   --border:rgba(255,255,255,0.055); --border2:rgba(255,255,255,0.09);
@@ -46,7 +46,6 @@ a{color:var(--gold); text-decoration:none}
 .hd-brand .mark{display:flex; align-items:center; gap:9px}
 .hd-name{font-size:19px; font-weight:700; letter-spacing:-0.2px}
 .hd-sub{font-size:11px; color:var(--text3); letter-spacing:0.2px}
-.hd-uat{font-size:10px; font-weight:600; color:var(--amber); border:1px solid rgba(224,180,88,0.35); border-radius:5px; padding:1px 7px; letter-spacing:0.5px}
 .hd-link{font-size:12px; color:var(--gold); white-space:nowrap}
 .hd-link:hover{color:var(--amber)}
 .hd-link-dim{color:var(--text3)}
@@ -548,7 +547,7 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
 
 <script>
 "use strict";
-/* ═══ SAIF UAT — عرض فقط: لا يكتب، لا يغير منطقاً، يقرأ stocks-data.json كما هو ═══ */
+/* ═══ سيف — عرض فقط: لا يكتب ولا يغيّر منطقاً؛ يقرأ بيانات المنصة كما هي ═══ */
 const SECTOR_AR = {"Financials":"المالية","Materials":"المواد الأساسية","Industrials":"الصناعية","Consumer Discretionary":"السلع الاستهلاكية","Consumer Staples":"السلع الأساسية","Healthcare":"الرعاية الصحية","Real Estate":"العقارية","Energy":"الطاقة","Technology":"التقنية","Communication Services":"الاتصالات","Utilities":"المرافق","Unknown":"غير مصنف"};
 const AXES_MAX = {quality:30, trend:25, relativeStrength:15, risk:15, valuation:15};
 const AXES_AR = {quality:"الجودة المالية", trend:"الاتجاه", relativeStrength:"القوة النسبية", risk:"المخاطر", valuation:"التقييم"};
@@ -608,6 +607,7 @@ async function boot(){
   try{
     DATA=await loadData();
     STOCKS=(DATA.stocks||[]).filter(s=>s.symbol&&!s.delisted);
+    buildSectorStats();
     renderAll();
   }catch(e){
     $("body").innerHTML=`<div class="state"><div class="t">تعذّر تحميل بيانات السوق</div>
@@ -1210,6 +1210,13 @@ function drawerHtml(s){
       ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
     </div>
 
+    <div class="dr-sec">
+      <div class="dr-t">الاتجاه الأسبوعي</div>
+      <div class="fin-grid">${weeklyCells(s)}</div>
+    </div>
+
+    ${sectorCompareHtml(s)}
+
     ${wc?`<div class="dr-sec">
       <div class="dr-t">ما الذي قد يغيّر تقييم سيف؟</div>
       <div class="wc">
@@ -1254,7 +1261,73 @@ const FIN_DESC={
   liqValue:"كم ريالاً يُتداول من السهم يومياً — الأهم لمعرفة سهولة الدخول والخروج",
   ocf:"هل الأرباح المعلنة يقابلها نقد حقيقي دخل الشركة فعلاً؟ — «يغطي الأرباح» أفضل حالة",
   equityAssets:"أموال الملاك كنسبة من أصول البنك — البديل المعتمد للدين/الملكية لدى البنوك",
+  sma200w:"متوسط السعر في نحو أربع سنوات — البقاء فوقه علامة اتجاه صاعد طويل",
+  ema40w:"متوسط سعر السهم خلال آخر 40 أسبوعاً — السعر فوقه يعني اتجاهاً صاعداً",
+  rsi14w:"قوة الدفع الشرائي — فوق 50 تعني غلبة المشترين عموماً",
+  macdw:"مؤشر تحوّل الاتجاه — فوق الصفر ميل للصعود عموماً",
+  yr52:"أعلى وأدنى سعر بلغه السهم خلال سنة — يبيّن موقع السعر الحالي بينهما",
+  avgVol:"عدد الأسهم المتداولة يومياً في المتوسط خلال آخر 20 يوماً",
+  currentRatio:"قدرة الشركة على سداد التزاماتها القريبة من أصولها المتاحة — فوق 1 مريح عموماً",
 };
+
+/* المقارنة القطاعية — منقولة حرفياً من الإنتاج (sectorStats): تُحسب مرة عند التحميل،
+   وتستبعد المشطوب وغير المُقيَّم، والتعادل يعطي المرتبة نفسها (ملزمة ختم 04-09ج) */
+let SECTOR_STATS=null;
+function buildSectorStats(){
+  const groups=Object.create(null);
+  STOCKS.forEach(s=>{
+    const sc=s.investmentScore;
+    if(s.delisted||!sc||sc.filtered!==false) return;
+    const sec=sc.sector||s.sector; if(!sec) return;
+    (groups[sec]=groups[sec]||[]).push({symbol:s.symbol,total:sc.total||0});
+  });
+  const bySym=Object.create(null);
+  Object.entries(groups).forEach(([sec,g])=>{
+    const n=g.length; if(n<2) return;
+    const avg=Math.round(g.reduce((t,x)=>t+x.total,0)/n*10)/10;
+    g.sort((a,b)=>b.total-a.total);
+    let rank=1;
+    g.forEach((x,i)=>{
+      if(i>0&&x.total<g[i-1].total) rank=i+1;
+      bySym[x.symbol]={rank,n,percentile:Math.round((n-rank+1)/n*100),avg,sector:sec};
+    });
+  });
+  SECTOR_STATS=bySym;
+}
+/* الاتجاه الأسبوعي — أربعة مؤشرات بعتبات ألوان الإنتاج حرفياً */
+function weeklyCells(s){
+  const wt=s.weeklyTechnical||{}, px=priceOf(s);
+  const cls=c=>c?` fc-${c}`:"";
+  const cell=(k,v,color,desc)=>`<div class="fin-cell${cls(color)}"><div class="k">${k}</div><div class="v num">${v}</div>${desc?`<div class="d">${desc}</div>`:""}</div>`;
+  let out="";
+  out+=cell("SMA 200W", wt.sma200w!=null?fmt(wt.sma200w):"—",
+    wt.sma200w&&px?(px>wt.sma200w?"green":"red"):"", FIN_DESC.sma200w);
+  out+=cell("EMA 40W", wt.ema40w!=null?fmt(wt.ema40w):"—",
+    wt.ema40w&&px?(px>wt.ema40w?"green":"red"):"", FIN_DESC.ema40w);
+  out+=cell("RSI 14W", wt.rsi14w!=null?fmt(wt.rsi14w,1):"—",
+    wt.rsi14w!=null?(wt.rsi14w>50?"green":"red"):"", FIN_DESC.rsi14w);
+  out+=cell("MACD W", wt.macdW!=null?fmt(wt.macdW,2):"—",
+    wt.macdW!=null?(wt.macdW>0?"green":"red"):"", FIN_DESC.macdw);
+  return out;
+}
+function sectorCompareHtml(s){
+  const st=SECTOR_STATS&&SECTOR_STATS[s.symbol];
+  if(!st) return "";
+  const sc=isc(s), diff=sc.total!=null?+(sc.total-st.avg).toFixed(1):null;
+  const d=diff!=null?Math.abs(diff).toFixed(1):null;
+  const line=diff>0&&d?`<span style="color:var(--green)">أعلى من متوسط القطاع بـ ${d} نقطة</span>`
+    :diff<0&&d?`<span style="color:var(--red)">أقل من متوسط القطاع بـ ${d} نقطة</span>`
+    :`<span style="color:var(--text3)">عند متوسط القطاع تقريباً</span>`;
+  return `<div class="dr-sec">
+    <div class="dr-t">المقارنة القطاعية — ${esc(SECTOR_AR[st.sector]||st.sector)}</div>
+    <div class="fin-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="fin-cell"><div class="k">الترتيب</div><div class="v num">${st.rank}/${st.n}</div></div>
+      <div class="fin-cell"><div class="k">Percentile</div><div class="v num">${st.percentile}%</div></div>
+      <div class="fin-cell"><div class="k">متوسط القطاع</div><div class="v num">${st.avg.toFixed(1)}</div></div>
+    </div>
+    <div style="font-size:11.5px;text-align:center;margin-top:8px">${line}</div>
+  </div>`;
+}
 /* نضارة التقييم (P2) — مرآة آلية الإنتاج: valuationParts frozen/live + نص VAL_STALE_NOTE الحرفي */
 const VAL_STALE_NOTE="غير محدّث — مصدر البيانات قيد المعالجة";
 /* احتياط الإنتاج نفسه: الحقلان قد يكونان في الجذر أو تحت valuation */
@@ -1284,10 +1357,22 @@ function finCells(s){
   if(!isBank&&ocf!=null) out+=cell("النقد التشغيلي OCF",
     ocf>0?(ni!=null&&ocf>=ni?"يغطي الأرباح":"موجب"):"سالب",
     ocf>0&&ni!=null&&ocf>=ni?"green":ocf>0?"amber":"red", FIN_DESC.ocf);
-  out+=cell("RS 6M مقابل تاسي", rs6!=null?(rs6>0?"+":"")+fmt(rs6,1)+"%":"—", rs6!=null?(rs6>0?"green":"red"):"", FIN_DESC.rs);
+  const rs=s.relativeStrength||{};
+  const rsCell=(lbl,v)=>cell(lbl, v!=null?(v>0?"+":"")+fmt(v,1)+"%":"—", v!=null?(v>0?"green":"red"):"", FIN_DESC.rs);
+  out+=rsCell("RS 3M مقابل تاسي", rs.rsTasi3m);
+  out+=rsCell("RS 6M مقابل تاسي", rs6);
+  out+=rsCell(rs.rsTasi12_1!=null?"RS 12 شهراً (12-1)":"RS 12 شهراً", rs.rsTasi12_1!=null?rs.rsTasi12_1:rs.rsTasi12m);
   out+=cell("التقلب ATR%", atr!=null?fmt(atr,1)+"%":"—", atr!=null?(atr<2.5?"green":"red"):"", FIN_DESC.atr);
   if(z!=null) out+=cell("Z-الامتداد", (z>0?"+":"")+fmt(z,1), Math.abs(z)<1?"green":Math.abs(z)<2?"amber":"red", FIN_DESC.zExt);
   if(lg&&lg.valueSar!=null) out+=cell("قيمة التداول ريال/يوم", fmt(lg.valueSar,0), lg.passed===true?"green":lg.passed===false?"red":"", FIN_DESC.liqValue);
+  const hi=dx.high52wClose!=null?dx.high52wClose:(s.dailyTechnical||{}).high52w;
+  const lo=(s.dailyTechnical||{}).low52w!=null?(s.dailyTechnical||{}).low52w:dx.low20Close;
+  if(hi!=null) out+=cell(dx.high52wClose!=null?"أعلى إغلاق 52 أسبوعاً":"أعلى 52 أسبوعاً", fmt(hi), "", FIN_DESC.yr52);
+  if(lo!=null) out+=cell((s.dailyTechnical||{}).low52w!=null?"أدنى 52 أسبوعاً":"أدنى إغلاق 20 جلسة", fmt(lo), "", FIN_DESC.yr52);
+  const av=dx.avgVol20!=null?dx.avgVol20:(s.dailyTechnical||{}).avgVol20d;
+  if(av!=null) out+=cell("متوسط حجم 20 يوماً", (av/1000).toFixed(0)+"K", "", FIN_DESC.avgVol);
+  if(fin.currentRatio!=null) out+=cell("نسبة التداول", fmt(fin.currentRatio,2),
+    fin.currentRatio>1?"green":"amber", FIN_DESC.currentRatio);
   return out;
 }
 function buildReading(s){
