@@ -1539,33 +1539,42 @@ def maintain_universe(api, data, counters, today, dry_run=False):
     # ترشيح الأدوات (حادثة 01-09): أسهم السوق الرئيسي النشطة حصراً — لا صكوك ولا
     # صناديق مؤشرات ولا صناديق مغلقة ولا نمو. الحقول موثقة رسمياً في /companies/.
     raw_n = len(rows)
-    def _is_main_equity(r):
-        st = str(r.get("security_type") or "Equity")
-        if st != "Equity":
+    # رموز الاستجابة الخام — مرجع الشطب وحده (ملزمة الختم 03-09): الترشيح يحكم
+    # الإضافة فقط، فلا يتحول نقص ميتاداتا إلى شطب كاذب لا رجعة فيه.
+    raw_syms = {str(r.get("symbol")) for r in rows if r.get("symbol")}
+    NON_EQUITY = {"sukuk", "etf", "closed-end fund", "closed end fund", "fund"}
+    def _addable_equity(r):
+        # استبعاد صريح للأنواع المعروفة فقط — و«Unknown» نقص وصف لا نفي كون
+        # السهم سهماً (نص الوثائق)، فتُعامل كالغياب: تُقبل.
+        st = str(r.get("security_type") or "").strip().lower()
+        if st in NON_EQUITY:
             return False
         if r.get("is_etf") is True:
             return False
-        if str(r.get("status") or "active") != "active":
+        if str(r.get("status") or "active").strip().lower() != "active":
             return False
         mk = r.get("market") or r.get("market_segment")
         return not mk or str(mk).upper().startswith("TASI")
-    rows = [r for r in rows if _is_main_equity(r)]
+    rows = [r for r in rows if _addable_equity(r)]
     if raw_n != len(rows):
-        print("  🧹 ترشيح الأدوات: %d ← %d (استُبعد %d: نمو/صكوك/صناديق/غير نشط)"
+        print("  🧹 ترشيح الإضافة: %d ← %d (استُبعد %d: نمو/صكوك/صناديق/غير نشط — لا أثر على الشطب)"
               % (raw_n, len(rows), raw_n - len(rows)))
     if not rows:
         print("  ✗ /companies/: صفر أسهم رئيسية بعد الترشيح — الصيانة تتخطى")
         counters["universe_fail"] += 1
         return None
-    if len(rows) < have_n:
+    if raw_n < have_n:
+        # يُقاس على الخام (مرجع الشطب) — المرشَّح قد يقل بمشروعية حين يوقَف سهم
+        # قائم مؤقتاً أو ينقص وصفه، وذلك ليس بتراً في القائمة
         print("  ✗ /companies/: العد النهائي %d < الكون %d — شبهة بتر، الصيانة تتخطى قبل أي مقارنة شطب"
-              % (len(rows), have_n))
+              % (raw_n, have_n))
         counters["universe_fail"] += 1
         return None
     listed = {str(r.get("symbol")): r for r in rows if r.get("symbol")}
     have = {s["symbol"] for s in data["stocks"]}
     added = [s for s in listed if s not in have]
-    gone = [s for s in have if s not in listed]
+    # الشطب يُقاس على الخام لا المرشَّح: لا يُشطب إلا رمز غاب فعلاً عن المصدر
+    gone = [s for s in have if s not in raw_syms]
     if have and len(gone) > 0.10 * len(have):
         print("⛔⛔ عتبة الشطب الجماعي (ش-3): /companies/ تسقط %d من %d (%.0f%% > 10%%) —"
               % (len(gone), len(have), len(gone) / len(have) * 100))
