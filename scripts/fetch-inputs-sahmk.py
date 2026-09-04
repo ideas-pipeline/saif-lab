@@ -1495,12 +1495,18 @@ def fetch_tasi(api, counters, hist_file, data):
     return t
 
 
-def maintain_universe(api, data, counters, today):
-    """صيانة الكون من /companies/ (§7) — بوابة تشغيلة أولى: الشكل غير مؤكد بالفحص.
+def maintain_universe(api, data, counters, today, dry_run=False):
+    """صيانة الكون من /companies/ (§7).
     (ش-3) عتبة أمان: شطب >10% من الكون في تشغيلة واحدة = تخطٍّ كامل بإنذار صارخ
-    (شبهة قائمة مبتورة من نقطة غير مؤكدة). لا تكتب watchlist-config هنا —
-    تعيد الإغلاقات المعلقة والكتابة تُنفذ في main **بعد** كل بوابات الفشل
-    (سد الخرق الوحيد لانضباط «لا كتابة قبل البوابات»)."""
+    (شبهة قائمة مبتورة). لا تكتب watchlist-config هنا — تعيد الإغلاقات المعلقة
+    والكتابة تُنفذ في main **بعد** كل بوابات الفشل.
+
+    حادثة 01-09 (تعطل الخط يومين): النداء كان بلا مرشِّح، و/companies/ توثق صراحةً
+    أنها تضم نمو والصكوك وصناديق المؤشرات والصناديق المغلقة — فقفز الكون 248→519
+    وسقط الجلب التالي على 271 كياناً ليست أسهماً رئيسية حتى رفضت بوابة الفشل الحاكم
+    الكتابة، فمات الخط يومياً. الإصلاح المزدوج:
+      (أ) نطاق صريح: market=TASI + security_type=Equity + غير ETF + status=active
+      (ب) بوابة نمو متماثلة لبوابة الشطب: إضافة >10% = تخطٍّ كامل بإنذار."""
     # (إصلاح 05-08ب) /companies/ مصفّحة (limit افتراضي ~100 بتر الكون إلى 94/248) —
     # نصفّح بـlimit/offset حتى النهاية (has_more/total إن وُجدا، وإلا صفحة أقصر من limit)
     rows = []
@@ -1508,7 +1514,8 @@ def maintain_universe(api, data, counters, today):
     LIMIT = 100
     total_declared = None
     for page in range(30):   # سقف أمان
-        resp, err = api.get("/companies/?limit=%d&offset=%d" % (LIMIT, page * LIMIT))
+        # market=TASI: السوق الرئيسي حصراً — نمو خارج نطاق المنصة بالتصميم (حادثة 01-09)
+        resp, err = api.get("/companies/?market=TASI&limit=%d&offset=%d" % (LIMIT, page * LIMIT))
         if resp is None:
             break
         batch = rows_of(resp, "companies", "data", "results")
@@ -1524,28 +1531,74 @@ def maintain_universe(api, data, counters, today):
         counters["universe_fail"] += 1
         return None
     have_n = sum(1 for s in data["stocks"] if not s.get("delisted"))
+    # فحص اكتمال الترقيم يسبق الترشيح (يقارن الخام بالمعلن)
     if total_declared is not None and len(rows) < total_declared:
         print("  ✗ /companies/: جمعنا %d من %d معلنة — قائمة مبتورة، الصيانة تتخطى" % (len(rows), total_declared))
         counters["universe_fail"] += 1
         return None
-    if len(rows) < have_n:
+    # ترشيح الأدوات (حادثة 01-09): أسهم السوق الرئيسي النشطة حصراً — لا صكوك ولا
+    # صناديق مؤشرات ولا صناديق مغلقة ولا نمو. الحقول موثقة رسمياً في /companies/.
+    raw_n = len(rows)
+    # رموز الاستجابة الخام — مرجع الشطب وحده (ملزمة الختم 03-09): الترشيح يحكم
+    # الإضافة فقط، فلا يتحول نقص ميتاداتا إلى شطب كاذب لا رجعة فيه.
+    raw_syms = {str(r.get("symbol")) for r in rows if r.get("symbol")}
+    NON_EQUITY = {"sukuk", "etf", "closed-end fund", "closed end fund", "fund"}
+    def _addable_equity(r):
+        # استبعاد صريح للأنواع المعروفة فقط — و«Unknown» نقص وصف لا نفي كون
+        # السهم سهماً (نص الوثائق)، فتُعامل كالغياب: تُقبل.
+        st = str(r.get("security_type") or "").strip().lower()
+        if st in NON_EQUITY:
+            return False
+        if r.get("is_etf") is True:
+            return False
+        if str(r.get("status") or "active").strip().lower() != "active":
+            return False
+        mk = r.get("market") or r.get("market_segment")
+        return not mk or str(mk).upper().startswith("TASI")
+    rows = [r for r in rows if _addable_equity(r)]
+    if raw_n != len(rows):
+        print("  🧹 ترشيح الإضافة: %d ← %d (استُبعد %d: نمو/صكوك/صناديق/غير نشط — لا أثر على الشطب)"
+              % (raw_n, len(rows), raw_n - len(rows)))
+    if not rows:
+        print("  ✗ /companies/: صفر أسهم رئيسية بعد الترشيح — الصيانة تتخطى")
+        counters["universe_fail"] += 1
+        return None
+    if raw_n < have_n:
+        # يُقاس على الخام (مرجع الشطب) — المرشَّح قد يقل بمشروعية حين يوقَف سهم
+        # قائم مؤقتاً أو ينقص وصفه، وذلك ليس بتراً في القائمة
         print("  ✗ /companies/: العد النهائي %d < الكون %d — شبهة بتر، الصيانة تتخطى قبل أي مقارنة شطب"
-              % (len(rows), have_n))
+              % (raw_n, have_n))
         counters["universe_fail"] += 1
         return None
     listed = {str(r.get("symbol")): r for r in rows if r.get("symbol")}
     have = {s["symbol"] for s in data["stocks"]}
     added = [s for s in listed if s not in have]
-    gone = [s for s in have if s not in listed]
+    # الشطب يُقاس على الخام لا المرشَّح: لا يُشطب إلا رمز غاب فعلاً عن المصدر
+    gone = [s for s in have if s not in raw_syms]
     if have and len(gone) > 0.10 * len(have):
         print("⛔⛔ عتبة الشطب الجماعي (ش-3): /companies/ تسقط %d من %d (%.0f%% > 10%%) —"
               % (len(gone), len(have), len(gone) / len(have) * 100))
         print("   شبهة قائمة مبتورة — الصيانة تتخطى كلياً بلا أي وسم أو إغلاق. تحقق يدوياً.")
         counters["universe_fail"] += 1
         return None
+    # بوابة النمو المتماثلة (حادثة 01-09): كانت بوابة الشطب بلا نظير للإضافة،
+    # فمرّ +271 (+109%) بصمت وقتل الخط يومين. إضافة >10% = تخطٍّ كامل بإنذار.
+    if have and len(added) > 0.10 * len(have):
+        print("⛔⛔ عتبة الإضافة الجماعية: /companies/ تضيف %d على %d (%.0f%% > 10%%) —"
+              % (len(added), len(have), len(added) / len(have) * 100))
+        print("   شبهة اتساع نطاق غير مقصود — الصيانة تتخطى كلياً بلا أي إضافة. تحقق يدوياً.")
+        print("   عينة المضاف: %s" % (added[:10],))
+        counters["universe_fail"] += 1
+        return None
+    if dry_run:
+        print("  🔎 وضع جاف — لا كتابة | مدرج %d | سيضاف %d %s | سيُشطب %d %s"
+              % (len(listed), len(added), added[:10], len(gone), gone[:10]))
+        counters["universe_ok"] += 1
+        return None
     for sym in added:
         r = listed[sym]
-        data["stocks"].append({"symbol": sym, "name": r.get("name", sym),
+        data["stocks"].append({"symbol": sym,
+                               "name": r.get("name_ar") or r.get("name") or r.get("name_en") or sym,
                                "sector": r.get("sector"), "industry": r.get("industry"),
                                "listedAt": today})
     for s in data["stocks"]:
@@ -1640,6 +1693,8 @@ def main():
     ap.add_argument("--data", default="", help="مسار stocks-data.json (إلزامي للجلب)")
     ap.add_argument("--weekly", action="store_true")
     ap.add_argument("--maintain-universe", action="store_true")
+    ap.add_argument("--universe-dry-run", action="store_true",
+                    help="يطبع ما ستفعله صيانة الكون بلا أي كتابة (تحقق آمن — حادثة 01-09)")
     ap.add_argument("--symbols", default="")
     ap.add_argument("--probe-financials", action="store_true")
     ap.add_argument("--probe-ratios", action="store_true")
@@ -1665,6 +1720,14 @@ def main():
 
     with open(args.data) as f:
         data = json.load(f)
+    if args.universe_dry_run:
+        # مسار مستقل مبكر: نداء واحد لـ/companies/ وطباعة الفرق — صفر كتابة وصفر جلب
+        _c = {"universe_ok": 0, "universe_fail": 0}
+        _today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        print("🔎 صيانة الكون — وضع جاف (لا كتابة) | الكون الحالي: %d"
+              % sum(1 for s in data.get("stocks", []) if not s.get("delisted")))
+        maintain_universe(api, data, _c, _today, dry_run=True)
+        sys.exit(0 if _c["universe_fail"] == 0 else 1)
     stocks = [s for s in data.get("stocks", []) if s.get("symbol") and not s.get("delisted")]
     if args.symbols:
         want = {x.strip() for x in args.symbols.split(",") if x.strip()}
