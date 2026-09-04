@@ -315,6 +315,7 @@ tr:hover{background:#1e293b88}
 </h1>
 <div class="subtitle">تقييم استثماري متوسط المدى (6-12 شهر) | 5 محاور | 100 نقطة</div>
 <div class="subtitle" style="margin-top:-4px">آخر تحديث: <span id="lastUpdate">—</span> | <a href="watchlist-accuracy.html" style="color:#f59e0b;text-decoration:none">📊 دقة التوصيات</a></div>
+<div id="staleBanner" style="display:none;margin:10px auto 0;max-width:900px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.45);border-radius:10px;padding:9px 14px;color:#fcd34d;font-size:0.82em;line-height:1.7;text-align:center"></div>
 <div id="regimeBanner" class="regime-banner" style="display:none"></div>
 <div id="dataAge" class="data-age"></div>
 <div id="decisions"></div>
@@ -657,8 +658,31 @@ const priceLine = (s) => {
     (c ? ' <span class="chg-chip ' + c.cls + '" dir="ltr">' + c.sym + ' ' + c.txt + '</span>' : '') + '</div>';
 };
 
+// وسم تقادم البيانات (قرار المالك 04-09، بعد حادثة صمت الخط يومين): يُحسب بأيام
+// التداول الفائتة (أحد–خميس) بين ختم البيانات واليوم — فلا ينطلق في الويكند بالخطأ
+function missedSessions(stampIso, todayIso) {
+  if (!stampIso || !todayIso) return 0;
+  var d = new Date(stampIso + 'T12:00:00Z'), end = new Date(todayIso + 'T12:00:00Z'), n = 0;
+  if (isNaN(d) || isNaN(end)) return 0;
+  d.setUTCDate(d.getUTCDate() + 1);
+  while (d < end) { if (d.getUTCDay() <= 4) n++; d.setUTCDate(d.getUTCDate() + 1); }
+  return n;
+}
+function renderStaleBanner() {
+  var stamp = String(DATA.lastUpdated || DATA.analysisUpdated || '').slice(0, 10);
+  var t = new Date();
+  var todayIso = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  var n = missedSessions(stamp, todayIso);
+  if (n < 1) return;
+  var el = document.getElementById('staleBanner');
+  el.innerHTML = '⚠️ <b>لم تتحدث البيانات منذ ' + n + ' ' + (n === 1 ? 'يوم تداول' : 'أيام تداول') +
+    '</b> — آخر تحديث: <span dir="ltr">' + stamp + '</span>. الأرقام والدرجات المعروضة قد تكون قديمة، تحقق قبل الاعتماد عليها.';
+  el.style.display = 'block';
+}
+
 function init() {
   document.getElementById('lastUpdate').textContent = DATA.lastUpdated || DATA.analysisUpdated || '';
+  renderStaleBanner();
 
   // بانر نظام السوق
   const mr = DATA.marketRegime || {};
