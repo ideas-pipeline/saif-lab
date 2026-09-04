@@ -31,8 +31,10 @@ flock -w 900 200 || { echo "⛔ تشغيلة أخرى قائمة — انسحا�
 
 echo "════ run-lab [$MODE] $(date '+%Y-%m-%d %H:%M') ════"
 
-# درس انسداد git الموثق: index.html ناتج بناء محلي يعيق pull
-git checkout -- index.html 2>/dev/null || true
+# درس انسداد git الموثق (وملزمة ختم 04-09ج): كل مخرجات البناء المتعقَّبة تُستعاد قبل
+# السحب — لا index.html وحده. classic.html صار مخرجاً يومياً بترقية 04-09، وبقاؤه
+# معدَّلاً بعد بناء مات قبل الإيداع يُجهض git pull فيموت السكربت صامتاً تحت set -e.
+git checkout -- index.html classic.html 2>/dev/null || true
 git pull -q origin main
 
 export SAHMK_KEY="$(cat "$KEYFILE")"
