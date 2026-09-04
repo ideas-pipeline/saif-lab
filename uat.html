@@ -462,6 +462,8 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
   </div>
 </header>
 
+<div id="staleBanner" style="display:none;margin:12px 20px 0;background:rgba(224,180,88,0.12);border:1px solid rgba(224,180,88,0.42);border-radius:10px;padding:9px 14px;color:var(--amber);font-size:12.5px;line-height:1.7;text-align:center"></div>
+
 <section class="pulse" id="pulse" aria-label="نبض سيف"></section>
 
 <div class="views-wrap" id="viewsWrap"><nav class="views" id="views" aria-label="عروض ذكية"></nav></div>
@@ -592,6 +594,26 @@ async function boot(){
       <div class="d">حدث خطأ أثناء قراءة البيانات (${esc(e.message)}). البيانات نفسها التي تخدم المنصة الحالية.</div>
       <button class="cmd-btn" style="margin:0 auto" onclick="boot()">إعادة المحاولة</button></div>`;
   }
+}
+
+/* وسم تقادم البيانات — بأيام التداول الفائتة (أحد–خميس) لا بالأيام التقويمية */
+function missedSessions(stampIso, todayIso){
+  if(!stampIso||!todayIso) return 0;
+  let d=new Date(stampIso+"T12:00:00Z"), end=new Date(todayIso+"T12:00:00Z"), n=0;
+  if(isNaN(d)||isNaN(end)) return 0;
+  d.setUTCDate(d.getUTCDate()+1);
+  while(d<end){ if(d.getUTCDay()<=4) n++; d.setUTCDate(d.getUTCDate()+1); }
+  return n;
+}
+function renderStaleBanner(){
+  const stamp=String(DATA.lastUpdated||"").slice(0,10);
+  const t=new Date();
+  const todayIso=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+  const n=missedSessions(stamp,todayIso);
+  const el=$("staleBanner");
+  if(n<1){ el.style.display="none"; return; }
+  el.innerHTML=`⚠️ <b>لم تتحدث البيانات منذ ${n} ${n===1?"يوم تداول":"أيام تداول"}</b> — آخر تحديث: <span class="num">${esc(stamp)}</span>. الأرقام والدرجات قد تكون قديمة، تحقق قبل الاعتماد عليها.`;
+  el.style.display="block";
 }
 
 /* ─── Header status ─── */
@@ -1445,7 +1467,7 @@ function bind(){
 }
 
 function renderAll(){
-  renderHeader(); renderPulse(); renderViews(); sectorOptions(); renderBody();
+  renderHeader(); renderStaleBanner(); renderPulse(); renderViews(); sectorOptions(); renderBody();
   updateViewsScrollHint();
 }
 /* ‏sticky بلا أرقام سحرية (P5): قياس فعلي لارتفاعي الهيدر وشريط الأوامر بعد الالتفاف */

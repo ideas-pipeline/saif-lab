@@ -75,7 +75,8 @@ CONFIG_JSON="$LAB/watchlist-config.json" STOCKS_JSON="$DATA" \
 
 # الأخبار اليومية (طلب المالك 22-08 «أبغاها تتحدث دائماً») — كانت متجمدة منذ 29-07
 # لأن كاتبها القديم fetch-stock-analysis.sh غير مجدول هنا. حارس داخلي يعزل الكتابة
-# في news[] حصراً، وفشله يُنبه ولا يُسقط السلسلة (~4 دقائق بمهلة ثانية/طلب)
+# في news[] حصراً، وفشله يُنبه ولا يُسقط السلسلة. v2 (04-09): استعلامان لكل سهم
+# (وثالث تكيّفي عند الشح) مع بوابة تخصيص وحارس خلط وترتيب زمني — ~8-12 دقيقة
 python3 scripts/fetch-news.py --data "$DATA" \
   || echo "⚠️ ALERT: fetch-news فشل — التشغيلة تكمل بالأخبار القديمة"
 
@@ -105,18 +106,39 @@ verify_pages() {
   echo "timeout"
 }
 
+# دفع محصّن (حادثة 04-09): دمج من جهة أخرى أثناء التشغيلة كان يرفض الدفع
+# فيموت السكربت بـset -e وتبقى النتائج حبيسة الخادم. الآن: سحب بإعادة أساس ثم محاولة ثانية.
+push_with_retry() {
+  local i
+  for i in 1 2 3; do
+    if git push -q origin main 2>/dev/null; then return 0; fi
+    echo "⚠️ رُفض الدفع (محاولة $i) — سحب بإعادة أساس ثم إعادة المحاولة"
+    if ! git pull --rebase -q origin main; then
+      git rebase --abort 2>/dev/null || true
+      echo "❌ ALERT: تعارض في إعادة الأساس — تدخل يدوي مطلوب (النتائج محفوظة محلياً)"
+      return 1
+    fi
+    sleep 3
+  done
+  echo "❌ ALERT: فشل الدفع بعد 3 محاولات — النتائج محفوظة محلياً بلا نشر"
+  return 1
+}
+
 # النشر: إيداع ودفع نتائج التشغيلة (يغذي GitHub Pages) + تأكيد النشر
 git add -A
 if ! git diff --cached --quiet; then
   git -c user.email="server@saif" -c user.name="server" commit -qm "lab: تشغيلة $MODE آلية"
-  git push -q origin main
+  if ! push_with_retry; then
+    echo "════ اكتمل [$MODE] بلا نشر $(date '+%H:%M') ════"
+    exit 1
+  fi
   RESULT=$(verify_pages)
   if [ "$RESULT" = "success" ]; then
     echo "✅ نُشر ونشر Pages مؤكد"
   elif [ "$RESULT" = "failure" ]; then
     echo "⚠️ نشر Pages فشل — إعادة إطلاق تلقائية (إيداع فارغ)"
     git -c user.email="server@saif" -c user.name="server" commit -q --allow-empty -m "retrigger pages deploy"
-    git push -q origin main
+    push_with_retry || true
     RESULT2=$(verify_pages)
     if [ "$RESULT2" = "success" ]; then echo "✅ نشر Pages نجح بعد إعادة الإطلاق"
     else echo "❌ ALERT: نشر Pages فشل نهائياً ($RESULT2) — تدخل يدوي"; fi
