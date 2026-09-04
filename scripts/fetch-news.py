@@ -59,7 +59,27 @@ GENERIC = {"شركه", "مجموعه", "القابضه", "السعوديه", "ا
            "للاستثمار", "الاستثماريه", "للتنميه", "التنميه", "صندوق", "ريت",
            "للتامين", "التعاوني", "للصناعه", "الصناعيه", "التجاريه", "المحدوده",
            "والتنميه", "الخليجيه", "العالميه", "المتطوره", "الحديثه", "بنك", "مصرف",
-           "شركات", "القابضة", "اسمنت", "مدينه", "العقاريه", "التجاري"}
+           "شركات", "القابضة", "اسمنت", "مدينه", "العقاريه", "التجاري",
+           # جغرافيا ومصطلحات سوق شائعة — كلمات تصنع إسناداً خاطئاً وحدها
+           # (ملزمة ختم 04-09: «موسم الرياض» نُسب لبنك الرياض، «قيمة تداول» لمجموعة تداول)
+           "الرياض", "البلاد", "تداول", "المدينه", "جده", "مكه", "الشرقيه", "القصيم",
+           "حائل", "الجوف", "تبوك", "عسير", "نجران", "جازان", "الباحه", "الوطن",
+           "الخليج", "السوق", "الاسهم", "اسهم", "المملكه", "العرب", "الاولي", "الثانيه"}
+
+# قرائن سوقية تلزم لقبول المطابقة بالرمز المجرد («رؤية 2030» ليست خبر سهم 2030)
+MARKET_HINTS = {"سهم", "اسهم", "الاسهم", "شركه", "الشركه", "تداول", "نتائج", "ارباح",
+                "توزيعات", "السوق", "تاسي", "مؤشر", "اكتتاب", "صفقه", "استحواذ",
+                "عقد", "ريال", "الجمعيه", "مساهمي", "المساهمين", "رمز"}
+
+# سوابق الإضافة العربية — لمطابقة «للتصنيع» بـ«التصنيع» بلا تساهل
+PREFIXES = ("وال", "فال", "بال", "كال", "لل", "ال", "و", "ف", "ب", "ك", "ل")
+
+
+def base(tok):
+    for pre in PREFIXES:
+        if tok.startswith(pre) and len(tok) - len(pre) >= 3:
+            return tok[len(pre):]
+    return tok
 
 
 def norm(s):
@@ -121,19 +141,35 @@ def clean_title(t):
     return re.sub(r"\s+-\s+[^-]{2,40}$", "", str(t or "")).strip()
 
 
-def is_about(title, sym, name_norm, dist, other_names):
-    """بوابة التخصيص + حارس الخلط بين الشركات. تعيد (مقبول، السبب)"""
+def is_about(title, sym, name_norm, name_toks, dist, other_names):
+    """بوابة التخصيص + حارس الخلط. تعيد (مقبول، السبب).
+
+    ملزمة ختم 04-09 (سبع حالات إسناد خاطئ مثبتة) — أربعة تشديدات:
+      (أ) الرمز المجرد لا يكفي: تلزم قرينة سوقية في العنوان («رؤية 2030»).
+      (ب) الاسم يُطابق بحد كلمة لا بالاحتواء («يتمسكون» لا تطابق «مسك»).
+      (ج) الكلمات العامة وُسّعت بالجغرافيا والسوق («موسم الرياض»، «قيمة تداول»).
+      (د) حارس الخلط يشمل احتواء الاسم في اسم آخر (خبر «نقل البحري» ليس خبر «البحري»).
+    """
     tn = norm(title)
     if not tn:
         return False, "عنوان فارغ"
-    mine = (name_norm and name_norm in tn) or bool(re.search(r"(?<!\d)%s(?!\d)" % re.escape(sym), tn))
-    if not mine and dist:
-        mine = all(t in tn for t in dist)
-    # حارس الخلط: اسم شركة أخرى حاضر واسمنا غائب ⇒ إسقاط قاطع (نمط 2060/2080)
-    if not mine:
+    toks = {base(t) for t in tn.split()} | set(tn.split())
+
+    # (ب) الاسم الكامل بحد كلمة
+    full = bool(name_norm) and bool(re.search(r"(?<!\w)%s(?!\w)" % re.escape(name_norm), tn))
+    # (أ) الرمز + قرينة سوقية
+    sym_hit = (bool(re.search(r"(?<!\d)%s(?!\d)" % re.escape(sym), tn))
+               and bool(toks & MARKET_HINTS))
+    # (ج) كل الكلمات المميزة حاضرة (بعد تجريد سوابق الإضافة)
+    tok_hit = bool(dist) and all(base(t) in toks for t in dist)
+    if not (full or sym_hit or tok_hit):
         return False, "لا يخص السهم"
+
+    # (د) حارس الخلط: اسم شركة أخرى حاضر، واسمنا غائب أو مجرد جزء من اسمها
     for other in other_names:
-        if other != name_norm and len(other) >= 8 and other in tn and name_norm not in tn:
+        if other == name_norm or len(other) < 6:
+            continue
+        if other in tn and (not full or (name_norm and name_norm in other)):
             return False, "خلط مع شركة أخرى"
     return True, ""
 
@@ -142,7 +178,8 @@ def gather(stock, other_names, counters):
     """يجمع من الاستعلامات، يرشّح بالتخصيص، يزيل التكرار، ويرتب بالأحدث"""
     name = stock.get("name") or stock["symbol"]
     sym = str(stock["symbol"])
-    name_norm, dist = norm(name), distinctive(norm(name))
+    name_norm = norm(name)
+    name_toks, dist = name_norm.split(), distinctive(name_norm)
     queries = ['%s سهم' % name, '%s %s' % (name, MATERIAL)]
     seen_url, seen_title, kept, any_ok = set(), set(), [], False
 
@@ -150,7 +187,7 @@ def gather(stock, other_names, counters):
         nonlocal kept
         for it in items:
             it["title"] = clean_title(it.get("title"))
-            ok, _ = is_about(it["title"], sym, name_norm, dist, other_names)
+            ok, _ = is_about(it["title"], sym, name_norm, name_toks, dist, other_names)
             if not ok:
                 counters["dropped"] += 1
                 continue
