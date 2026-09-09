@@ -354,12 +354,9 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "closed",
+   "status": "open",
    "maePct": -5.93,
-   "twinNote": "تخرّج لمطبق بتاريخه",
-   "closeDate": "2026-09-09",
-   "closePrice": 138.1,
-   "closeReason": "sma200w_weekly_break"
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "7010",
@@ -1328,11 +1325,8 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.4,
-   "status": "closed",
-   "maePct": -3.43,
-   "closeDate": "2026-09-09",
-   "closePrice": 138.1,
-   "closeReason": "sma200w_weekly_break"
+   "status": "open",
+   "maePct": -3.43
   },
   {
    "symbol": "1080",

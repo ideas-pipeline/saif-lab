@@ -354,12 +354,9 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "closed",
-   "maePct": -5.93,
-   "twinNote": "تخرّج لمطبق بتاريخه",
-   "closeDate": "2026-09-09",
-   "closePrice": 138.1,
-   "closeReason": "sma200w_weekly_break"
+   "status": "open",
+   "maePct": -4.56,
+   "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
    "symbol": "7010",
@@ -402,8 +399,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -5.9,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -7.23
+   "tasiRet": 2.03,
+   "excessNet": -8.21
   },
   {
    "symbol": "2050",
@@ -428,8 +425,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -0.59
+   "tasiRet": 2.03,
+   "excessNet": -0.39
   },
   {
    "symbol": "3020",
@@ -454,8 +451,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -1.48
+   "tasiRet": 2.03,
+   "excessNet": -1.53
   },
   {
    "symbol": "3080",
@@ -480,8 +477,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.95,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -2.45
+   "tasiRet": 2.03,
+   "excessNet": -2.16
   },
   {
    "symbol": "6010",
@@ -506,8 +503,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.98,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": 0.52
+   "tasiRet": 2.03,
+   "excessNet": 2.08
   },
   {
    "symbol": "4012",
@@ -532,8 +529,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.97,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -6.0
+   "tasiRet": 2.03,
+   "excessNet": -5.91
   },
   {
    "symbol": "3010",
@@ -558,8 +555,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -3.24,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -4.83
+   "tasiRet": 2.03,
+   "excessNet": -4.7
   },
   {
    "symbol": "3005",
@@ -582,10 +579,10 @@
    "peAtEntry": 11.82,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -5.08,
+   "maePct": -5.0,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -7.22
+   "tasiRet": 2.03,
+   "excessNet": -6.54
   },
   {
    "symbol": "3030",
@@ -610,8 +607,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -2.2
+   "tasiRet": 2.03,
+   "excessNet": -1.96
   },
   {
    "symbol": "4323",
@@ -636,8 +633,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.75,
    "status": "open",
-   "tasiRet": 1.84,
-   "excessNet": -2.13
+   "tasiRet": 2.03,
+   "excessNet": -3.69
   },
   {
    "symbol": "1303",
@@ -1083,8 +1080,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 1.78,
-   "excessNet": 10.13
+   "tasiRet": 1.96,
+   "excessNet": 8.43
   },
   {
    "symbol": "4260",
@@ -1142,8 +1139,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.77,
    "status": "open",
-   "tasiRet": 1.78,
-   "excessNet": -0.03
+   "tasiRet": 1.96,
+   "excessNet": -0.73
   },
   {
    "symbol": "1180",
@@ -1328,11 +1325,8 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.4,
-   "status": "closed",
-   "maePct": -3.43,
-   "closeDate": "2026-09-09",
-   "closePrice": 138.1,
-   "closeReason": "sma200w_weekly_break"
+   "status": "open",
+   "maePct": -2.03
   },
   {
    "symbol": "1080",
@@ -1712,10 +1706,10 @@
    "peAtEntry": 6.73,
    "peSectorMedianAtEntry": 19.64,
    "tasiAtEntry": 11032.91,
-   "maePct": -2.23,
+   "maePct": -2.0,
    "status": "open",
-   "tasiRet": -0.16,
-   "excessNet": -2.12
+   "tasiRet": 0.03,
+   "excessNet": -1.34
   },
   {
    "symbol": "3040",
@@ -1755,7 +1749,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.17,
    "status": "open",
-   "maePct": -2.18
+   "maePct": 0.0
   },
   {
    "symbol": "2300",
@@ -1776,7 +1770,7 @@
    "volTrendAtEntry": 0.93,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -1.17
+   "maePct": -0.31
   },
   {
    "symbol": "2320",
@@ -1817,7 +1811,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.02,
    "status": "open",
-   "maePct": -1.87
+   "maePct": 0.0
   }
  ]
 }
