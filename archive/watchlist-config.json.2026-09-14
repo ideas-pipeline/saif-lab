@@ -402,8 +402,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -8.36,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -7.44
+   "tasiRet": 0.44,
+   "excessNet": -9.14
   },
   {
    "symbol": "2050",
@@ -428,8 +428,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.24,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -1.22
+   "tasiRet": 0.44,
+   "excessNet": -2.4
   },
   {
    "symbol": "3020",
@@ -452,10 +452,10 @@
    "peAtEntry": 9.61,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -0.7,
+   "maePct": -0.43,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -1.61
+   "tasiRet": 0.44,
+   "excessNet": -1.21
   },
   {
    "symbol": "3080",
@@ -480,8 +480,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.95,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -2.62
+   "tasiRet": 0.44,
+   "excessNet": -1.73
   },
   {
    "symbol": "6010",
@@ -506,8 +506,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -0.98,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -0.22
+   "tasiRet": 0.44,
+   "excessNet": 0.76
   },
   {
    "symbol": "4012",
@@ -530,10 +530,10 @@
    "peAtEntry": 13.99,
    "peSectorMedianAtEntry": 22.44,
    "tasiAtEntry": 10817.01,
-   "maePct": -6.63,
+   "maePct": -5.8,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -7.54
+   "tasiRet": 0.44,
+   "excessNet": -6.58
   },
   {
    "symbol": "3010",
@@ -558,7 +558,7 @@
    "tasiAtEntry": 10817.01,
    "maePct": -3.24,
    "status": "open",
-   "tasiRet": 0.57,
+   "tasiRet": 0.44,
    "excessNet": -3.61
   },
   {
@@ -582,10 +582,10 @@
    "peAtEntry": 11.82,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -7.35,
+   "maePct": -6.72,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -8.26
+   "tasiRet": 0.44,
+   "excessNet": -7.5
   },
   {
    "symbol": "3030",
@@ -610,8 +610,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -1.7,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -1.9
+   "tasiRet": 0.44,
+   "excessNet": -1.13
   },
   {
    "symbol": "4323",
@@ -636,8 +636,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -2.75,
    "status": "open",
-   "tasiRet": 0.57,
-   "excessNet": -0.15
+   "tasiRet": 0.44,
+   "excessNet": 0.6
   },
   {
    "symbol": "1303",
@@ -1083,8 +1083,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": 0.51,
-   "excessNet": 7.11
+   "tasiRet": 0.38,
+   "excessNet": 8.12
   },
   {
    "symbol": "4260",
@@ -1142,8 +1142,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.77,
    "status": "open",
-   "tasiRet": 0.51,
-   "excessNet": 9.19
+   "tasiRet": 0.38,
+   "excessNet": 7.39
   },
   {
    "symbol": "1180",
@@ -1163,7 +1163,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.06,
    "status": "open",
-   "maePct": -2.3
+   "maePct": -1.25
   },
   {
    "symbol": "1212",
@@ -1464,7 +1464,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.04,
    "status": "open",
-   "maePct": -9.42,
+   "maePct": -8.06,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -1647,7 +1647,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.2,
    "status": "open",
-   "maePct": -4.77
+   "maePct": -3.33
   },
   {
    "symbol": "1320",
@@ -1687,7 +1687,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.93,
    "status": "open",
-   "maePct": -2.94
+   "maePct": -2.16
   },
   {
    "symbol": "4292",
@@ -1712,10 +1712,10 @@
    "peAtEntry": 6.73,
    "peSectorMedianAtEntry": 19.64,
    "tasiAtEntry": 11032.91,
-   "maePct": -5.0,
+   "maePct": -4.41,
    "status": "open",
-   "tasiRet": -1.4,
-   "excessNet": -3.7
+   "tasiRet": -1.53,
+   "excessNet": -1.29
   },
   {
    "symbol": "3040",
@@ -1735,7 +1735,7 @@
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 1.13,
    "status": "open",
-   "maePct": -0.53
+   "maePct": -0.09
   },
   {
    "symbol": "2230",
@@ -1755,7 +1755,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.17,
    "status": "open",
-   "maePct": -5.46
+   "maePct": -5.22
   },
   {
    "symbol": "2300",
@@ -1776,7 +1776,7 @@
    "volTrendAtEntry": 0.93,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -2.1
+   "maePct": -1.17
   },
   {
    "symbol": "2320",
@@ -1796,7 +1796,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.03,
    "status": "open",
-   "maePct": -2.91,
+   "maePct": -2.0,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -1817,7 +1817,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.02,
    "status": "open",
-   "maePct": -5.12
+   "maePct": -4.23
   },
   {
    "symbol": "4020",
@@ -1844,8 +1844,8 @@
    "tasiAtEntry": 11007.27,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": -1.17,
-   "excessNet": 3.97
+   "tasiRet": -1.3,
+   "excessNet": 2.26
   },
   {
    "symbol": "6014",
@@ -1870,30 +1870,10 @@
    "peAtEntry": 11.38,
    "peSectorMedianAtEntry": 18.65,
    "tasiAtEntry": 11007.27,
-   "maePct": -2.06,
+   "maePct": -1.82,
    "status": "open",
-   "tasiRet": -1.17,
-   "excessNet": -0.93
-  },
-  {
-   "symbol": "4291",
-   "name": "الوطنية للتعليم",
-   "sector": "Consumer Staples",
-   "type": "buy",
-   "entryPrice": 142.5,
-   "entryDate": "2026-09-14",
-   "track": "auto",
-   "category": "buy_wait",
-   "engineClass": "conditional_buy",
-   "scoreAtEntry": 66,
-   "timingAtEntry": "مقبول",
-   "regimeAtEntry": "هابط",
-   "aboveSmaAtEntry": true,
-   "scoreScaleAtEntry": "criteria-v3",
-   "viaReversalAtEntry": false,
-   "volTrendAtEntry": 0.73,
-   "status": "open",
-   "maePct": 0.0
+   "tasiRet": -1.3,
+   "excessNet": -0.55
   }
  ]
 }
