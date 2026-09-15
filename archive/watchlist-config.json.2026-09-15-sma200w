@@ -1893,11 +1893,8 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.73,
-   "status": "closed",
-   "maePct": -3.16,
-   "closeDate": "2026-09-15",
-   "closePrice": 138.0,
-   "closeReason": "sma200w_weekly_break"
+   "status": "open",
+   "maePct": -3.16
   },
   {
    "symbol": "3040",
