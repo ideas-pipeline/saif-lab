@@ -408,8 +408,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -8.93,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -7.18
+   "tasiRet": -1.25,
+   "excessNet": -7.24
   },
   {
    "symbol": "2050",
@@ -434,8 +434,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -3.82,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -2.25
+   "tasiRet": -1.25,
+   "excessNet": -2.98
   },
   {
    "symbol": "3020",
@@ -460,8 +460,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -4.22,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -3.07
+   "tasiRet": -1.25,
+   "excessNet": -3.38
   },
   {
    "symbol": "3080",
@@ -486,8 +486,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -5.41,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -3.66
+   "tasiRet": -1.25,
+   "excessNet": -4.57
   },
   {
    "symbol": "6010",
@@ -512,8 +512,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -3.77,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -1.53
+   "tasiRet": -1.25,
+   "excessNet": -2.93
   },
   {
    "symbol": "4012",
@@ -538,8 +538,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -8.29,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -6.07
+   "tasiRet": -1.25,
+   "excessNet": -7.45
   },
   {
    "symbol": "3010",
@@ -564,8 +564,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -7.34,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -5.91
+   "tasiRet": -1.25,
+   "excessNet": -6.5
   },
   {
    "symbol": "3005",
@@ -590,8 +590,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -13.14,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -11.67
+   "tasiRet": -1.25,
+   "excessNet": -12.3
   },
   {
    "symbol": "3030",
@@ -616,8 +616,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -3.46,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -2.13
+   "tasiRet": -1.25,
+   "excessNet": -2.63
   },
   {
    "symbol": "4323",
@@ -642,8 +642,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -5.27,
    "status": "open",
-   "tasiRet": -1.26,
-   "excessNet": -4.28
+   "tasiRet": -1.25,
+   "excessNet": -4.43
   },
   {
    "symbol": "1303",
@@ -1089,8 +1089,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": 0.0,
    "status": "open",
-   "tasiRet": -1.32,
-   "excessNet": 4.06
+   "tasiRet": -1.31,
+   "excessNet": 5.5
   },
   {
    "symbol": "4260",
@@ -1148,8 +1148,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.77,
    "status": "open",
-   "tasiRet": -1.32,
-   "excessNet": 9.78
+   "tasiRet": -1.31,
+   "excessNet": 8.55
   },
   {
    "symbol": "1180",
@@ -1209,7 +1209,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.85,
    "status": "open",
-   "maePct": -12.11,
+   "maePct": -11.03,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -1379,7 +1379,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.87,
    "status": "open",
-   "maePct": -4.23
+   "maePct": -3.05
   },
   {
    "symbol": "1080",
@@ -1515,7 +1515,7 @@
    "volTrendAtEntry": 1.21,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -2.53
+   "maePct": -1.76
   },
   {
    "symbol": "4020",
@@ -1720,8 +1720,8 @@
    "tasiAtEntry": 11032.91,
    "maePct": -7.23,
    "status": "open",
-   "tasiRet": -3.19,
-   "excessNet": -2.89
+   "tasiRet": -3.18,
+   "excessNet": -3.8
   },
   {
    "symbol": "3040",
@@ -1741,7 +1741,7 @@
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 1.13,
    "status": "open",
-   "maePct": -2.1,
+   "maePct": -1.71,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -1849,10 +1849,10 @@
    "peAtEntry": 6.22,
    "peSectorMedianAtEntry": 20.81,
    "tasiAtEntry": 11007.27,
-   "maePct": -0.46,
+   "maePct": -0.4,
    "status": "open",
-   "tasiRet": -2.97,
-   "excessNet": 2.39
+   "tasiRet": -2.96,
+   "excessNet": 2.46
   },
   {
    "symbol": "6014",
@@ -1877,10 +1877,10 @@
    "peAtEntry": 11.38,
    "peSectorMedianAtEntry": 18.65,
    "tasiAtEntry": 11007.27,
-   "maePct": -4.45,
+   "maePct": -4.26,
    "status": "open",
-   "tasiRet": -2.97,
-   "excessNet": -1.6
+   "tasiRet": -2.96,
+   "excessNet": -1.41
   },
   {
    "symbol": "4291",
@@ -1923,7 +1923,7 @@
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 1.05,
    "status": "open",
-   "maePct": -0.53
+   "maePct": -0.13
   },
   {
    "symbol": "7040",
