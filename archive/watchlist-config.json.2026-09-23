@@ -409,7 +409,7 @@
    "maePct": -8.93,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -7.19
+   "excessNet": -7.18
   },
   {
    "symbol": "2050",
@@ -435,7 +435,7 @@
    "maePct": -3.82,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -2.26
+   "excessNet": -2.25
   },
   {
    "symbol": "3020",
@@ -461,7 +461,7 @@
    "maePct": -4.22,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -3.08
+   "excessNet": -3.07
   },
   {
    "symbol": "3080",
@@ -487,7 +487,7 @@
    "maePct": -5.41,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -3.67
+   "excessNet": -3.66
   },
   {
    "symbol": "6010",
@@ -513,7 +513,7 @@
    "maePct": -3.77,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -1.54
+   "excessNet": -1.53
   },
   {
    "symbol": "4012",
@@ -539,7 +539,7 @@
    "maePct": -8.29,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -6.08
+   "excessNet": -6.07
   },
   {
    "symbol": "3010",
@@ -565,7 +565,7 @@
    "maePct": -7.34,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -5.92
+   "excessNet": -5.91
   },
   {
    "symbol": "3005",
@@ -591,7 +591,7 @@
    "maePct": -13.14,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -11.68
+   "excessNet": -11.67
   },
   {
    "symbol": "3030",
@@ -617,7 +617,7 @@
    "maePct": -3.46,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -2.14
+   "excessNet": -2.13
   },
   {
    "symbol": "4323",
@@ -643,7 +643,7 @@
    "maePct": -5.27,
    "status": "open",
    "tasiRet": -1.26,
-   "excessNet": -4.29
+   "excessNet": -4.28
   },
   {
    "symbol": "1303",
@@ -1090,7 +1090,7 @@
    "maePct": 0.0,
    "status": "open",
    "tasiRet": -1.32,
-   "excessNet": 4.05
+   "excessNet": 4.06
   },
   {
    "symbol": "4260",
@@ -1149,7 +1149,7 @@
    "maePct": -0.77,
    "status": "open",
    "tasiRet": -1.32,
-   "excessNet": 9.77
+   "excessNet": 9.78
   },
   {
    "symbol": "1180",
@@ -1721,7 +1721,7 @@
    "maePct": -7.23,
    "status": "open",
    "tasiRet": -3.19,
-   "excessNet": -2.9
+   "excessNet": -2.89
   },
   {
    "symbol": "3040",
@@ -1852,7 +1852,7 @@
    "maePct": -0.46,
    "status": "open",
    "tasiRet": -2.97,
-   "excessNet": 2.38
+   "excessNet": 2.39
   },
   {
    "symbol": "6014",
@@ -1880,7 +1880,7 @@
    "maePct": -4.45,
    "status": "open",
    "tasiRet": -2.97,
-   "excessNet": -1.61
+   "excessNet": -1.6
   },
   {
    "symbol": "4291",
