@@ -235,6 +235,14 @@ EPS_DIV_THR = 2.0          # للعدّ فقط — لا إنذار
 EPS_FLIP_MARGIN = 1.05     # هامش ميت: انحراف sharesOutstanding بلغ 3.45% بين الموسومين
 EPS_FLIP_WARN_AT = 10      # أساس 2026-10-01 = 6؛ العتبة للانحدار لا للإبلاغ
 SH_SANITY_TOL = 0.25       # انحراف عدد الأسهم عن marketCap÷theirPrice
+# سدّ ثغرة الصمت الجزئي (رُصدت بالحقن 03-10): حارس التغطية أدناه يقيس الكون
+# ‏(80% من N) فلا يرى سقوط المرجع عن حصة صغيرة. ولو سقط sharesOutstanding عن
+# الستة الموسومة وحدها لهبط عدّ القلب 6 → 0 بلا إنذار — فيصمت الوسم عن الأسهم
+# التي تحتاجه بالضبط وL1 يطبع «0 قلب» كأن البيانات نظيفة. العلاج عدّ المرشَّحين
+# الذين يتعذّر فحصهم: dv موجب داخل eps (أي العرض صامت) وبلا مرجع مستقل.
+# الأساس 2026-10-01 = 1 (‏6016 شاورمر، يستثنيه حارس الأسهم بانحراف 57.5% — ولا
+# يقلب حكمه أيٌّ من أساسي العدد، فالاستثناء بلا تكلفة). السقوط الجزئي يرفعه إلى 7.
+EPS_BLIND_WARN_AT = 3
 
 
 def _implied_eps(s):
@@ -251,6 +259,7 @@ def _implied_eps(s):
 
 eps_pairs, eps_div, eps_flip = 0, [], []
 sh_odd = 0
+eps_cand, eps_blind = 0, []
 for s in S:
     vi = s.get("valuationInputs") or {}
     mc, tp, sh0 = vi.get("marketCap"), vi.get("theirPrice"), vi.get("sharesOutstanding")
@@ -258,6 +267,15 @@ for s in S:
        and abs(mc / (sh0 * tp) - 1) > 0.05:
         sh_odd += 1
     eps, dv, imp = vi.get("eps"), vi.get("divTtm12m"), _implied_eps(s)
+    # المرشَّح للفحص: العرض صامت عليه (dv موجب داخل eps) فحكمه يتوقف على المرجع
+    if isinstance(eps, (int, float)) and eps > 0 and isinstance(dv, (int, float)) and 0 < dv <= eps:
+        eps_cand += 1
+        if imp is None:
+            ni2 = (s.get("financials") or {}).get("netIncome")
+            why = ("بلا netIncome" if not isinstance(ni2, (int, float))
+                   else "بلا عدد أسهم" if not isinstance(sh0, (int, float)) or (sh0 or 0) <= 0
+                   else "عدد أسهم مرفوض")
+            eps_blind.append((s["symbol"], why))
     if imp is None or not isinstance(eps, (int, float)) or eps <= 0:
         continue
     eps_pairs += 1
@@ -277,6 +295,12 @@ print("    قلب حكم تغطية التوزيع (العرض يصمت والر
       % (len(eps_flip), eps_flip[:8]))
 print("    مرجعه: sharesOutstanding %d | netIncome %d من %d | عدد أسهم غير متسق مع marketCap >5%%: %d"
       "  | حقول نائمة (peRatio/epsTtm/forwardPe): %d" % (sh_n, ni_n, N, sh_odd, dead_n))
+print("    يتعذّر فحصهم (العرض صامت وبلا مرجع مستقل): %d من %d مرشَّح %s"
+      % (len(eps_blind), eps_cand, eps_blind[:8]))
+if len(eps_blind) > EPS_BLIND_WARN_AT:
+    warn("🚨 صارخ: يتعذّر فحص تغطية %d من المرشَّحين (الأساس 1) — المرجع المستقل سقط "
+         "عن حصة من الأسهم فيصمت وسمها بلا ضجيج؛ راجع §8-ش: %s"
+         % (len(eps_blind), eps_blind[:6]))
 if len(eps_flip) > EPS_FLIP_WARN_AT:
     warn("قلب حكم تغطية التوزيع في %d سهماً (الأساس 6) — انحدار جودة مصدر أو "
          "تغيّر اصطلاح eps؛ راجع §8-ش" % len(eps_flip))
