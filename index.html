@@ -889,6 +889,25 @@ const COL_DY=COLS.find(c=>c.key==="dy");   /* لا فهرس صلب يكسر بص
    تغطية التوزيع من الربح، وانهيار السعر تحت المتوسط الطويل، وغياب ما يُتحقق به.
    والمطلق يبقى احتياطاً عند 10% (≈3× وسيط السوق) لا 8%. */
 const DY_EXTREME_PCT=10;
+/* مرجع ربح مستقل عن eps المصدر — حارس تقاطع pe أعمى بنيوياً: pe المحسوب وpeSource
+   كلاهما من eps_ttm نفسه (مرصود: وسيط (theirPrice÷peSource)÷eps = 1.006 على 159
+   سهماً)، فما يقيسه الحارس انزياح السعر (وسيط 8.6%) لا الاصطلاح. المرجع البديل من
+   السجل نفسه: صافي ربح آخر سنة مالية كاملة ÷ الأسهم القائمة.
+   الأساسان مختلفان بالتصميم (12 شهراً متتابعاً مقابل سنة كاملة) فالتباعد وحده ليس
+   خطأً — نمو سنوي حقيقي يضاعفه مشروعاً، ولذلك لا وسم على التباعد نفسه.
+   حارس عدد الأسهم: انحراف sharesOutstanding عن marketCap÷theirPrice مرصود بوسيط
+   0.91% وبلغ 98.7% لسهمين — فوق 25% يُهمل المرجع (خطأ جسيم في العدد لا تعارض). */
+function impliedEpsAnnual(s){
+  const vi=s.valuationInputs||{}, fin=s.financials||{};
+  const ni=fin.netIncome, sh=vi.sharesOutstanding;
+  if(typeof ni!=="number"||typeof sh!=="number"||!(sh>0)) return null;
+  const mc=vi.marketCap, tp=vi.theirPrice;
+  if(typeof mc==="number"&&typeof tp==="number"&&tp>0&&Math.abs(mc/(sh*tp)-1)>0.25) return null;
+  return ni/sh;
+}
+/* هامش ميت 5% على قلب الحكم — انحراف عدد الأسهم المرصود بلغ 3.45% بين الموسومين،
+   فلا ينطلق وسم على حكم تغطية قد يكون أثر عدد الأسهم وحده */
+const COV_FLIP_MARGIN=1.05;
 function dyFlags(s){
   const vi=s.valuationInputs||{}, wt=s.weeklyTechnical||{};
   const y=dyOf(s), dv=vi.divTtm12m, eps=vi.eps;
@@ -899,6 +918,19 @@ function dyFlags(s){
     f.push(`التوزيع أكبر من ربح 12 شهراً (تغطية ${(dv/eps).toFixed(2)}×) — قد لا يتكرر`);
   else if(eps==null||eps<=0)
     f.push("يوزّع بلا ربح معلن — تحقق من مصدر التوزيع");
+  /* تعارض أساس الربح — الحالة الوحيدة التي يصمت فيها العرض خطأً: التوزيع داخل ربح
+     12 شهراً من المصدر (فالوسم أعلاه لا ينطلق) لكنه يتجاوز الربح السنوي المعلن.
+     لا يدّعي الوسم أي الرقمين صحيح — ينسب كل رقم لأساسه ويترك الحكم للقارئ.
+     مستقل عن السلسلة أعلاه بشروط صريحة لا بترتيبها (فلا ينزاح بتعديل لاحق عليها). */
+  if(eps!=null&&eps>0&&dv!=null&&dv>0&&dv<=eps){
+    const ie=impliedEpsAnnual(s), fy=(s.financials||{}).fiscalYear;
+    const yrIn=fy?`ربح ${fy} الكامل المعلن`:"آخر ربح سنوي كامل معلن";
+    const yrLoss=fy?`سنة ${fy} الكاملة`:"آخر سنة كاملة معلنة";
+    if(ie!=null&&ie>0&&dv>ie*COV_FLIP_MARGIN)
+      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ie).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
+    else if(ie!=null&&ie<=0)
+      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) لكن ${yrLoss} أُقفلت بخسارة — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
+  }
   if(wt.sma200w&&px&&px<wt.sma200w*0.75)
     f.push(`السعر أدنى من متوسطه الطويل بأكثر من 25% — جزء من العائد هبوط سعر لا كرم شركة`);
   if(!((s.dividends||{}).history||[]).length&&!wt.sma200w)

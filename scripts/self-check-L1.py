@@ -183,11 +183,18 @@ if chg:
     warn("تغير قطاع/نشاط لـ%d سهماً — يقلب المسار والوسطاء، راجع" % len(chg))
 
 # ── [6] حارس تقاطع P/E (§3.5): فرق المحسوب عن المصدر >10% ──
+# نقطة عمى معلنة (مرصودة 03-10): pe المحسوب = السعر الحيّ ÷ vi.eps، وpeSource =
+# pe_ratio من المصدر محسوباً على سعره وقت companyAsOf بـeps_ttm نفسه (الجالب
+# 1032-1033: eps ← eps_ttm، peSource ← pe_ratio من نفس الكتلة). المرصود: وسيط
+# ‏(theirPrice ÷ peSource) ÷ eps = 1.006 على 159 سهماً، ووسيط انزياح السعر 8.6%.
+# فالحارس يقيس انزياح السعر عن ختم المصدر ولا يستطيع بنيوياً كشف اصطلاح eps.
+# الفحص الحقيقي للاصطلاح في [9] بمرجع مستقل. لا تغيير على عتبته ولا على عدّه.
 pe_div = [(s["symbol"], (s.get("valuation") or {}).get("peSourceDiffPct"))
           for s in S if ((s.get("valuation") or {}).get("peSourceDiffPct") or 0) > 10]
 print("\n[6] تقاطع P/E (محسوب مقابل مصدر، فرق >10%%): %d %s" % (len(pe_div), pe_div[:6]))
 if len(pe_div) > 25:
-    warn("تباعد P/E واسع (%d سهماً) — شبهة اصطلاح eps" % len(pe_div))
+    warn("تباعد P/E واسع (%d سهماً) — انزياح السعر عن ختم المصدر؛ هذا الحارس "
+         "لا يكشف اصطلاح eps (انظر [9])" % len(pe_div))
 
 # ── [7] نضارة الكتل بأختامها ──
 def age_days(stamp):
@@ -218,6 +225,64 @@ if totals:
     bad = [t for t in totals if not (0 <= t <= 100)]
     if bad:
         warn("نقاط خارج [0،100]: %s" % bad[:5])
+
+# ── [9] اصطلاح eps بمرجع مستقل (نقطة عمى [6]) ──
+# المرجع: financials.netIncome ÷ valuationInputs.sharesOutstanding (آخر سنة مالية
+# كاملة). الأساسان مختلفان بالتصميم فالتباعد يُعدّ ولا يُنذر (نمو سنوي حقيقي
+# يضاعفه مشروعاً، 20 من 117 موزِّعاً عند ≥2× في لقطة 10-01). الإنذار محصور في
+# قلب حكم تغطية التوزيع: دخل الربح الاثني‑عشري فصمت العرض، وتجاوز الربح السنوي.
+EPS_DIV_THR = 2.0          # للعدّ فقط — لا إنذار
+EPS_FLIP_MARGIN = 1.05     # هامش ميت: انحراف sharesOutstanding بلغ 3.45% بين الموسومين
+EPS_FLIP_WARN_AT = 10      # أساس 2026-10-01 = 6؛ العتبة للانحدار لا للإبلاغ
+SH_SANITY_TOL = 0.25       # انحراف عدد الأسهم عن marketCap÷theirPrice
+
+
+def _implied_eps(s):
+    fin, vi = s.get("financials") or {}, s.get("valuationInputs") or {}
+    ni, sh = fin.get("netIncome"), vi.get("sharesOutstanding")
+    if not isinstance(ni, (int, float)) or not isinstance(sh, (int, float)) or sh <= 0:
+        return None
+    mc, tp = vi.get("marketCap"), vi.get("theirPrice")
+    if isinstance(mc, (int, float)) and isinstance(tp, (int, float)) and tp > 0 \
+       and abs(mc / (sh * tp) - 1) > SH_SANITY_TOL:
+        return None
+    return ni / sh
+
+
+eps_pairs, eps_div, eps_flip = 0, [], []
+sh_odd = 0
+for s in S:
+    vi = s.get("valuationInputs") or {}
+    mc, tp, sh0 = vi.get("marketCap"), vi.get("theirPrice"), vi.get("sharesOutstanding")
+    if all(isinstance(x, (int, float)) for x in (mc, tp, sh0)) and sh0 > 0 and tp > 0 \
+       and abs(mc / (sh0 * tp) - 1) > 0.05:
+        sh_odd += 1
+    eps, dv, imp = vi.get("eps"), vi.get("divTtm12m"), _implied_eps(s)
+    if imp is None or not isinstance(eps, (int, float)) or eps <= 0:
+        continue
+    eps_pairs += 1
+    if imp <= 0:
+        eps_div.append((s["symbol"], "خسارة سنوية"))
+    elif max(eps / imp, imp / eps) >= EPS_DIV_THR:
+        eps_div.append((s["symbol"], round(eps / imp, 2)))
+    if isinstance(dv, (int, float)) and 0 < dv <= eps and imp > 0 and dv > imp * EPS_FLIP_MARGIN:
+        eps_flip.append((s["symbol"], "%.3f→%.3f" % (dv / eps, dv / imp)))
+sh_n = sum(1 for s in S if isinstance((s.get("valuationInputs") or {}).get("sharesOutstanding"), (int, float)))
+ni_n = sum(1 for s in S if isinstance((s.get("financials") or {}).get("netIncome"), (int, float)))
+dead_n = sum(1 for s in S if any(k in (s.get("valuationInputs") or {})
+                                 for k in ("peRatio", "epsTtm", "forwardPe")))
+print("\n[9] اصطلاح eps بمرجع مستقل: أزواج %d | تباعد ≥%.1f× (عدّ لا إنذار): %d %s"
+      % (eps_pairs, EPS_DIV_THR, len(eps_div), eps_div[:6]))
+print("    قلب حكم تغطية التوزيع (العرض يصمت والربح السنوي لا يغطي): %d %s"
+      % (len(eps_flip), eps_flip[:8]))
+print("    مرجعه: sharesOutstanding %d | netIncome %d من %d | عدد أسهم غير متسق مع marketCap >5%%: %d"
+      "  | حقول نائمة (peRatio/epsTtm/forwardPe): %d" % (sh_n, ni_n, N, sh_odd, dead_n))
+if len(eps_flip) > EPS_FLIP_WARN_AT:
+    warn("قلب حكم تغطية التوزيع في %d سهماً (الأساس 6) — انحدار جودة مصدر أو "
+         "تغيّر اصطلاح eps؛ راجع §8-ش" % len(eps_flip))
+if has_scores and (sh_n < N * 0.8 or ni_n < N * 0.8):
+    warn("🚨 صارخ: مرجع eps المستقل انهار (sharesOutstanding %d، netIncome %d من %d) — "
+         "وسم تعارض أساس الربح في الواجهة يصمت بلا ضجيج" % (sh_n, ni_n, N))
 
 print("\n" + "=" * 58)
 if W:
