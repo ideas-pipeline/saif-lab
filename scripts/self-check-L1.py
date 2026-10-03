@@ -194,11 +194,25 @@ if chg:
 # فالبوابة 4 في mapping-v3.md قائمة لا مُلغاة؛ و[9] يسدّ ما لا تبلغه بمرجع مستقل.
 pe_div = [(s["symbol"], (s.get("valuation") or {}).get("peSourceDiffPct"))
           for s in S if ((s.get("valuation") or {}).get("peSourceDiffPct") or 0) > 10]
+# تفكيك الموسومين (تقييد ختم 03-10/ج): «الغالب انزياح السعر» كان أضعف من الدليل.
+# العزل: نسبة eps الذي يضمره المصدر (theirPrice ÷ peSource) إلى eps المخزَّن —
+# وهي خالية من السعر الحيّ تماماً. قريبة من 1 ⇒ الحقلان متسقان والفرق انزياح سعر؛
+# بعيدة ⇒ توتّر حقيقي بين حقلي المصدر لا يفسّره السعر. (خطأ تقريب peSource لمنزلتين
+# مقيس ≤0.08% فلا يبلغ عتبة 2%.)
+pe_tense = []
+for sym, dpct in pe_div:
+    st = next((x for x in S if x["symbol"] == sym), None)
+    vi = (st or {}).get("valuationInputs") or {}
+    tp, ps, ep = vi.get("theirPrice"), vi.get("peSource"), vi.get("eps")
+    if all(isinstance(v, (int, float)) for v in (tp, ps, ep)) and ps > 0 and ep > 0 \
+       and abs((tp / ps) / ep - 1) > 0.02:
+        pe_tense.append((sym, dpct, round((tp / ps) / ep, 3)))
 print("\n[6] تقاطع P/E (محسوب مقابل مصدر، فرق >10%%): %d %s" % (len(pe_div), pe_div[:6]))
+print("    منها توتّر بين حقلي المصدر لا يفسّره انزياح السعر: %d %s" % (len(pe_tense), pe_tense[:6]))
 if len(pe_div) > 25:
-    warn("تباعد P/E واسع (%d سهماً) — الغالب انزياح السعر عن ختم المصدر لا تغيّر "
-         "اصطلاح؛ وسم eps الخاطئ على مُدخل مشترك لا يبلغه هذا الحارس (انظر [9])"
-         % len(pe_div))
+    warn("تباعد P/E واسع (%d سهماً)، منها %d لا يفسّرها انزياح السعر بل توتّر بين "
+         "حقلي المصدر؛ ووسم eps الخاطئ على مُدخل مشترك لا يبلغه هذا الحارس أصلاً "
+         "(انظر [9])" % (len(pe_div), len(pe_tense)))
 
 # ── [7] نضارة الكتل بأختامها ──
 def age_days(stamp):
@@ -277,6 +291,13 @@ def _implied_eps(s):
 # يقيس جمهوراً غير الذي يراه المالك. والهامشيون (يصمدون على المصرَّح ويسقطون على
 # المضمَّن) يُطبعون وحدهم: فئة مرشَّحة للتأرجح تستحق المتابعة لا الإنذار.
 eps_pairs, eps_div, eps_flip, eps_loss, eps_marginal = 0, [], [], [], []
+# حارس حياة فرع الخسارة (ختم 03-10/ب): عدّاد «يتعذّر فحصهم» أدناه يَحصر نفسه في
+# مرشَّحي القلب (eps>0 و dv داخل eps)، ولا يجتازه أيٌّ من الخاسرين الثمانية —
+# خمسة بلا eps أو بسالب، وثلاثة بـdv>eps. فإسقاط مرجعهم كان يُخفي ثمانية تحذيرات
+# يراها المستخدم (منها سابك) وL1 يطبع 0 بخروج 0. وبعد تعليق الحقيقة على netIncome
+# وحده، الطريق الوحيد لإخفائها هو سقوط netIncome نفسه — وهذا ما يرصده هذا العدّاد.
+# الأساس 2026-10-01 = 0 (netIncome حاضر لدى 135 موزِّعاً كلهم).
+loss_blind = []
 sh_odd = 0
 eps_cand, eps_blind = 0, []
 for s in S:
@@ -286,10 +307,15 @@ for s in S:
        and abs(mc / (sh0 * tp) - 1) > 0.05:
         sh_odd += 1
     eps, dv, imp = vi.get("eps"), vi.get("divTtm12m"), _implied_eps(s)
-    # خسارة السنة الكاملة لدى موزِّع — تعريف الواجهة حرفياً (مستقل عن eps تماماً،
-    # فسابك واللجين بلا eps ومع ذلك يُعرض لهما الوسم؛ ومن لا يوزّع لا يُعدّ هنا)
-    if isinstance(dv, (int, float)) and dv > 0 and imp is not None and imp <= 0:
-        eps_loss.append(s["symbol"])
+    # خسارة السنة الكاملة لدى موزِّع — تعريف الواجهة حرفياً: الحقيقة من إشارة
+    # netIncome وحدها (لا من imp)، فسابك واللجين بلا eps ويُعرض لهما الوسم،
+    # ولا يُسكتهما غياب عدد الأسهم. ومن لا يوزّع لا يُعدّ هنا.
+    ni_a = (s.get("financials") or {}).get("netIncome")
+    if isinstance(dv, (int, float)) and dv > 0:
+        if not isinstance(ni_a, (int, float)):
+            loss_blind.append(s["symbol"])      # يتعذّر الحكم أصلاً — الخبر يصمت
+        elif ni_a <= 0:
+            eps_loss.append(s["symbol"])
     # المرشَّح للفحص: العرض صامت عليه (dv موجب داخل eps) فحكمه يتوقف على المرجع
     if isinstance(eps, (int, float)) and eps > 0 and isinstance(dv, (int, float)) and 0 < dv <= eps:
         eps_cand += 1
@@ -334,6 +360,11 @@ if len(eps_blind) > EPS_BLIND_WARN_AT:
     warn("🚨 صارخ: يتعذّر فحص تغطية %d من %d مرشَّحاً (فوق عتبة %d) — المرجع المستقل "
          "سقط عن حصة من الأسهم فيصمت وسمها بلا ضجيج؛ راجع §8-ش: %s"
          % (len(eps_blind), eps_cand, EPS_BLIND_WARN_AT, eps_blind[:6]))
+print("    موزِّعون يتعذّر الحكم على خسارتهم (بلا netIncome): %d %s"
+      % (len(loss_blind), loss_blind[:8]))
+if len(loss_blind) > EPS_BLIND_WARN_AT:
+    warn("🚨 صارخ: %d موزِّعاً بلا netIncome (الأساس 0) — وسم «أُقفلت بخسارة» يصمت "
+         "عنهم بلا ضجيج؛ راجع §8-ش: %s" % (len(loss_blind), loss_blind[:6]))
 if len(eps_flip) > EPS_FLIP_WARN_AT:
     warn("قلب حكم تغطية التوزيع في %d سهماً (فوق عتبة %d) — انحدار جودة مصدر أو "
          "تغيّر اصطلاح eps؛ راجع §8-ش" % (len(eps_flip), EPS_FLIP_WARN_AT))
