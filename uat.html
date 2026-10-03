@@ -750,7 +750,8 @@ function medPe(s){
   const sm=(DATA.sectorMedians||{})[secOf(s)]||{};
   return (sm.pePool||0)>=5?sm.peMedian:((DATA.sectorMedians||{})._market||(DATA.marketMedians||{})||{}).peMedian;
 }
-function applyFilters(list){
+function applyFilters(list,opts){
+  const o=opts||{};
   const q=normalizeAr(state.q.trim());
   return list.filter(s=>{
     if(q && !(normalizeAr(s.name).includes(q)||String(s.symbol).includes(q))) return false;
@@ -768,7 +769,7 @@ function applyFilters(list){
     if(a.div && !((dyOf(s)||0)>2)) return false;
     if(a.pe){ const pe=peOf(s), ref=medPe(s); if(!(pe&&ref&&pe<ref)) return false; }
     if(a.liq && !((s.liquidityGate||{}).passed)) return false;
-    if(state.dyRatedOnly && state.view==="dividends" && !rated(s)) return false;
+    if(!o.ignoreDyToggle && state.dyRatedOnly && state.view==="dividends" && !rated(s)) return false;
     return true;
   });
 }
@@ -777,6 +778,14 @@ const SORTERS={
   chg:s=>chgOf(s)??-999, roe:s=>roeOf(s)??-999, pe:s=>peOf(s)??1e9,
   pb:s=>pbOf(s)??1e9, rs6:s=>rs6Of(s)??-999, dy:s=>dyOf(s)??-1
 };
+function sortBy(list,key,dir){
+  const f=SORTERS[key]||SORTERS.score;
+  return [...list].sort((a,b)=>{
+    const va=f(a), vb=f(b);
+    if(typeof va==="string") return va.localeCompare(vb,"ar")*dir;
+    return (va-vb)*dir;
+  });
+}
 function sortList(list){
   const {key,dir}=state.sort, f=SORTERS[key]||SORTERS.score;
   return [...list].sort((a,b)=>{
@@ -795,6 +804,7 @@ function activeFilterCount(){
 function resetFilters(){
   state.q=""; state.sector=""; state.minScore=0; state.timing=""; state.quality="";
   state.adv={sma:false,rev:false,div:false,pe:false,liq:false};
+  state.dyRatedOnly=false;
   $("q").value=""; $("fSector").value=""; $("fScore").value="0"; $("fTiming").value=""; $("fQuality").value="";
   ["aSma","aRev","aDiv","aPe","aLiq"].forEach(id=>$(id).checked=false);
   syncSelectStyles(); renderBody();
@@ -869,6 +879,7 @@ const COLS=[
   {key:"dy",     label:"عائد التوزيعات", sortable:true, p:"col-p2", alwaysIn:"dividends",
    tip:"ما وُزّع نقداً فعلاً خلال 12 شهراً ÷ سعر السهم اليوم — يتحرك مع السعر"}
 ];
+const COL_DY=COLS.find(c=>c.key==="dy");   /* لا فهرس صلب يكسر بصمت عند إعادة الترتيب */
 /* وسوم العائد — حكم المحلل 03-10: العتبة المطلقة (8%) خطأ فئة هنا، لأن 8% لحدث
    فردي ليست 8% سنوياً. الوسم يُبنى على التغطية والميكانيكا لا على المستوى:
    تغطية التوزيع من الربح، وانهيار السعر تحت المتوسط الطويل، وغياب ما يُتحقق به.
@@ -959,14 +970,26 @@ function divCalendarHtml(){
 
 /* سطر صدق العائد — أربعة تحفظات ألزم بها المحلل (03-10): تاريخ الأساس، وأن الأحقية
    الماضية ليست حقاً للمشتري الجديد، وهبوط السعر يوم الأحقية، وتسمية الميكانيكا صراحةً */
-function dyNoteHtml(list){
-  const top=list.slice(0,10);
+function dyNoteHtml(){
+  /* ملزمة ختم 03-10: العدّاد ضابط سلامة — يُحسب من كون الموزِّعين **مرتَّباً بالعائد**
+     ومتجاهلاً مفتاح «المقيَّمة فقط»، لا من القائمة المعروضة؛ وإلا أعلن رقماً أقل من
+     الحقيقة بمجرد إعادة الفرز (8 بدل 10) أو صفراً حين يُفعَّل المفتاح نفسه. */
+  const view=VIEWS.find(v=>v.id==="dividends");
+  const base=sortBy(applyFilters(STOCKS.filter(view.fn),{ignoreDyToggle:true}),"dy",-1);
+  const top=base.slice(0,10);
   const unrated=top.filter(s=>!rated(s)).length;
-  const asOf=(( (STOCKS[0]||{}).valuationInputs)||{}).divsAsOf||"";
+  /* أقدم تاريخ أساس بين الموزِّعين المعروضين — فصيغة «حتى X» صادقة عليهم جميعاً */
+  const dates=base.map(s=>(s.valuationInputs||{}).divsAsOf).filter(Boolean).sort();
+  const asOf=dates[0]||"";
   const priceAt=String(DATA.lastUpdated||"").slice(0,10);
+  /* العنوان لا يدّعي ترتيباً غير سارٍ */
+  const byYield=state.sort.key==="dy"&&state.sort.dir===-1;
+  const col=COLS.find(c=>c.key===state.sort.key);
+  const title=byYield?"مرتبة من الأعلى عائداً"
+    :`عرض التوزيعات — مرتبة حسب «${esc(col?col.label:state.sort.key)}»`;
   return `<div class="dy-note">
     <div class="dy-note-hd">
-      <b>مرتبة من الأعلى عائداً</b>
+      <b>${title}</b>
       <span class="dy-tag">معلوماتي — غير مقيس في صفحة الدقة</span>
       <button class="dy-toggle ${state.dyRatedOnly?"on":""}" id="dyRatedOnly">${state.dyRatedOnly?"✓ ":""}المقيَّمة فقط</button>
     </div>
@@ -1025,7 +1048,7 @@ function renderBody(){
       <td class="num col-p2">${peOf(s)!=null?fmt(peOf(s),1):"—"}</td>
       <td class="num col-p3">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}</td>
       <td class="num col-p3">${rs6Of(s)!=null?(rs6Of(s)>0?"+":"")+fmt(rs6Of(s),1)+"%":"—"}</td>
-      <td class="num ${colCls(COLS[10])}">${dyCell(s)}</td>
+      <td class="num ${colCls(COL_DY)}">${dyCell(s)}</td>
     </tr>`).join("");
   const cards=list.map(s=>`
     <div class="mcard" data-sym="${s.symbol}" role="button" tabindex="0">
@@ -1041,7 +1064,7 @@ function renderBody(){
         ${state.view==="dividends"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:""}
       </div>
     </div>`).join("");
-  const dyNote=state.view==="dividends"?dyNoteHtml(list):"";
+  const dyNote=state.view==="dividends"?dyNoteHtml():"";
   $("body").innerHTML=calHtml+dyNote+`
     <table class="scr"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>
     <div class="cards">${cards}</div>`;
