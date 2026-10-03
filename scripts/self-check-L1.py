@@ -198,7 +198,7 @@ pe_div = [(s["symbol"], (s.get("valuation") or {}).get("peSourceDiffPct"))
 # العزل: نسبة eps الذي يضمره المصدر (theirPrice ÷ peSource) إلى eps المخزَّن —
 # وهي خالية من السعر الحيّ تماماً. قريبة من 1 ⇒ الحقلان متسقان والفرق انزياح سعر؛
 # بعيدة ⇒ توتّر حقيقي بين حقلي المصدر لا يفسّره السعر. (خطأ تقريب peSource لمنزلتين
-# مقيس ≤0.08% فلا يبلغ عتبة 2%.)
+# مقيس: أقصاه 0.17% عند 2140، فلا يبلغ عتبة 2%.)
 pe_tense = []
 for sym, dpct in pe_div:
     st = next((x for x in S if x["symbol"] == sym), None)
@@ -298,6 +298,8 @@ eps_pairs, eps_div, eps_flip, eps_loss, eps_marginal = 0, [], [], [], []
 # وحده، الطريق الوحيد لإخفائها هو سقوط netIncome نفسه — وهذا ما يرصده هذا العدّاد.
 # الأساس 2026-10-01 = 0 (netIncome حاضر لدى 135 موزِّعاً كلهم).
 loss_blind = []
+loss_contested = []        # netIncome سالب وحقول الكتلة نفسها تقول ربحاً — لا قطع
+LOSS_BLIND_WARN_AT = 0     # أساسه 0 (netIncome حاضر لدى الموزِّعين كلهم) فلا ضجيج يُحتمى منه
 sh_odd = 0
 eps_cand, eps_blind = 0, []
 for s in S:
@@ -315,7 +317,16 @@ for s in S:
         if not isinstance(ni_a, (int, float)):
             loss_blind.append(s["symbol"])      # يتعذّر الحكم أصلاً — الخبر يصمت
         elif ni_a <= 0:
-            eps_loss.append(s["symbol"])
+            # تفريق الواجهة نفسه: القطع حيث يوافق السجل، والنسب حيث يعارض
+            fin_a = s.get("financials") or {}
+            opp = [n for n, v in (("هامش", fin_a.get("profitMargins")),
+                                  ("ROE", fin_a.get("returnOnEquity")),
+                                  ("ROA", fin_a.get("returnOnAssets")))
+                   if isinstance(v, (int, float)) and v > 0]
+            if opp:
+                loss_contested.append((s["symbol"], "+".join(opp)))
+            else:
+                eps_loss.append(s["symbol"])
     # المرشَّح للفحص: العرض صامت عليه (dv موجب داخل eps) فحكمه يتوقف على المرجع
     if isinstance(eps, (int, float)) and eps > 0 and isinstance(dv, (int, float)) and 0 < dv <= eps:
         eps_cand += 1
@@ -346,8 +357,10 @@ dead_n = sum(1 for s in S if any(k in (s.get("valuationInputs") or {})
                                  for k in ("peRatio", "epsTtm", "forwardPe")))
 print("\n[9] اصطلاح eps بمرجع مستقل: أزواج %d | تباعد ≥%.1f× (عدّ لا إنذار): %d %s"
       % (eps_pairs, EPS_DIV_THR, len(eps_div), eps_div[:6]))
-print("    موزِّعون أقفلوا سنتهم الكاملة بخسارة (مطابق لوسم الواجهة): %d %s"
+print("    موزِّعون أقفلوا سنتهم الكاملة بخسارة — السجل متسق فالقطع جائز: %d %s"
       % (len(eps_loss), eps_loss[:10]))
+print("    ومنهم من تعارضه حقول كتلته (لا قطع، نسبة لا حكم): %d %s"
+      % (len(loss_contested), loss_contested[:8]))
 print("    قلب حكم تغطية التوزيع (صامد على أساسَي عدد الأسهم — مطابق لوسم الواجهة): %d %s"
       % (len(eps_flip), eps_flip[:8]))
 print("    هامشيون (يسقطون على العدد المضمَّن — لا وسم لهم ولا إنذار): %d %s"
@@ -362,9 +375,9 @@ if len(eps_blind) > EPS_BLIND_WARN_AT:
          % (len(eps_blind), eps_cand, EPS_BLIND_WARN_AT, eps_blind[:6]))
 print("    موزِّعون يتعذّر الحكم على خسارتهم (بلا netIncome): %d %s"
       % (len(loss_blind), loss_blind[:8]))
-if len(loss_blind) > EPS_BLIND_WARN_AT:
-    warn("🚨 صارخ: %d موزِّعاً بلا netIncome (الأساس 0) — وسم «أُقفلت بخسارة» يصمت "
-         "عنهم بلا ضجيج؛ راجع §8-ش: %s" % (len(loss_blind), loss_blind[:6]))
+if len(loss_blind) > LOSS_BLIND_WARN_AT:
+    warn("🚨 صارخ: %d موزِّعاً بلا netIncome (الأساس 0) — وسم خسارة السنة الكاملة "
+         "يصمت عنهم بلا ضجيج؛ راجع §8-ش: %s" % (len(loss_blind), loss_blind[:6]))
 if len(eps_flip) > EPS_FLIP_WARN_AT:
     warn("قلب حكم تغطية التوزيع في %d سهماً (فوق عتبة %d) — انحدار جودة مصدر أو "
          "تغيّر اصطلاح eps؛ راجع §8-ش" % (len(eps_flip), EPS_FLIP_WARN_AT))
