@@ -951,11 +951,22 @@ function dyFlags(s){
      رقم لمصدره ولا ندّعي أيَّهما صحيح — وهو مبدأ الموجة المعلن، وكان نقضُه هنا
      تكراراً للخطأ الذي قامت الموجة لعلاجه، معكوس الاتجاه. ويُحجب الرقم للسهم عن
      المتعارضين لأنه يوحي بدقة لا تملكها بياناتهم. */
-  const oppo=[["الهامش الصافي",finA.profitMargins],["العائد على حقوق الملكية",finA.returnOnEquity],
-              ["العائد على الأصول",finA.returnOnAssets]].filter(x=>typeof x[1]==="number"&&x[1]>0).map(x=>x[0]);
+  /* تصحيح ختم 03-10/د: «في الكتلة نفسها» أقوى مما يحمله السجل — حقول النسب
+     مختومة asOf أقدم من ختم القوائم (08-04 مقابل 09-10 لكل الكون)، و26 قيمة منها
+     من مزوّد آخر (S&P Global الموروث)، و«netIncome» بلا ختم في financialsParts.
+     فالأسرتان غير متقايستين منهجياً — وهذا يقوّي الحجة على عدم القطع لا يضعفها.
+     فيُنسب الوقت لا المكان، والختم يُقرأ من البيانات لا يُكتب صلباً. */
+  const oppoP=[["الهامش الصافي","profitMargins",finA.profitMargins],
+               ["العائد على حقوق الملكية","returnOnEquity",finA.returnOnEquity],
+               ["العائد على الأصول","returnOnAssets",finA.returnOnAssets]]
+              .filter(x=>typeof x[2]==="number"&&x[2]>0);
+  const oppo=oppoP.map(x=>x[0]);
+  const fparts=s.financialsParts||{};
+  const oppoAsOf=[...new Set(oppoP.map(x=>(fparts[x[1]]||{}).asOf).filter(Boolean))];
+  const stampTxt=oppoAsOf.length===1?` بختم نسب أقدم (${oppoAsOf[0]})`:" بختم نسب منفصل";
   if(typeof niA==="number"&&niA<0){
     if(oppo.length)
-      f.push(`${yrTag}: صافي الربح المعلن يقول خسارة بينما ${oppo.join(" و")} في الكتلة نفسها تقول ربحاً — أساسان متعارضان للربح، تحقّق قبل الاعتماد`);
+      f.push(`${yrTag}: صافي الربح المعلن يقول خسارة، بينما ${oppo.join(" و")}${stampTxt} تقول ربحاً — أساسان متعارضان للربح، تحقّق قبل الاعتماد`);
     else{
       const per=(ieA!=null&&ieA<0)
         ?(Math.abs(ieA)>=0.01?` (${fmt(Math.abs(ieA),2)} ريال للسهم)`:" (أقل من 0.01 ريال للسهم)")
@@ -1722,12 +1733,15 @@ document.addEventListener("mouseover",e=>{
 });
 document.addEventListener("click",e=>{
   const el=e.target.closest("[data-tip]");
-  /* زمن القراءة يتناسب مع الطول (ختم 03-10): 3500ms ثابتة كانت تكفي ~33 كلمة،
-     ونصوص وسوم العائد بلغت 195 حرفاً وتنتهي بأمر عملي («تحقّق قبل الاعتماد»).
-     ‏~12 حرفاً عربياً في الثانية، بأرضية 3500 وسقف 12000 كي لا يبقى معلقاً. */
+  /* زمن القراءة يتناسب مع الطول (ختم 03-10، ومُعاد قياسه بعد نمو النص إلى 342
+     حرفاً في 2170): 3500ms ثابتة كانت تكفي ~33 كلمة. و~12 حرفاً عربياً في الثانية
+     يعني 28 ثانية لأطول تلميح — وهو زمن لا يُترك فيه تلميح معلّقاً بمؤقّت وحده.
+     فالعلاج ليس رفع السقف وحده بل إعطاء المستخدم مخرجاً: لمسة في أي مكان تُخفيه،
+     فيصير المؤقّت شبكة أمان لا آلية الإغلاق الوحيدة، ويتسع السقف بلا ضرر. */
   if(el){ e.stopPropagation(); showTip(el);
-          const ms=Math.min(12000,Math.max(3500,(el.dataset.tip||"").length*85));
+          const ms=Math.min(25000,Math.max(3500,(el.dataset.tip||"").length*85));
           clearTimeout(tipHide); tipHide=setTimeout(hideTip,ms); }
+  else { clearTimeout(tipHide); hideTip(); }
 });
 document.addEventListener("focusin",e=>{
   const el=e.target.closest("[data-tip]"); if(el) showTip(el); else hideTip();
