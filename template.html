@@ -253,9 +253,18 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .chg-up{color:var(--green)} .chg-dn{color:var(--red)} .chg-flat{color:var(--text3)}
 .dy-warn{cursor:help; font-size:10px}
 .b-dy{color:var(--gold); background:var(--gold-dim)}
-.dy-note{font-size:11.5px; color:var(--text3); line-height:1.9; padding:10px 14px; margin:0 0 10px;
+.dy-note{font-size:11.5px; color:var(--text3); line-height:1.9; padding:11px 14px; margin:0 0 10px;
   background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm)}
 .dy-note b{color:var(--text2)}
+.dy-note-hd{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px}
+.dy-note-hd b{font-size:13px; color:var(--text)}
+.dy-tag{font-size:10.5px; color:var(--text3); border:1px solid var(--border2); border-radius:5px; padding:1px 7px}
+.dy-toggle{font-size:11.5px; color:var(--text2); border:1px solid var(--border); border-radius:999px; padding:3px 11px; margin-right:auto}
+.dy-toggle:hover{border-color:var(--border2); color:var(--text)}
+.dy-toggle.on{color:var(--gold); border-color:rgba(212,168,82,0.4); background:var(--gold-dim)}
+.dy-count{color:var(--text2); padding:4px 0 2px}
+.dy-count.warn{color:var(--amber)}
+.dy-note-tail{margin-top:5px; padding-top:5px; border-top:1px solid var(--border)}
 .score-cell{display:flex; align-items:center; gap:8px}
 .score-cell .n{font-weight:700; font-size:14px; min-width:24px}
 .sbar{width:44px; height:3px; background:var(--surface3); border-radius:2px; overflow:hidden}
@@ -561,7 +570,7 @@ const RANGE_LABELS = [["d30","شهر"],["d90","3 أشهر"],["w52","سنة"],["w
 
 let DATA=null, STOCKS=[], state={
   view:"market", q:"", sector:"", minScore:0, timing:"", quality:"",
-  adv:{sma:false,rev:false,div:false,pe:false,liq:false},
+  adv:{sma:false,rev:false,div:false,pe:false,liq:false}, dyRatedOnly:false,
   sort:{key:"score",dir:-1}, drawerSym:null, chartRange:"d90"
 };
 
@@ -763,6 +772,7 @@ function applyFilters(list){
     if(a.div && !((dyOf(s)||0)>2)) return false;
     if(a.pe){ const pe=peOf(s), ref=medPe(s); if(!(pe&&ref&&pe<ref)) return false; }
     if(a.liq && !((s.liquidityGate||{}).passed)) return false;
+    if(state.dyRatedOnly && state.view==="dividends" && !rated(s)) return false;
     return true;
   });
 }
@@ -863,13 +873,37 @@ const COLS=[
   {key:"dy",     label:"عائد التوزيعات", sortable:true, p:"col-p2", alwaysIn:"dividends",
    tip:"ما وُزّع نقداً فعلاً خلال 12 شهراً ÷ سعر السهم اليوم — يتحرك مع السعر"}
 ];
-/* عتبة العائد الاستثنائي — نفس عتبة حارس highYield في مفكرة التوزيعات (اتساق، لا عتبة جديدة) */
-const HIGH_YIELD_PCT=8;
+/* وسوم العائد — حكم المحلل 03-10: العتبة المطلقة (8%) خطأ فئة هنا، لأن 8% لحدث
+   فردي ليست 8% سنوياً. الوسم يُبنى على التغطية والميكانيكا لا على المستوى:
+   تغطية التوزيع من الربح، وانهيار السعر تحت المتوسط الطويل، وغياب ما يُتحقق به.
+   والمطلق يبقى احتياطاً عند 10% (≈3× وسيط السوق) لا 8%. */
+const DY_EXTREME_PCT=10;
+function dyFlags(s){
+  const vi=s.valuationInputs||{}, wt=s.weeklyTechnical||{};
+  const y=dyOf(s), dv=vi.divTtm12m, eps=vi.eps;
+  const px=(s.dailyExtra||{}).lastClose||s.currentPrice;
+  const f=[];
+  if(y==null||y<=0) return f;
+  if(eps!=null&&eps>0&&dv>eps)
+    f.push(`التوزيع أكبر من ربح 12 شهراً (تغطية ${(dv/eps).toFixed(2)}×) — قد لا يتكرر`);
+  else if(eps==null||eps<=0)
+    f.push("يوزّع بلا ربح معلن — تحقق من مصدر التوزيع");
+  if(wt.sma200w&&px&&px<wt.sma200w*0.75)
+    f.push(`السعر أدنى من متوسطه الطويل بأكثر من 25% — جزء من العائد هبوط سعر لا كرم شركة`);
+  if(!((s.dividends||{}).history||[]).length&&!wt.sma200w)
+    f.push("بلا سجل دفعات ولا قاعدة 200 أسبوع — يتعذّر التحقق");
+  const sm=(DATA.sectorMedians||{})[secOf(s)]||{};
+  if((sm.dyPool||0)>=5&&sm.divYieldMedian&&y>=sm.divYieldMedian*100*2)
+    f.push("ضعف وسيط قطاعه أو أكثر");
+  if(!f.length&&y>=DY_EXTREME_PCT) f.push("عائد استثنائي — تحقق من سببه");
+  return f;
+}
 function dyCell(s){
   const y=dyOf(s);
   if(y==null) return "—";
-  const warn=y>HIGH_YIELD_PCT
-    ?` <span class="dy-warn" data-tip="عائد استثنائي — قد يكون توزيعاً غير متكرر أو هبوطاً حاداً في السعر؛ تحقق قبل الاعتماد" tabindex="0">⚠️</span>`:"";
+  const f=dyFlags(s);
+  const warn=f.length
+    ?` <span class="dy-warn" data-tip="${esc(f.join(" · "))}" tabindex="0">⚠️</span>`:"";
   return `${fmt(y,1)}%${frzMark(s,"dividendYield")}${warn}`;
 }
 /* ─── مفكرة التوزيعات الشاملة (عزل تام عن التوصيات — لا درجات في الصفوف) ─── */
@@ -927,6 +961,27 @@ function divCalendarHtml(){
   </div>`;
 }
 
+/* سطر صدق العائد — أربعة تحفظات ألزم بها المحلل (03-10): تاريخ الأساس، وأن الأحقية
+   الماضية ليست حقاً للمشتري الجديد، وهبوط السعر يوم الأحقية، وتسمية الميكانيكا صراحةً */
+function dyNoteHtml(list){
+  const top=list.slice(0,10);
+  const unrated=top.filter(s=>!rated(s)).length;
+  const asOf=(( (STOCKS[0]||{}).valuationInputs)||{}).divsAsOf||"";
+  const priceAt=String(DATA.lastUpdated||"").slice(0,10);
+  return `<div class="dy-note">
+    <div class="dy-note-hd">
+      <b>مرتبة من الأعلى عائداً</b>
+      <span class="dy-tag">معلوماتي — غير مقيس في صفحة الدقة</span>
+      <button class="dy-toggle ${state.dyRatedOnly?"on":""}" id="dyRatedOnly">${state.dyRatedOnly?"✓ ":""}المقيَّمة فقط</button>
+    </div>
+    ${top.length?`<div class="dy-count ${unrated?"warn":""}">من أعلى ${top.length} عائداً: <b>${unrated}</b> ${unrated===1?"سهم مستبعد":"أسهم مستبعدة"} من تقييم سيف${unrated?" — العائد وحده لم يكفِ لاجتياز الفلتر":""}.</div>`:""}
+    <div>العائد = ما وُزّع نقداً فعلاً${asOf?` حتى <span class="num">${esc(asOf)}</span>`:""} خلال 12 شهراً ÷ سعر السهم${priceAt?` في <span class="num">${esc(priceAt)}</span>`:""} — بسط ومقام من تاريخين مختلفين.</div>
+    <div><b>العائد المرتفع غالباً سعر هابط</b> لا كرم شركة: العائد يرتفع حسابياً كلما نزل السعر.</div>
+    <div>ما مرّت أحقيته <b>لا يستحقه من يشتري اليوم</b> — هذا سجل ماضٍ لا وعد بالمستقبل.</div>
+    <div>ويوم الأحقية ينخفض سعر السهم عادة بقيمة التوزيع تقريباً.</div>
+    <div class="dy-note-tail">العائد وحده ليس توصية — انظر الدرجة والجودة والتوقيت في الجدول نفسه.</div>
+  </div>`;
+}
 function renderBody(){
   syncSelectStyles();
   const view=VIEWS.find(v=>v.id===state.view)||VIEWS[0];
@@ -990,13 +1045,12 @@ function renderBody(){
         ${state.view==="dividends"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:""}
       </div>
     </div>`).join("");
-  const dyNote=state.view==="dividends"?`<div class="dy-note">
-    <b>مرتبة من الأعلى عائداً</b> — العائد = ما وُزّع نقداً فعلاً خلال 12 شهراً ÷ سعر السهم اليوم، فيتحرك مع السعر.
-    سجل ماضٍ لا وعد بالمستقبل، والعائد وحده ليس توصية: انظر الدرجة والتوقيت في الجدول.
-  </div>`:"";
+  const dyNote=state.view==="dividends"?dyNoteHtml(list):"";
   $("body").innerHTML=calHtml+dyNote+`
     <table class="scr"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>
     <div class="cards">${cards}</div>`;
+  const dyT=$("dyRatedOnly");
+  if(dyT) dyT.addEventListener("click",()=>{ state.dyRatedOnly=!state.dyRatedOnly; renderBody(); });
   $("body").querySelectorAll("[data-sym]").forEach(el=>{
     el.addEventListener("click",e=>{ if(e.target.closest("[data-tip]"))return; openDrawer(el.dataset.sym); });
     el.addEventListener("keydown",e=>{ if(e.key==="Enter") openDrawer(el.dataset.sym); });
@@ -1377,7 +1431,18 @@ function finCells(s){
   out+=cell("نمو الإيرادات", rg!=null?fmt(rg,1)+"%":"—", rg!=null?(rg>5?"green":rg>=0?"amber":"red"):"", FIN_DESC.revGrowth);
   out+=cell("P/E"+frzMark(s,"pe"), peOf(s)!=null?fmt(peOf(s),1):"—", "", FIN_DESC.pe);
   out+=cell("P/B"+frzMark(s,"pb"), pbOf(s)!=null?fmt(pbOf(s),2):"—", "", FIN_DESC.pb);
-  out+=cell("عائد التوزيعات"+frzMark(s,"dividendYield"), dyOf(s)!=null?fmt(dyOf(s),1)+"%":"—", "", FIN_DESC.divYield);
+  const vi0=s.valuationInputs||{}, dyv=dyOf(s);
+  /* 115 من 135 موزِّعاً بلا سجل دفعات في البيانات — عرض المبلغ بالريال يجعل الرقم
+     قابلاً للتحقق بلا سجل (ملاحظة المحلل 03-10)، وأساس «none-recent18m» يُميَّز
+     صراحةً فلا تُقرأ شركة موزِّعة انزاحت أحقيتها على أنها «لا توزع» */
+  const dyTxt = vi0.divBasis==="none-recent18m"
+    ? "خارج نافذة 12 شهراً"
+    : (dyv!=null&&dyv>0&&vi0.divTtm12m ? `${fmt(dyv,1)}% · ${fmt(vi0.divTtm12m)} ريال`
+       : dyv!=null?fmt(dyv,1)+"%":"—");
+  const dyDesc = vi0.divBasis==="none-recent18m"
+    ? "آخر توزيع مرّت أحقيته قبل أكثر من 12 شهراً — خارج نافذة الحساب، لا يعني توقف التوزيع"
+    : FIN_DESC.divYield;
+  out+=cell("عائد التوزيعات"+frzMark(s,"dividendYield"), dyTxt, "", dyDesc);
   if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
   else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);
   if(!isBank&&ocf!=null) out+=cell("النقد التشغيلي OCF",
