@@ -889,6 +889,37 @@ const COL_DY=COLS.find(c=>c.key==="dy");   /* لا فهرس صلب يكسر بص
    تغطية التوزيع من الربح، وانهيار السعر تحت المتوسط الطويل، وغياب ما يُتحقق به.
    والمطلق يبقى احتياطاً عند 10% (≈3× وسيط السوق) لا 8%. */
 const DY_EXTREME_PCT=10;
+/* مرجع ربح مستقل عن eps المصدر. حدّ حارس تقاطع pe بدقة (تقييد ختم 03-10): pe
+   المحسوب وpeSource مشتقان اليوم من eps_ttm نفسه (وسيط (theirPrice÷peSource)÷eps
+   = 1.006 على 159 سهماً، ووسيط انزياح السعر 8.6%) — فالحارس لا يكشف أن المُدخل
+   المشترك موسوم خطأً، لكنه *يكشف* تباعد الحقلين لو تغيّر اصطلاح أحدهما. المرجع
+   البديل من السجل نفسه: صافي ربح آخر سنة مالية كاملة ÷ الأسهم القائمة.
+   الأساسان مختلفان بالتصميم (12 شهراً متتابعاً مقابل سنة كاملة) فالتباعد وحده ليس
+   خطأً — نمو سنوي حقيقي يضاعفه مشروعاً، ولذلك لا وسم على التباعد نفسه.
+   حارس عدد الأسهم: انحراف sharesOutstanding عن marketCap÷theirPrice مرصود بوسيط
+   0.91% وبلغ 98.7% لسهمين — فوق 25% يُهمل المرجع (خطأ جسيم في العدد لا تعارض). */
+function impliedEpsAnnual(s){
+  const vi=s.valuationInputs||{}, fin=s.financials||{};
+  const ni=fin.netIncome, sh=vi.sharesOutstanding;
+  if(typeof ni!=="number"||typeof sh!=="number"||!(sh>0)) return null;
+  const mc=vi.marketCap, tp=vi.theirPrice;
+  if(typeof mc==="number"&&typeof tp==="number"&&tp>0&&Math.abs(mc/(sh*tp)-1)>0.25) return null;
+  return ni/sh;
+}
+/* عدد الأسهم المضمَّن من القيمة السوقية — أساس ثانٍ مستقل لاختبار الصلابة */
+function impliedEpsAlt(s){
+  const vi=s.valuationInputs||{}, fin=s.financials||{};
+  const ni=fin.netIncome, mc=vi.marketCap, tp=vi.theirPrice;
+  if(typeof ni!=="number"||typeof mc!=="number"||typeof tp!=="number"||!(tp>0)) return null;
+  const sh=mc/tp;
+  return sh>0?ni/sh:null;
+}
+/* هامش ميت 5% + اشتراط صمود الحكم على أساسَي عدد الأسهم كليهما.
+   تصحيح ختم 03-10: الهامش وحده لا يكفي ولا يجوز تبريره بانحراف 3.45% — فالسهم
+   صاحب ذلك الانحراف (7200) كان فائضه فوق الهامش 1.10% فقط، ولو أُخذ العدد
+   المضمَّن لسقط إلى 1.0248 فلم يُوسَم. فالوسم الآن يشترط أن يصمد الحكم على
+   العددين (المصرَّح والمضمَّن) — اختبار صلابة لا عتبة مضبوطة يدوياً. */
+const COV_FLIP_MARGIN=1.05;
 function dyFlags(s){
   const vi=s.valuationInputs||{}, wt=s.weeklyTechnical||{};
   const y=dyOf(s), dv=vi.divTtm12m, eps=vi.eps;
@@ -899,6 +930,64 @@ function dyFlags(s){
     f.push(`التوزيع أكبر من ربح 12 شهراً (تغطية ${(dv/eps).toFixed(2)}×) — قد لا يتكرر`);
   else if(eps==null||eps<=0)
     f.push("يوزّع بلا ربح معلن — تحقق من مصدر التوزيع");
+  /* ‏(أ) خسارة السنة الكاملة — شرط *مستقل* تماماً عن eps المصدر وعن سلسلة التغطية.
+     تصحيح ختم 03-10/أ: كان محجوباً خلف dv<=eps فكان ميتاً بالبناء — ثمانية موزِّعين
+     أقفلوا سنتهم بخسارة ولا يُقال لهم ذلك، ومنهم سابك (توزيع 5.67% وخسارة 8.59
+     ريال للسهم) واللجين (8.59% وخسارة 12.05) وينساب (6.35%).
+     تصحيح ختم 03-10/ب: الحقيقة مُعلَّقة على إشارة netIncome وحدها — لا على ieA.
+     فإشارة القسمة على عدد موجب هي إشارة البسط، وتعليق *الحقيقة* على ieA كان
+     يورّثها شرطين لا تحتاجهما (حضور عدد الأسهم واجتياز حارس 25%) فيُسكتان خسارة
+     مؤكَّدة بصمت مغلق. عدد الأسهم يقرّر *الرقم للسهم* فقط، وغيابه يحجب الرقم
+     لا الخبر. وأرضية عرض 0.01 كي لا يُقال «خسارة (0 ريال للسهم)». */
+  const finA=s.financials||{}, niA=finA.netIncome, ieA=impliedEpsAnnual(s);
+  const fyA=finA.fiscalYear;
+  const yrTag=fyA?`سنة ${fyA} الكاملة`:"آخر سنة مالية كاملة معلنة";
+  /* تصحيح ختم 03-10/ج: القطع بالخسارة لا يجوز إلا حيث يوافق السجل نفسه. فثلاثة
+     حقول في كتلة financials ذاتها تُشتق من صافي الربح — الهامش الصافي (مُسنَد من
+     net_margin، والتشغيلي حقل منفصل) وROE وROA — وموجَبها مع صافي ربح سالب تناقضٌ
+     رياضي لا فرق مُدد (reportDate = 12-31 للـ244 جميعاً). وفي خمسة من الثمانية
+     تعارض هذه الحقول علامة netIncome، وفيها ينقلب ROE×حقوق موجباً.
+     فالقطع يبقى حيث لا معارِض، ويُستبدل حيث يوجد بصيغة فرع القلب نفسها: ننسب كل
+     رقم لمصدره ولا ندّعي أيَّهما صحيح — وهو مبدأ الموجة المعلن، وكان نقضُه هنا
+     تكراراً للخطأ الذي قامت الموجة لعلاجه، معكوس الاتجاه. ويُحجب الرقم للسهم عن
+     المتعارضين لأنه يوحي بدقة لا تملكها بياناتهم. */
+  /* تصحيح ختم 03-10/د: «في الكتلة نفسها» أقوى مما يحمله السجل — حقول النسب
+     مختومة asOf أقدم من ختم القوائم (08-04 مقابل 09-10 لكل الكون)، و26 قيمة منها
+     من مزوّد آخر (S&P Global الموروث)، و«netIncome» بلا ختم في financialsParts.
+     فالأسرتان غير متقايستين منهجياً — وهذا يقوّي الحجة على عدم القطع لا يضعفها.
+     فيُنسب الوقت لا المكان، والختم يُقرأ من البيانات لا يُكتب صلباً. */
+  const oppoP=[["الهامش الصافي","profitMargins",finA.profitMargins],
+               ["العائد على حقوق الملكية","returnOnEquity",finA.returnOnEquity],
+               ["العائد على الأصول","returnOnAssets",finA.returnOnAssets]]
+              .filter(x=>typeof x[2]==="number"&&x[2]>0);
+  const oppo=oppoP.map(x=>x[0]);
+  const fparts=s.financialsParts||{};
+  const oppoAsOf=[...new Set(oppoP.map(x=>(fparts[x[1]]||{}).asOf).filter(Boolean))];
+  const stampTxt=oppoAsOf.length===1?` بختم نسب أقدم (${oppoAsOf[0]})`:" بختم نسب منفصل";
+  if(typeof niA==="number"&&niA<0){
+    if(oppo.length)
+      f.push(`${yrTag}: صافي الربح المعلن يقول خسارة، بينما ${oppo.join(" و")}${stampTxt} تقول ربحاً — أساسان متعارضان للربح، تحقّق قبل الاعتماد`);
+    else{
+      const per=(ieA!=null&&ieA<0)
+        ?(Math.abs(ieA)>=0.01?` (${fmt(Math.abs(ieA),2)} ريال للسهم)`:" (أقل من 0.01 ريال للسهم)")
+        :"";
+      f.push(`${yrTag} أُقفلت بخسارة${per} — التوزيع لم يأتِ من ربح تلك السنة، تحقّق من مصدره`);
+    }
+  }else if(niA===0)
+    f.push(`${yrTag} أُقفلت بلا ربح — التوزيع لم يأتِ من ربح تلك السنة، تحقّق من مصدره`);
+  /* ‏(ب) تعارض أساس الربح — حيث يصمت الوسمان أعلاه خطأً: التوزيع داخل ربح 12 شهراً
+     من المصدر (فوسم التغطية لا ينطلق) لكنه يتجاوز الربح السنوي المعلن. لا يدّعي
+     الوسم أي الرقمين صحيح — ينسب كل رقم لأساسه ويترك الحكم للقارئ. ويشترط صمود
+     الحكم على أساسَي عدد الأسهم كليهما كي لا ينطلق على أثر عدد الأسهم وحده.
+     مستقل عن السلسلة أعلاه بشروط صريحة لا بترتيبها (فلا ينزاح بتعديل لاحق عليها). */
+  if(eps!=null&&eps>0&&dv!=null&&dv>0&&dv<=eps&&ieA!=null&&ieA>0&&dv>ieA*COV_FLIP_MARGIN){
+    const ieB=impliedEpsAlt(s);
+    const robust=(ieB==null)||(ieB>0&&dv>ieB*COV_FLIP_MARGIN);
+    if(robust){
+      const yrIn=fyA?`ربح ${fyA} الكامل المعلن`:"آخر ربح سنوي كامل معلن";
+      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ieA).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
+    }
+  }
   if(wt.sma200w&&px&&px<wt.sma200w*0.75)
     f.push(`السعر أدنى من متوسطه الطويل بأكثر من 25% — جزء من العائد هبوط سعر لا كرم شركة`);
   if(!((s.dividends||{}).history||[]).length&&!wt.sma200w)
@@ -1626,7 +1715,7 @@ function closeDrawer(){
 }
 
 /* ─── Tooltip ─── */
-let tipTimer=null;
+let tipTimer=null, tipHide;
 function showTip(el){
   const t=$("tip"); t.textContent=el.dataset.tip;
   const r=el.getBoundingClientRect();
@@ -1644,7 +1733,15 @@ document.addEventListener("mouseover",e=>{
 });
 document.addEventListener("click",e=>{
   const el=e.target.closest("[data-tip]");
-  if(el){ e.stopPropagation(); showTip(el); setTimeout(hideTip,3500); }
+  /* زمن القراءة يتناسب مع الطول (ختم 03-10، ومُعاد قياسه بعد نمو النص إلى 342
+     حرفاً في 2170): 3500ms ثابتة كانت تكفي ~33 كلمة. و~12 حرفاً عربياً في الثانية
+     يعني 28 ثانية لأطول تلميح — وهو زمن لا يُترك فيه تلميح معلّقاً بمؤقّت وحده.
+     فالعلاج ليس رفع السقف وحده بل إعطاء المستخدم مخرجاً: لمسة في أي مكان تُخفيه،
+     فيصير المؤقّت شبكة أمان لا آلية الإغلاق الوحيدة، ويتسع السقف بلا ضرر. */
+  if(el){ e.stopPropagation(); showTip(el);
+          const ms=Math.min(25000,Math.max(3500,(el.dataset.tip||"").length*85));
+          clearTimeout(tipHide); tipHide=setTimeout(hideTip,ms); }
+  else { clearTimeout(tipHide); hideTip(); }
 });
 document.addEventListener("focusin",e=>{
   const el=e.target.closest("[data-tip]"); if(el) showTip(el); else hideTip();
