@@ -889,10 +889,11 @@ const COL_DY=COLS.find(c=>c.key==="dy");   /* لا فهرس صلب يكسر بص
    تغطية التوزيع من الربح، وانهيار السعر تحت المتوسط الطويل، وغياب ما يُتحقق به.
    والمطلق يبقى احتياطاً عند 10% (≈3× وسيط السوق) لا 8%. */
 const DY_EXTREME_PCT=10;
-/* مرجع ربح مستقل عن eps المصدر — حارس تقاطع pe أعمى بنيوياً: pe المحسوب وpeSource
-   كلاهما من eps_ttm نفسه (مرصود: وسيط (theirPrice÷peSource)÷eps = 1.006 على 159
-   سهماً)، فما يقيسه الحارس انزياح السعر (وسيط 8.6%) لا الاصطلاح. المرجع البديل من
-   السجل نفسه: صافي ربح آخر سنة مالية كاملة ÷ الأسهم القائمة.
+/* مرجع ربح مستقل عن eps المصدر. حدّ حارس تقاطع pe بدقة (تقييد ختم 03-10): pe
+   المحسوب وpeSource مشتقان اليوم من eps_ttm نفسه (وسيط (theirPrice÷peSource)÷eps
+   = 1.006 على 159 سهماً، ووسيط انزياح السعر 8.6%) — فالحارس لا يكشف أن المُدخل
+   المشترك موسوم خطأً، لكنه *يكشف* تباعد الحقلين لو تغيّر اصطلاح أحدهما. المرجع
+   البديل من السجل نفسه: صافي ربح آخر سنة مالية كاملة ÷ الأسهم القائمة.
    الأساسان مختلفان بالتصميم (12 شهراً متتابعاً مقابل سنة كاملة) فالتباعد وحده ليس
    خطأً — نمو سنوي حقيقي يضاعفه مشروعاً، ولذلك لا وسم على التباعد نفسه.
    حارس عدد الأسهم: انحراف sharesOutstanding عن marketCap÷theirPrice مرصود بوسيط
@@ -905,8 +906,19 @@ function impliedEpsAnnual(s){
   if(typeof mc==="number"&&typeof tp==="number"&&tp>0&&Math.abs(mc/(sh*tp)-1)>0.25) return null;
   return ni/sh;
 }
-/* هامش ميت 5% على قلب الحكم — انحراف عدد الأسهم المرصود بلغ 3.45% بين الموسومين،
-   فلا ينطلق وسم على حكم تغطية قد يكون أثر عدد الأسهم وحده */
+/* عدد الأسهم المضمَّن من القيمة السوقية — أساس ثانٍ مستقل لاختبار الصلابة */
+function impliedEpsAlt(s){
+  const vi=s.valuationInputs||{}, fin=s.financials||{};
+  const ni=fin.netIncome, mc=vi.marketCap, tp=vi.theirPrice;
+  if(typeof ni!=="number"||typeof mc!=="number"||typeof tp!=="number"||!(tp>0)) return null;
+  const sh=mc/tp;
+  return sh>0?ni/sh:null;
+}
+/* هامش ميت 5% + اشتراط صمود الحكم على أساسَي عدد الأسهم كليهما.
+   تصحيح ختم 03-10: الهامش وحده لا يكفي ولا يجوز تبريره بانحراف 3.45% — فالسهم
+   صاحب ذلك الانحراف (7200) كان فائضه فوق الهامش 1.10% فقط، ولو أُخذ العدد
+   المضمَّن لسقط إلى 1.0248 فلم يُوسَم. فالوسم الآن يشترط أن يصمد الحكم على
+   العددين (المصرَّح والمضمَّن) — اختبار صلابة لا عتبة مضبوطة يدوياً. */
 const COV_FLIP_MARGIN=1.05;
 function dyFlags(s){
   const vi=s.valuationInputs||{}, wt=s.weeklyTechnical||{};
@@ -918,18 +930,28 @@ function dyFlags(s){
     f.push(`التوزيع أكبر من ربح 12 شهراً (تغطية ${(dv/eps).toFixed(2)}×) — قد لا يتكرر`);
   else if(eps==null||eps<=0)
     f.push("يوزّع بلا ربح معلن — تحقق من مصدر التوزيع");
-  /* تعارض أساس الربح — الحالة الوحيدة التي يصمت فيها العرض خطأً: التوزيع داخل ربح
-     12 شهراً من المصدر (فالوسم أعلاه لا ينطلق) لكنه يتجاوز الربح السنوي المعلن.
-     لا يدّعي الوسم أي الرقمين صحيح — ينسب كل رقم لأساسه ويترك الحكم للقارئ.
+  /* ‏(أ) خسارة السنة الكاملة — شرط *مستقل* تماماً عن eps المصدر وعن سلسلة التغطية.
+     تصحيح ختم 03-10: كان محجوباً خلف dv<=eps فكان ميتاً بالبناء — ثمانية موزِّعين
+     أقفلوا سنتهم بخسارة ولا يُقال لهم ذلك، ومنهم سابك (توزيع 5.67% وخسارة 8.59
+     ريال للسهم) واللجين (8.59% وخسارة 12.05) وينساب (6.35%). */
+  const ieA=impliedEpsAnnual(s), fyA=(s.financials||{}).fiscalYear;
+  const yrTag=fyA?`سنة ${fyA} الكاملة`:"آخر سنة مالية كاملة معلنة";
+  if(ieA!=null&&ieA<0)
+    f.push(`${yrTag} أُقفلت بخسارة (${fmt(Math.abs(ieA),2)} ريال للسهم) — التوزيع لم يأتِ من ربح تلك السنة، تحقّق من مصدره`);
+  else if(ieA===0)
+    f.push(`${yrTag} أُقفلت بلا ربح — التوزيع لم يأتِ من ربح تلك السنة، تحقّق من مصدره`);
+  /* ‏(ب) تعارض أساس الربح — حيث يصمت الوسمان أعلاه خطأً: التوزيع داخل ربح 12 شهراً
+     من المصدر (فوسم التغطية لا ينطلق) لكنه يتجاوز الربح السنوي المعلن. لا يدّعي
+     الوسم أي الرقمين صحيح — ينسب كل رقم لأساسه ويترك الحكم للقارئ. ويشترط صمود
+     الحكم على أساسَي عدد الأسهم كليهما كي لا ينطلق على أثر عدد الأسهم وحده.
      مستقل عن السلسلة أعلاه بشروط صريحة لا بترتيبها (فلا ينزاح بتعديل لاحق عليها). */
-  if(eps!=null&&eps>0&&dv!=null&&dv>0&&dv<=eps){
-    const ie=impliedEpsAnnual(s), fy=(s.financials||{}).fiscalYear;
-    const yrIn=fy?`ربح ${fy} الكامل المعلن`:"آخر ربح سنوي كامل معلن";
-    const yrLoss=fy?`سنة ${fy} الكاملة`:"آخر سنة كاملة معلنة";
-    if(ie!=null&&ie>0&&dv>ie*COV_FLIP_MARGIN)
-      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ie).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
-    else if(ie!=null&&ie<=0)
-      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) لكن ${yrLoss} أُقفلت بخسارة — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
+  if(eps!=null&&eps>0&&dv!=null&&dv>0&&dv<=eps&&ieA!=null&&ieA>0&&dv>ieA*COV_FLIP_MARGIN){
+    const ieB=impliedEpsAlt(s);
+    const robust=(ieB==null)||(ieB>0&&dv>ieB*COV_FLIP_MARGIN);
+    if(robust){
+      const yrIn=fyA?`ربح ${fyA} الكامل المعلن`:"آخر ربح سنوي كامل معلن";
+      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ieA).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
+    }
   }
   if(wt.sma200w&&px&&px<wt.sma200w*0.75)
     f.push(`السعر أدنى من متوسطه الطويل بأكثر من 25% — جزء من العائد هبوط سعر لا كرم شركة`);
@@ -1658,7 +1680,7 @@ function closeDrawer(){
 }
 
 /* ─── Tooltip ─── */
-let tipTimer=null;
+let tipTimer=null, tipHide;
 function showTip(el){
   const t=$("tip"); t.textContent=el.dataset.tip;
   const r=el.getBoundingClientRect();
@@ -1676,7 +1698,12 @@ document.addEventListener("mouseover",e=>{
 });
 document.addEventListener("click",e=>{
   const el=e.target.closest("[data-tip]");
-  if(el){ e.stopPropagation(); showTip(el); setTimeout(hideTip,3500); }
+  /* زمن القراءة يتناسب مع الطول (ختم 03-10): 3500ms ثابتة كانت تكفي ~33 كلمة،
+     ونصوص وسوم العائد بلغت 195 حرفاً وتنتهي بأمر عملي («تحقّق قبل الاعتماد»).
+     ‏~12 حرفاً عربياً في الثانية، بأرضية 3500 وسقف 12000 كي لا يبقى معلقاً. */
+  if(el){ e.stopPropagation(); showTip(el);
+          const ms=Math.min(12000,Math.max(3500,(el.dataset.tip||"").length*85));
+          clearTimeout(tipHide); tipHide=setTimeout(hideTip,ms); }
 });
 document.addEventListener("focusin",e=>{
   const el=e.target.closest("[data-tip]"); if(el) showTip(el); else hideTip();
