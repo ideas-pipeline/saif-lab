@@ -15,7 +15,7 @@
      وأسطح تتدرّج صعوداً بفارق مرئي، وحدود مشتقة من زرقة الأرضية لا من الأبيض. */
   --bg:#0C1420; --surface:#111C2D; --surface2:#16233A; --surface3:#1D2C45;
   --border:rgba(125,170,225,0.16); --border2:rgba(125,170,225,0.28);
-  --text:#E8EEF7; --text2:#93A4BC; --text3:#7B8DA6;   /* 5.05:1 على السطح و4.64 على الأعلى منه — يمرّ AA على كل الأسطح؛ وكان 3.65 في اللوحة القديمة أي راسباً */
+  --text:#E8EEF7; --text2:#93A4BC; --text3:#8798B0;   /* مقيس مركَّباً لا على الأرضية وحدها: 5.82 على bg · 5.82/5.35/4.77 على الأسطح الثلاثة · 5.12 تحت غسالة .b-na (شارة 214 من 248 سهماً) و4.65 على الأعلى منها — يمرّ AA في كل تركيب. وكان 3.65 في اللوحة القديمة أي راسباً. */
   --green:#34D399; --green-dim:rgba(52,211,153,0.14);
   --red:#F87171; --red-dim:rgba(248,113,113,0.12);
   --accent:#38BDF8; --accent-dim:rgba(56,189,248,0.14);
@@ -53,7 +53,7 @@ a{color:var(--accent); text-decoration:none}
 .hd-brand .mark{display:flex; align-items:center; gap:9px}
 .hd-name{font-size:19px; font-weight:700; letter-spacing:-0.2px}
 .hd-sub{font-size:11px; color:var(--text3); letter-spacing:0.2px}
-.hd-link{font-size:12px; color:var(--gold); white-space:nowrap}
+.hd-link{font-size:12px; color:var(--accent); white-space:nowrap}
 .hd-link:hover{color:var(--amber)}
 .hd-link-dim{color:var(--text3)}
 .hd-link-dim:hover{color:var(--text2)}
@@ -71,7 +71,7 @@ a{color:var(--accent); text-decoration:none}
 .p-tile{
   background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
   padding:13px 15px; display:flex; flex-direction:column; gap:3px; cursor:pointer;
-  transition:border-color var(--dur), background var(--dur);
+  transition:border-color var(--dur), background var(--dur), transform var(--dur);
 }
 .p-tile{box-shadow:var(--sh-1)}
 .p-tile:hover{border-color:var(--border2); background:var(--surface2); transform:translateY(-1px)}
@@ -84,10 +84,14 @@ a{color:var(--accent); text-decoration:none}
   padding:12px 15px; display:flex; align-items:center; gap:11px; cursor:pointer;
   transition:border-color var(--dur);
 }
+.p-best{box-shadow:var(--sh-2)}
 .p-best:hover{border-color:rgba(56,189,248,0.45)}
 .p-best .lbl{font-size:10.5px; color:var(--accent); font-weight:600; letter-spacing:0.3px; margin-bottom:2px}
-.p-best .nm{font-size:15px; font-weight:700; line-height:1.3}
+.p-best .nm{font-size:15px; font-weight:700; line-height:1.3; overflow-wrap:anywhere;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
 .p-best .tick{font-size:11px; color:var(--text3)}
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0 0 0 0); white-space:nowrap; border:0}
 .sc-ring{position:relative; display:inline-flex; align-items:center; justify-content:center; flex:none}
 .sc-ring svg{display:block}
 .sc-ring-v{position:absolute; font-weight:700; line-height:1}
@@ -95,7 +99,9 @@ a{color:var(--accent); text-decoration:none}
 .p-best .tchip{margin-top:3px}
 .regime-line{grid-column:1/-1; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); padding:2px 2px 0; flex-wrap:wrap}
 .regime-line b{color:var(--text); font-weight:600}
-@media(max-width:1023px) and (min-width:768px){ .pulse{grid-template-columns:repeat(3,1fr)} .p-best{grid-column:1/-1} }
+/* نقطة الانكسار رُفعت 1023 → 1279 (ختم 04-10): الشبكة السداسية كانت تبدأ من
+   1024 فيبقى عمود الاسم عند 83px — وهو الرقم نفسه الذي سُمّي حالةَ العطب. */
+@media(max-width:1279px) and (min-width:768px){ .pulse{grid-template-columns:repeat(3,1fr)} .p-best{grid-column:1/-1} }
 /* نبض الموبايل (P13): شريط أفقي مدمج — الوصول لأول سهم بسرعة */
 @media(max-width:767px){
   .pulse{display:flex; overflow-x:auto; padding:10px 14px 2px; gap:8px; scrollbar-width:none}
@@ -114,11 +120,11 @@ a{color:var(--accent); text-decoration:none}
 .divcal-hd .t{font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px}
 .divcal-hd .stamp{font-size:11px; color:var(--text3)}
 .divcal-hd .age-warn{font-size:11px; color:var(--amber); font-weight:600}
-.dc-day{padding:10px 16px 4px; font-size:12px; font-weight:700; color:var(--accent); border-bottom:1px solid rgba(255,255,255,0.03)}
+.dc-day{padding:10px 16px 4px; font-size:12px; font-weight:700; color:var(--accent); border-bottom:1px solid rgba(125,170,225,0.06)}
 .dc-row{display:flex; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid rgba(125,170,225,0.07); cursor:pointer; transition:background 120ms}
 .dc-row:hover{background:var(--surface2)}
 .dc-kind{font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:6px; white-space:nowrap}
-.dc-kind.elig{color:var(--amber); background:var(--accent-dim)}
+.dc-kind.elig{color:var(--amber); background:var(--amber-dim)}
 .dc-kind.dist{color:var(--green); background:var(--green-dim)}
 .dc-main{flex:1; min-width:0}
 .dc-main .nm{font-size:13px; font-weight:600}
@@ -136,7 +142,7 @@ a{color:var(--accent); text-decoration:none}
 .chart-wrap svg{display:block}
 .ch-cross{position:absolute; top:0; bottom:0; width:1px; background:rgba(56,189,248,0.5); pointer-events:none; display:none}
 .ch-dot{position:absolute; width:7px; height:7px; border-radius:50%; background:var(--accent); border:1.5px solid var(--bg); pointer-events:none; display:none; transform:translate(-50%,-50%)}
-.ch-tip{position:absolute; top:2px; background:#16233A; border:1px solid var(--border2); border-radius:7px; padding:4px 10px; font-size:11.5px; pointer-events:none; display:none; white-space:nowrap; z-index:5}
+.ch-tip{position:absolute; top:2px; background:var(--surface3); border:1px solid var(--border2); border-radius:7px; padding:4px 10px; font-size:11.5px; pointer-events:none; display:none; white-space:nowrap; z-index:5}
 .entry-box{margin-top:12px; display:flex; align-items:flex-start; gap:12px; background:var(--surface2); border:1px solid rgba(56,189,248,0.2); border-radius:var(--radius-sm); padding:11px 13px}
 .entry-box .ev{font-size:17px; font-weight:700; color:var(--accent); white-space:nowrap}
 .entry-box .ed{font-size:11.5px; color:var(--text3); line-height:1.7}
@@ -289,8 +295,8 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
   padding:3px 9px; border-radius:6px; white-space:nowrap;
 }
 .b-strong{color:var(--band-strong); background:var(--green-dim)}
-.b-good{color:var(--band-good); background:rgba(143,208,168,0.09)}
-.b-neutral{color:var(--band-neutral); background:rgba(154,164,176,0.09)}
+.b-good{color:var(--band-good); background:rgba(127,212,174,0.10)}
+.b-neutral{color:var(--band-neutral); background:rgba(147,164,188,0.12)}
 .b-weak{color:var(--band-weak); background:var(--red-dim)}
 .b-na{color:var(--text3); background:rgba(125,170,225,0.08)}
 .tchip{
@@ -299,7 +305,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 }
 /* دلالات ألوان التوقيت منفصلة نفسياً عن الجودة (P7): «انتظار» ليست خطراً — Slate بارد لا أحمر */
 .t-green{color:var(--green); background:var(--green-dim)}
-.t-yellow{color:var(--amber); background:var(--accent-dim)}
+.t-yellow{color:var(--amber); background:var(--amber-dim)}
 .t-red{color:#A9B6C9; background:rgba(150,165,185,0.10)}
 .t-neutral{color:var(--text3); background:rgba(125,170,225,0.08)}
 .tchip .tdot{width:5px; height:5px; border-radius:50%; background:currentColor}
@@ -426,7 +432,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .fin-cell .k{font-size:10.5px; color:var(--text3)}
 .fin-cell .v{font-size:14px; font-weight:600; margin-top:2px}
 .fin-note{margin-top:9px; font-size:11.5px; color:var(--text3); line-height:1.7; padding:8px 11px; background:var(--surface2); border-radius:var(--radius-sm)}
-.guard-note{margin-top:9px; font-size:11.5px; color:var(--amber); line-height:1.7; padding:8px 11px; background:var(--accent-dim); border-radius:var(--radius-sm)}
+.guard-note{margin-top:9px; font-size:11.5px; color:var(--amber); line-height:1.7; padding:8px 11px; background:var(--amber-dim); border-radius:var(--radius-sm)}
 /* what changes */
 .wc{display:grid; grid-template-columns:1fr 1fr; gap:10px}
 @media(max-width:520px){ .wc{grid-template-columns:1fr} }
@@ -435,15 +441,15 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .wc .ct.up{color:var(--green)} .wc .ct.dn{color:var(--red)}
 .wc div.it{font-size:12px; color:var(--text2); padding:3px 0}
 /* dividends + news */
-.dv-row{display:flex; justify-content:space-between; font-size:13px; padding:7px 0; border-bottom:1px dashed rgba(255,255,255,0.05); color:var(--text2)}
+.dv-row{display:flex; justify-content:space-between; font-size:13px; padding:7px 0; border-bottom:1px dashed rgba(125,170,225,0.09); color:var(--text2)}
 .dv-row b{color:var(--text)}
-.news-row{display:block; font-size:12.5px; color:var(--text2); padding:7px 0; border-bottom:1px dashed rgba(255,255,255,0.05); line-height:1.6}
+.news-row{display:block; font-size:12.5px; color:var(--text2); padding:7px 0; border-bottom:1px dashed rgba(125,170,225,0.09); line-height:1.6}
 .news-row:hover{color:var(--accent)}
 .news-row .src{font-size:10.5px; color:var(--text3)}
 
 /* tooltip */
 .tip{
-  position:fixed; z-index:120; max-width:280px; background:#16233A; color:var(--text);
+  position:fixed; z-index:120; max-width:280px; background:var(--surface3); color:var(--text);
   border:1px solid var(--border2); border-radius:8px; padding:9px 12px;
   font-size:12px; line-height:1.7; box-shadow:0 8px 24px rgba(0,0,0,0.4);
   opacity:0; pointer-events:none; transition:opacity 140ms;
@@ -505,7 +511,7 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
   </div>
 </header>
 
-<div id="staleBanner" style="display:none;margin:12px 20px 0;background:rgba(224,180,88,0.12);border:1px solid rgba(224,180,88,0.42);border-radius:10px;padding:9px 14px;color:var(--amber);font-size:12.5px;line-height:1.7;text-align:center"></div>
+<div id="staleBanner" style="display:none;margin:12px 20px 0;background:rgba(251,191,74,0.12);border:1px solid rgba(251,191,74,0.42);border-radius:10px;padding:9px 14px;color:var(--amber);font-size:12.5px;line-height:1.7;text-align:center"></div>
 
 <section class="pulse" id="pulse" aria-label="نبض سيف"></section>
 
@@ -513,7 +519,7 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
 
 <div class="cmd" id="cmd">
   <div class="search">
-    <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="#7B8DA6" stroke-width="1.6"/><path d="M13.5 13.5 L17.5 17.5" stroke="#7B8DA6" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="#8798B0" stroke-width="1.6"/><path d="M13.5 13.5 L17.5 17.5" stroke="#8798B0" stroke-width="1.6" stroke-linecap="round"/></svg>
     <input id="q" type="search" placeholder="ابحث باسم الشركة أو الرمز…" autocomplete="off" aria-label="بحث">
   </div>
   <select id="fSector" class="desktop-only" aria-label="القطاع"></select>
@@ -708,7 +714,7 @@ function renderPulse(){
         <div class="tchip t-${ts} tchip" style="margin-top:5px">${TIMING_AR[ts]||""}</div>
       </div>
       <div style="text-align:center">
-        ${scoreRing(isc(best).total, scoreColor(isc(best).total))}
+        ${scoreRing(isc(best).total, scoreColor(isc(best).total))}<span class="sr-only">الدرجة ${isc(best).total} من 100</span>
         <div class="badge ${qualityBand(best).cls}" style="margin-top:4px">${qualityBand(best).label}</div>
       </div>
       ${sparkline(d30,86,38,up?"#34D399":"#F87171")}
@@ -875,13 +881,14 @@ function chgHtml(s){
 }
 /* حلقة الدرجة (اتجاه «أزرق ليلي» 04-10) — الرقم وحده كان يسبح في فراغ البطاقة؛
    الحلقة تعطيه وزناً بصرياً وتُظهر نسبته من 100 بلا نص إضافي.
-   القوس مرسوم بـstroke-dasharray على محيط دائرة نصف قطرها 26 (محيطها ≈163.4). */
+   القوس مرسوم بـstroke-dasharray على محيط الدائرة: نصف القطر (size−10)/2 — أي 21
+   عند الحجم الافتراضي 52، فمحيطه ≈131.95 (خُصم عرض الحدّ 5 من كل جهة). */
 function scoreRing(total, color, size=52){
   const r=(size-10)/2, C=2*Math.PI*r, c=size/2;
   const on=Math.max(0,Math.min(100,total))/100*C;
   return `<span class="sc-ring" style="width:${size}px;height:${size}px" aria-hidden="true">
     <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--surface3)" stroke-width="5"></circle>
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--border2)" stroke-width="5"></circle>
       <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round"
               stroke-dasharray="${on.toFixed(1)} ${(C-on).toFixed(1)}" transform="rotate(-90 ${c} ${c})"></circle>
     </svg>
@@ -1285,8 +1292,8 @@ function chartSvg(s,rangeKey){
     <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round"/>
     <polygon points="${PAD},${H-PAD} ${pts} ${W-PAD},${H-PAD}" fill="url(#ga)" stroke="none"/>
     ${refLine}
-    <text x="${W-PAD}" y="12" text-anchor="end" font-size="10" fill="#7B8DA6" style="direction:ltr">H ${fmt(mx)}</text>
-    <text x="${W-PAD}" y="${H-2}" text-anchor="end" font-size="10" fill="#7B8DA6" style="direction:ltr">L ${fmt(mn)}</text>
+    <text x="${W-PAD}" y="12" text-anchor="end" font-size="10" fill="#8798B0" style="direction:ltr">H ${fmt(mx)}</text>
+    <text x="${W-PAD}" y="${H-2}" text-anchor="end" font-size="10" fill="#8798B0" style="direction:ltr">L ${fmt(mn)}</text>
   </svg>
   <div class="ch-cross" id="chCross"></div><div class="ch-dot" id="chDot"></div><div class="ch-tip num" id="chTip"></div>
   </div>
