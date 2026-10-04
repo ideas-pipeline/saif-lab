@@ -1196,6 +1196,12 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             vi["divsAsOf"] = today
         vi["updatedAt"] = today
         vi["source"] = "sahmk-direct"
+        # تشذيب الحقول النائمة (قرار المالك 04-10، §8-ش): peRatio/epsTtm/forwardPe
+        # بقايا yfinance (peRatio == theirPrice ÷ epsTtm) بصفر قارئ في المستودع كله.
+        # تبقى لأن vi يُبنى بنسخ المفاتيح القائمة، فتُسقَط هنا صراحةً كي لا تعود
+        # بعد التمريرة اليدوية. ولا يقرؤها المحرك فالإسقاط بلا أثر على أي درجة.
+        for dead in ("peRatio", "epsTtm", "forwardPe"):
+            vi.pop(dead, None)
         st["valuationInputs"] = vi
 
     # ── حارس الانزياح الجماعي (§8): فئة ≥5 يتغير حقلها باتجاه واحد >80% ──
