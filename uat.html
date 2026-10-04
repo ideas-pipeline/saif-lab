@@ -45,7 +45,11 @@ a{color:var(--accent); text-decoration:none}
 .hd{
   min-height:58px; display:flex; align-items:center; justify-content:space-between;
   padding:6px 20px; border-bottom:1px solid var(--border);
-  background:rgba(11,13,16,0.85); backdrop-filter:blur(10px);
+  /* آخر مشتقة من أرضية اللوحة الميتة #0B0D10 (ختم 04-10ب): شقيقاها .cmd و.fchips
+     حُوِّلا في الموجة الأولى وسقط هذا. والشرخ مقيس ببكسلات مرسومة عند التصاق
+     الشريطين: 1.039 — نحو نصف أصغر خطوة أسطح مقصودة، لكنه انزياح صبغة لا
+     إضاءة، على الشريط الحاضر في كل جلسة ولا يختفي بالتمرير. */
+  background:rgba(12,20,32,0.85); backdrop-filter:blur(10px);
   position:sticky; top:0; z-index:60;
 }
 /* ‏sticky بلا أرقام سحرية (P5): الارتفاعان يُقاسان فعلياً ويُحقنان كمتغيرين */
