@@ -61,7 +61,7 @@ def transform(s):
              '''  <div class="hd-sys">
     <a href="watchlist-accuracy.html" class="hd-link">📊 دقة التوصيات</a>
     <a href="classic.html" class="hd-link hd-link-dim">النسخة الكلاسيكية</a>''', "روابط الرأس")
-    s = swap(s, '.hd-sys{', '''.hd-link{font-size:12px; color:var(--gold); white-space:nowrap}
+    s = swap(s, '.hd-sys{', '''.hd-link{font-size:12px; color:var(--accent); white-space:nowrap}
 .hd-link:hover{color:var(--amber)}
 .hd-link-dim{color:var(--text3)}
 .hd-link-dim:hover{color:var(--text2)}
