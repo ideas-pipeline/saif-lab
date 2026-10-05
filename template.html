@@ -603,6 +603,11 @@ const RANGE_LABELS = [["d30","شهر"],["d90","3 أشهر"],["w52","سنة"],["w
 
 let DATA=null, STOCKS=[], state={
   view:"market", q:"", sector:"", minScore:0, timing:"", quality:"",
+  /* ملكية فلتر الدرجة (بلاغ المالك 05-10): true إن وضعته بلاطة نبض لا المستخدم.
+     وminScorePrev يحفظ حدّ المستخدم قبل أن تستعيره البلاطة، فيُستعاد عند مغادرتها
+     بدل أن يُمحى — فتُحفظ القاعدة P3 على كل مسار مقيس إلا واحداً مُسجَّلاً
+     (§8-ذ). انظر setView وapplySheet (ختمان 05-10). */
+  minScoreFromTile:false, minScorePrev:0,
   adv:{sma:false,rev:false,div:false,pe:false,liq:false}, dyRatedOnly:false,
   sort:{key:"score",dir:-1}, drawerSym:null, chartRange:"d90"
 };
@@ -743,10 +748,9 @@ function renderPulse(){
       <span class="num ${rg.changePct>=0?"chg-up":"chg-dn"}">${rg.changePct!=null?(rg.changePct>=0?"+":"")+rg.changePct+"%":""}</span>
       · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}</div>`;
   $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>{
-    /* قاعدة UX الموحدة (P3): العروض لا تمسح فلاتر المستخدم أبداً —
-       بلاطة «فرص قوية» تضيف فلتر الدرجة 80+ (يظهر شريحة قابلة للإزالة) */
-    if(el.dataset.min){ state.minScore=Number(el.dataset.min); $("fScore").value=el.dataset.min; }
-    setView(el.dataset.goto);
+    /* الحدّ يُمرَّر إلى setView فتتولّى الملكية: إسقاط فلتر البلاطة السابقة
+       ثم وضع فلتر هذه إن كان لها. والشريحة القابلة للإزالة تظهر كما كانت. */
+    setView(el.dataset.goto, el.dataset.min?Number(el.dataset.min):0);
   }));
   const pb=$("pulse").querySelector(".p-best");
   if(pb){ pb.addEventListener("click",()=>openDrawer(pb.dataset.sym));
@@ -769,7 +773,29 @@ function renderViews(){
   }).join("");
   $("views").querySelectorAll(".view-tab").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
 }
-function setView(id){
+function setView(id, tileMin){
+  /* فلتر البلاطة ملكُها لا ملك المستخدم (بلاغ المالك 05-10): كان «فرص قوية ‎80+‎»
+     يضع حدّ الدرجة ولا يمسحه أحد، فيلتصق بكل بلاطة بعده حتى يضغط المستخدم
+     «إعادة تعيين» — وبلغ أثره أن «انعكاس مبكر» يعرض صفر نتيجة.
+     والميكانيكا **استعارةٌ وردُّ أمانة** لا مسحاً: تحفظ البلاطةُ حدَّ المستخدم في
+     minScorePrev عند أول استعارة، فإن غادرها إلى بلاطة بلا حدٍّ أو إلى تبويب عاد
+     حدُّه **كما تركه** لا صفراً. وبهذا تُحفظ القاعدة P3 («العروض لا تمسح فلاتر
+     المستخدم») على **كل مسار مقيس إلا واحداً مُسجَّلاً** (إعادة اختيار القيمة نفسها
+     من قائمة fScore لا تُطلق change فلا تُسجَّل ملكية — §8-ذ). ولم تكن محفوظة في
+     3041813: كان المغادرُ يصفّر الحدّ، أي يمسح فلتر المستخدم، فادعاءُ حفظها حرفياً
+     هناك كان خاطئاً — و«حرفاً» مرفوضة هنا أيضاً لأن المسار المُسجَّل يكذّبها.
+     tileMin: 0 أو غياب ⇒ ردّ الأمانة إن كان الحدّ للبلاطة · رقم ⇒ استعِره. */
+  if(state.minScoreFromTile || tileMin){
+    if(tileMin){
+      /* استعارة: احفظ حدّ المستخدم مرة واحدة عند أول استعارة لا عند كل بلاطة */
+      if(!state.minScoreFromTile) state.minScorePrev=state.minScore;
+      state.minScore=tileMin; state.minScoreFromTile=true;
+    }else{
+      /* ردّ الأمانة: يعود حدّ المستخدم كما تركه، لا صفراً */
+      state.minScore=state.minScorePrev||0; state.minScoreFromTile=false; state.minScorePrev=0;
+    }
+    $("fScore").value=String(state.minScore);
+  }
   state.view=id;
   const v=VIEWS.find(x=>x.id===id);
   if(v&&v.sort) state.sort={...v.sort};
@@ -839,7 +865,7 @@ function activeFilterCount(){
   return n;
 }
 function resetFilters(){
-  state.q=""; state.sector=""; state.minScore=0; state.timing=""; state.quality="";
+  state.q=""; state.sector=""; state.minScore=0; state.minScoreFromTile=false; state.minScorePrev=0; state.timing=""; state.quality="";
   state.adv={sma:false,rev:false,div:false,pe:false,liq:false};
   state.dyRatedOnly=false;
   $("q").value=""; $("fSector").value=""; $("fScore").value="0"; $("fTiming").value=""; $("fQuality").value="";
@@ -876,7 +902,7 @@ function renderChips(){
 function removeFilter(key){
   if(key==="q"){ state.q=""; $("q").value=""; }
   else if(key==="sector"){ state.sector=""; $("fSector").value=""; }
-  else if(key==="minScore"){ state.minScore=0; $("fScore").value="0"; }
+  else if(key==="minScore"){ state.minScore=0; $("fScore").value="0"; state.minScoreFromTile=false; state.minScorePrev=0; }
   else if(key==="timing"){ state.timing=""; $("fTiming").value=""; }
   else if(key==="quality"){ state.quality=""; $("fQuality").value=""; }
   else if(key.startsWith("adv:")){ const k=key.slice(4); state.adv[k]=false;
@@ -1855,18 +1881,33 @@ function renderSheet(){
     const grp=g.dataset.g, v=b.dataset.v;
     if(grp==="adv"){ draft.adv[v]=!draft.adv[v]; b.classList.toggle("on"); return; }
     g.querySelectorAll(".opt").forEach(x=>x.classList.remove("on")); b.classList.add("on");
-    if(grp==="score") draft.minScore=Number(v);
+    /* اللمسة تُسجَّل لا القيمة (ختم 05-10ب): الملكية تنتقل بمسّ المستخدم خانةَ
+       الدرجة، لا بأن تختلف قيمتها عمّا كان. انظر applySheet. */
+    if(grp==="score"){ draft.minScore=Number(v); draft.minScoreTouched=true; }
     if(grp==="timing") draft.timing=v;
     if(grp==="quality") draft.quality=v;
   }));
   $("shSector").addEventListener("change",e=>draft.sector=e.target.value);
   $("shApply").addEventListener("click",applySheet);
   $("shReset").addEventListener("click",()=>{
-    draft={minScore:0,timing:"",quality:"",sector:"",adv:{sma:false,rev:false,div:false,pe:false,liq:false}};
+    /* «إعادة تعيين» مسٌّ صريح للدرجة كذلك — وإلا نجا minScorePrev من محوٍ قصده
+       المستخدم فأُحيي حدٌّ محاه بيده (عيب كشفه ختم 05-10ب). */
+    draft={minScore:0,minScoreTouched:true,timing:"",quality:"",sector:"",adv:{sma:false,rev:false,div:false,pe:false,liq:false}};
     renderSheet();
   });
 }
 function applySheet(){
+  /* الملكية تنتقل بـ**لمسة** المستخدم خانةَ الدرجة، لا بمجرد ضغط «تطبيق» ولا بفرق
+     القيمة (ختمان 05-10):
+     · كانت تُصفَّر بلا شرط، فيكفي فتح الورقة والضغط — وورقةُ الجوال هي واجهة الفلترة
+       الوحيدة تحت 768px (fScore مخفي) — ليعود بلاغ المالك كاملاً.
+     · ثم صارت مشروطة بـ`draft.minScore!==state.minScore` فولّدت عيبين على الورقة:
+       مَن يضغط «‎80+‎» بإصبعه بعد بلاطة 80+ لا تُسجَّل ملكيته فتمسحه بلاطةٌ بعده
+       (نقضُ P3 بعينه)، ومَن يضغط «إعادة تعيين» ثم «‎80+‎» ينجو minScorePrev من محوٍ
+       قصده فتُحييه البلاطة التالية (65 وصفر نتيجة على «انعكاس مبكر» — عين العَرَض
+       المبلَّغ). والعلّة واحدة: المقارنة قيمةٌ لا لمسة، والمعلومة حاضرة في الورقة
+       (المعالج يُنفَّذ عند كل لمسة) فطرحُها كان اختياراً خاطئاً. */
+  if(draft.minScoreTouched){ state.minScoreFromTile=false; state.minScorePrev=0; }
   state.minScore=draft.minScore; state.timing=draft.timing; state.quality=draft.quality;
   state.sector=draft.sector; state.adv={...draft.adv};
   $("fScore").value=String(state.minScore); $("fTiming").value=state.timing;
@@ -1876,7 +1917,7 @@ function applySheet(){
 }
 function openSheet(){
   sheetOpener=document.activeElement;
-  draft={minScore:state.minScore,timing:state.timing,quality:state.quality,sector:state.sector,adv:{...state.adv}};
+  draft={minScore:state.minScore,minScoreTouched:false,timing:state.timing,quality:state.quality,sector:state.sector,adv:{...state.adv}};
   renderSheet();
   $("sheet").classList.add("open"); $("ovl").classList.add("open"); lockBodyScroll();
   $("shX").focus();
@@ -1892,7 +1933,9 @@ function bind(){
   let deb=null;
   $("q").addEventListener("input",e=>{ state.q=e.target.value; clearTimeout(deb); deb=setTimeout(renderBody,140); });
   $("fSector").addEventListener("change",e=>{ state.sector=e.target.value; renderBody(); });
-  $("fScore").addEventListener("change",e=>{ state.minScore=Number(e.target.value); renderBody(); });
+  $("fScore").addEventListener("change",e=>{ state.minScore=Number(e.target.value);
+    state.minScoreFromTile=false; state.minScorePrev=0;   /* صار للمستخدم فلا تُسقطه البلاطات */
+    renderBody(); });
   $("fTiming").addEventListener("change",e=>{ state.timing=e.target.value; renderBody(); });
   $("fQuality").addEventListener("change",e=>{ state.quality=e.target.value; renderBody(); });
   $("resetBtn").addEventListener("click",resetFilters);
