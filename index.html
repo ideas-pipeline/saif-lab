@@ -603,6 +603,8 @@ const RANGE_LABELS = [["d30","شهر"],["d90","3 أشهر"],["w52","سنة"],["w
 
 let DATA=null, STOCKS=[], state={
   view:"market", q:"", sector:"", minScore:0, timing:"", quality:"",
+  /* ملكية فلتر الدرجة (بلاغ المالك 05-10): true إن وضعته بلاطة نبض لا المستخدم */
+  minScoreFromTile:false,
   adv:{sma:false,rev:false,div:false,pe:false,liq:false}, dyRatedOnly:false,
   sort:{key:"score",dir:-1}, drawerSym:null, chartRange:"d90"
 };
@@ -743,10 +745,9 @@ function renderPulse(){
       <span class="num ${rg.changePct>=0?"chg-up":"chg-dn"}">${rg.changePct!=null?(rg.changePct>=0?"+":"")+rg.changePct+"%":""}</span>
       · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}</div>`;
   $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>{
-    /* قاعدة UX الموحدة (P3): العروض لا تمسح فلاتر المستخدم أبداً —
-       بلاطة «فرص قوية» تضيف فلتر الدرجة 80+ (يظهر شريحة قابلة للإزالة) */
-    if(el.dataset.min){ state.minScore=Number(el.dataset.min); $("fScore").value=el.dataset.min; }
-    setView(el.dataset.goto);
+    /* الحدّ يُمرَّر إلى setView فتتولّى الملكية: إسقاط فلتر البلاطة السابقة
+       ثم وضع فلتر هذه إن كان لها. والشريحة القابلة للإزالة تظهر كما كانت. */
+    setView(el.dataset.goto, el.dataset.min?Number(el.dataset.min):0);
   }));
   const pb=$("pulse").querySelector(".p-best");
   if(pb){ pb.addEventListener("click",()=>openDrawer(pb.dataset.sym));
@@ -769,7 +770,18 @@ function renderViews(){
   }).join("");
   $("views").querySelectorAll(".view-tab").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
 }
-function setView(id){
+function setView(id, tileMin){
+  /* فلتر البلاطة ملكُها لا ملك المستخدم (بلاغ المالك 05-10): كان «فرص قوية ‎80+‎»
+     يضع حدّ الدرجة ولا يمسحه أحد، فيلتصق بكل بلاطة بعده حتى يضغط المستخدم
+     «إعادة تعيين» — وبلغ أثره أن «انعكاس مبكر» يعرض صفر نتيجة. والقاعدة P3
+     («العروض لا تمسح فلاتر المستخدم») تبقى كما هي: ما يضعه المستخدم بيده لا
+     يُمَسّ، وما تضعه البلاطة تُسقطه أي بلاطة أو تبويب بعدها.
+     tileMin: 0 أو غياب ⇒ أسقِط فلتر البلاطة إن وُجد · رقم ⇒ استبدله به. */
+  if(state.minScoreFromTile || tileMin){
+    state.minScore=tileMin||0;
+    $("fScore").value=String(tileMin||0);
+    state.minScoreFromTile=!!tileMin;
+  }
   state.view=id;
   const v=VIEWS.find(x=>x.id===id);
   if(v&&v.sort) state.sort={...v.sort};
@@ -839,7 +851,7 @@ function activeFilterCount(){
   return n;
 }
 function resetFilters(){
-  state.q=""; state.sector=""; state.minScore=0; state.timing=""; state.quality="";
+  state.q=""; state.sector=""; state.minScore=0; state.minScoreFromTile=false; state.timing=""; state.quality="";
   state.adv={sma:false,rev:false,div:false,pe:false,liq:false};
   state.dyRatedOnly=false;
   $("q").value=""; $("fSector").value=""; $("fScore").value="0"; $("fTiming").value=""; $("fQuality").value="";
@@ -876,7 +888,7 @@ function renderChips(){
 function removeFilter(key){
   if(key==="q"){ state.q=""; $("q").value=""; }
   else if(key==="sector"){ state.sector=""; $("fSector").value=""; }
-  else if(key==="minScore"){ state.minScore=0; $("fScore").value="0"; }
+  else if(key==="minScore"){ state.minScore=0; $("fScore").value="0"; state.minScoreFromTile=false; }
   else if(key==="timing"){ state.timing=""; $("fTiming").value=""; }
   else if(key==="quality"){ state.quality=""; $("fQuality").value=""; }
   else if(key.startsWith("adv:")){ const k=key.slice(4); state.adv[k]=false;
@@ -1867,7 +1879,7 @@ function renderSheet(){
   });
 }
 function applySheet(){
-  state.minScore=draft.minScore; state.timing=draft.timing; state.quality=draft.quality;
+  state.minScore=draft.minScore; state.minScoreFromTile=false; state.timing=draft.timing; state.quality=draft.quality;
   state.sector=draft.sector; state.adv={...draft.adv};
   $("fScore").value=String(state.minScore); $("fTiming").value=state.timing;
   $("fQuality").value=state.quality; $("fSector").value=state.sector;
@@ -1892,7 +1904,9 @@ function bind(){
   let deb=null;
   $("q").addEventListener("input",e=>{ state.q=e.target.value; clearTimeout(deb); deb=setTimeout(renderBody,140); });
   $("fSector").addEventListener("change",e=>{ state.sector=e.target.value; renderBody(); });
-  $("fScore").addEventListener("change",e=>{ state.minScore=Number(e.target.value); renderBody(); });
+  $("fScore").addEventListener("change",e=>{ state.minScore=Number(e.target.value);
+    state.minScoreFromTile=false;   /* صار الفلتر للمستخدم فلا تُسقطه البلاطات */
+    renderBody(); });
   $("fTiming").addEventListener("change",e=>{ state.timing=e.target.value; renderBody(); });
   $("fQuality").addEventListener("change",e=>{ state.quality=e.target.value; renderBody(); });
   $("resetBtn").addEventListener("click",resetFilters);
