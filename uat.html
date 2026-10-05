@@ -261,6 +261,13 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .scr th .arr{font-size:9px; opacity:0; transition:opacity var(--dur)}
 .scr th.sorted .arr{opacity:1; color:var(--accent)}
 .scr td{padding:11px 10px; border-bottom:1px solid var(--border); font-size:13.5px; vertical-align:middle}
+/* محاذاة الأعمدة الرقمية بعناوينها (بلاغ المالك 05-10): صنف .num يحمل
+   direction:ltr وهو موضوع على الـtd نفسه، فصار text-align:start فيها يعني
+   «يساراً» بينما الـth باقٍ على RTL فيعني «يميناً» — فانزاحت القيم 27–97px
+   تحت عناوينها. والأعمدة بلا .num (الشركة والدرجة والجودة والتوقيت والتغير)
+   كانت مطابقة أصلاً. يبقى direction:ltr لأنه يضبط ترتيب الإشارة والفواصل،
+   وتُثبَّت المحاذاة يميناً صراحةً فتلتقي حافتا القيمة والعنوان. */
+.scr td.num{text-align:right}
 .scr tbody tr{cursor:pointer; transition:background 120ms}
 .scr tbody tr:hover{background:var(--surface)}
 .scr tbody tr:focus-visible{outline:1px solid var(--accent); outline-offset:-1px}
