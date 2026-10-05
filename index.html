@@ -605,7 +605,8 @@ let DATA=null, STOCKS=[], state={
   view:"market", q:"", sector:"", minScore:0, timing:"", quality:"",
   /* ملكية فلتر الدرجة (بلاغ المالك 05-10): true إن وضعته بلاطة نبض لا المستخدم.
      وminScorePrev يحفظ حدّ المستخدم قبل أن تستعيره البلاطة، فيُستعاد عند مغادرتها
-     بدل أن يُمحى — وبهذا تصير قاعدة P3 صحيحة حرفاً لا تقريباً (ختم 05-10). */
+     بدل أن يُمحى — فتُحفظ القاعدة P3 على كل مسار مقيس إلا واحداً مُسجَّلاً
+     (§8-ذ). انظر setView وapplySheet (ختمان 05-10). */
   minScoreFromTile:false, minScorePrev:0,
   adv:{sma:false,rev:false,div:false,pe:false,liq:false}, dyRatedOnly:false,
   sort:{key:"score",dir:-1}, drawerSym:null, chartRange:"d90"

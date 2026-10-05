@@ -1,5 +1,6 @@
 // حزام اختبار dyFlags — يستخرج الدالة من المصدر المنشور نفسه ويحقن أقنعة نقية.
-// لا jsdom: dyFlags دالة نقية متغيراتها الحرة DATA/dyOf/secOf فقط.
+// لا jsdom: dyFlags دالة نقية متغيّراتها الحرّة DATA وdyOf وsecOf وfmt — وهذه
+// الأربعة بعينها هي ما تُبصمه dySlice أدناه (عُدَّت من المصدر لا بالحدس).
 const fs = require("fs");
 
 function loadDyFlags(htmlPath, data) {
@@ -51,7 +52,8 @@ function loadBaseline(repoDir, ref, data, testHtml) {
   const crypto = require("crypto");
   const sha = execSync(`cd ${repoDir} && git rev-parse --short ${ref}`, { encoding: "utf8" }).trim();
   const path = (process.env.TMPDIR || "/tmp") + "/_base-" + sha + "-" + process.pid + ".html";
-  execSync(`cd ${repoDir} && git show ${ref}:uat.html > ${path}`);
+  execSync(`cd "${repoDir}" && git show ${ref}:uat.html > "${path}"`);
+  process.on("exit", () => { try { fs.unlinkSync(path); } catch (e) {} });
   const h = s => crypto.createHash("md5").update(dySlice(fs.readFileSync(s, "utf8"))).digest("hex").slice(0, 12);
   const baseHash = h(path), testHash = h(testHtml);
   return { fn: loadDyFlags(path, data), ref, sha, path, baseHash, testHash, identical: baseHash === testHash };
