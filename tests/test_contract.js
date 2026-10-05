@@ -1,0 +1,25 @@
+// عقد المطابقة: جمهور وسم الواجهة == جمهور [9] في L1
+const path = require("path");
+const ROOT = process.env.REPO || path.resolve(__dirname, "..");
+const { execSync } = require("child_process");
+const { loadDyFlags, stocksOf } = require("./harness.js");
+const { DATA, stocks } = stocksOf(ROOT + "/stocks-data.json");
+const dyFlags = loadDyFlags(ROOT + "/uat.html", DATA);
+const ui = stocks.filter(s => dyFlags(s).some(x => x.includes("أساسان مختلفان للربح"))).map(s => s.symbol).sort();
+const out = execSync("cd " + ROOT + " && python3 scripts/self-check-L1.py stocks-data.json", { encoding: "utf8" });
+const line = out.split("\n").find(l => l.includes("قلب حكم تغطية التوزيع"));
+const l1 = [...line.matchAll(/'(\d{4})'/g)].map(m => m[1]).sort();
+const lossUI = stocks.filter(s => dyFlags(s).some(x => /أُقفلت بخسارة|أُقفلت بلا ربح/.test(x))).map(s => s.symbol).sort();
+const contUI = stocks.filter(s => dyFlags(s).some(x => x.includes("أساسان متعارضان للربح"))).map(s => s.symbol).sort();
+const lossLine = out.split("\n").find(l => l.includes("أقفلوا سنتهم الكاملة بخسارة"));
+const lossL1 = [...lossLine.matchAll(/'(\d{4})'/g)].map(m => m[1]).sort();
+let fail = 0;
+const eq = (a, b, m) => { JSON.stringify(a) === JSON.stringify(b) ? console.log("  ✅ " + m) : (fail++, console.log("  ❌ " + m + "\n     واجهة: " + JSON.stringify(a) + "\n     L1   : " + JSON.stringify(b))); };
+console.log("── عقد المطابقة بين الواجهة وL1 ──");
+eq(ui, l1, "جمهور وسم تعارض الأساس مطابق (" + ui.length + ")");
+eq(lossUI, lossL1, "جمهور القطع بالخسارة مطابق (" + lossUI.length + ")");
+const contLine = out.split("\n").find(l => l.includes("تعارضه حقول كتلته"));
+const contL1 = [...contLine.matchAll(/'(\d{4})'/g)].map(m => m[1]).sort();
+eq(contUI, contL1, "جمهور «أساسان متعارضان» مطابق (" + contUI.length + ")");
+eq(lossUI.filter(x => contUI.includes(x)), [], "الفئتان متنافيتان (لا سهم يحمل القطع والتعارض معاً)");
+process.exit(fail ? 1 : 0);
