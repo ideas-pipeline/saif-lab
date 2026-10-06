@@ -1770,8 +1770,11 @@ function setBgInert(on){
    و`inert` لا `display:none` ولا `visibility:hidden` **بقصد**: الأخيران يُلغيان
    حركة الانزياح 220ms فيصير الإغلاق قطعاً لا انسحاباً. و`aria-hidden` معه حزامٌ
    ثانٍ لأن إخراج `inert` من شجرة الإتاحة غير موحّد في كل التقنيات المساندة.
-   وبقيّة مُسجَّلة: متصفحٌ لا يعرف `inert` (قبل Chrome 102 / Safari 15.5 /
-   Firefox 112) يبقى التركيز يدخله — وحرّاس `!draft` أدناه هي ما يمنع الرمي هناك. */
+   وحرّاس `!draft` أدناه **ليست حزاماً فائضاً**: `inert` يرفض **التركيز** و**لا يمنع
+   `.click()` البرمجي من إطلاق المعالج**. مقيس: حذفُ حارس `shReset` وحده يُرجع محوَ
+   فلتر المستخدم بصمت (الحدّ 80 ⇒ 0 · الصفوف 2 ⇒ 496 · صفر خطأ JS). فهي ما يحمي
+   المسار البرمجي والمتصفحَ الذي لا يعرف `inert` (قبل Chrome 102 / Safari 15.5 /
+   Firefox 112) — وفيه يبقى التركيز يدخل المغلق، وهي بقيّة مُسجَّلة. */
 function setModalHidden(el,on){
   if(on){ el.setAttribute("inert",""); el.setAttribute("aria-hidden","true"); }
   else { el.removeAttribute("inert"); el.removeAttribute("aria-hidden"); }
