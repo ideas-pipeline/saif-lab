@@ -576,9 +576,9 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
   الفلاتر<span id="fabCount"></span>
 </button>
 
-<div class="ovl" id="ovl"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="تفاصيل السهم"></aside>
-<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="الفلاتر"></div>
+<div class="ovl" id="ovl" aria-hidden="true"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="تفاصيل السهم" inert aria-hidden="true"></aside>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="الفلاتر" inert aria-hidden="true"></div>
 <div class="tip" id="tip" role="tooltip"></div>
 
 <footer>
@@ -1745,12 +1745,35 @@ window.addEventListener("popstate",()=>{
     try{ closeDrawer(); } finally { drawerFromPop=false; }
   }
 });
-/* وصولية المودال (P15): المحتوى الخلفي inert + حصر التنقل داخل الدرج */
+/* وصولية المودال (P15): المحتوى الخلفي inert + حصر التنقل داخل الدرج.
+   واستثناءُ `sheet` و`drawer` هنا صار غير ضارّ بعد ختم 06-10: كلٌّ منهما يحمل
+   `inert` بنفسه حين يُغلق (setModalHidden)، وكان قبله يعني أن مَن يفتح الدرج
+   يستطيع التبويب إلى الورقة المغلقة. */
 function setBgInert(on){
   document.querySelectorAll("body > *").forEach(el=>{
     if(el.id==="drawer"||el.id==="ovl"||el.id==="tip"||el.id==="sheet"||el.tagName==="SCRIPT") return;
     if(on) el.setAttribute("inert",""); else el.removeAttribute("inert");
   });
+}
+/* ═══ المودال المغلق خارج شجرتَي التنقّل والإتاحة (ختم 06-10) ═══
+   الإغلاق كان يترك العنصر **منزاحاً بـtransform وحده**: `visibility:visible` و
+   `display:block` و`pointer-events:auto` بلا inert ولا aria-hidden. فمقيس على
+   390×844: الورقة المغلقة تمتلك **23 من 25** وقفة تركيز في مسحة Tab كاملة،
+   و`#shApply` فيها `tabIndex=0` وهو خارج الشاشة — فتنشيطه بالمفتاح يرمي
+   `Cannot read properties of null (reading 'minScoreTouched')` لأن closeSheet
+   تضع `draft=null`. والدرج المغلق يحمل **20** عنصراً قابلاً للتركيز (innerHTML
+   لا يُفرَّغ عند الإغلاق). وهذا أضيقُ سطحٍ يملكه المستخدم: ورقةُ الجوال هي
+   واجهة الفلترة **الوحيدة** تحت 768px (`fScore` مخفي) — فمستخدم لوحة المفاتيح
+   وقارئ الشاشة يسقطان في فراغ على السطح الوحيد الذي يملكانه (درس §8-ذ الأول).
+
+   و`inert` لا `display:none` ولا `visibility:hidden` **بقصد**: الأخيران يُلغيان
+   حركة الانزياح 220ms فيصير الإغلاق قطعاً لا انسحاباً. و`aria-hidden` معه حزامٌ
+   ثانٍ لأن إخراج `inert` من شجرة الإتاحة غير موحّد في كل التقنيات المساندة.
+   وبقيّة مُسجَّلة: متصفحٌ لا يعرف `inert` (قبل Chrome 102 / Safari 15.5 /
+   Firefox 112) يبقى التركيز يدخله — وحرّاس `!draft` أدناه هي ما يمنع الرمي هناك. */
+function setModalHidden(el,on){
+  if(on){ el.setAttribute("inert",""); el.setAttribute("aria-hidden","true"); }
+  else { el.removeAttribute("inert"); el.removeAttribute("aria-hidden"); }
 }
 function trapFocus(container,ev){
   if(ev.key!=="Tab") return;
@@ -1767,6 +1790,7 @@ function openDrawer(sym){
   lastFocus=document.activeElement;
   const dr=$("drawer");
   dr.innerHTML=drawerHtml(s);
+  setModalHidden(dr,false);                      /* قبل أي focus: inert لا يقبل التركيز */
   dr.classList.add("open"); $("ovl").classList.add("open");
   lockBodyScroll();
   histPending=sym;
@@ -1803,7 +1827,7 @@ function closeDrawer(){
   dr.classList.remove("open"); $("ovl").classList.remove("open");
   state.drawerSym=null;
   unlockBodyScroll();
-  setBgInert(false); dr.onkeydown=null;
+  setBgInert(false); setModalHidden(dr,true); dr.onkeydown=null;
   histPending=null;
   if(histTimer){ clearTimeout(histTimer); histTimer=null; }
   /* القنوات اليدوية (✕/خارج/Escape/زر العودة) تستهلك الحالة بـback؛
@@ -1851,6 +1875,7 @@ document.addEventListener("focusin",e=>{
 /* ─── Mobile sheet — بمسودة فلاتر (P9): لا يتغير شيء قبل «تطبيق» ─── */
 let draft=null, sheetOpener=null;
 function renderSheet(){
+  if(!draft) return;                             /* لا رسمَ بلا مسودة (تقرأ draft.minScore أدناه) */
   const secs=[...new Set(STOCKS.map(secOf))].sort((a,b)=>(SECTOR_AR[a]||a).localeCompare(SECTOR_AR[b]||b,"ar"));
   $("sheet").innerHTML=`
     <div class="sh-t">الفلاتر<button class="dr-x" id="shX" aria-label="إغلاق بدون تطبيق">✕</button></div>
@@ -1873,6 +1898,7 @@ function renderSheet(){
     <button class="cmd-btn" style="width:100%;margin-top:8px;justify-content:center" id="shReset">إعادة تعيين</button>`;
   $("shX").addEventListener("click",closeSheet);
   $("sheet").querySelectorAll(".opts").forEach(g=>g.addEventListener("click",e=>{
+    if(!draft) return;                           /* ورقة مغلقة: لا مسودة تُكتب فيها */
     const b=e.target.closest(".opt"); if(!b)return;
     const grp=g.dataset.g, v=b.dataset.v;
     if(grp==="adv"){ draft.adv[v]=!draft.adv[v]; b.classList.toggle("on"); return; }
@@ -1883,9 +1909,13 @@ function renderSheet(){
     if(grp==="timing") draft.timing=v;
     if(grp==="quality") draft.quality=v;
   }));
-  $("shSector").addEventListener("change",e=>draft.sector=e.target.value);
+  $("shSector").addEventListener("change",e=>{ if(!draft) return; draft.sector=e.target.value; });
   $("shApply").addEventListener("click",applySheet);
   $("shReset").addEventListener("click",()=>{
+    /* الحارس هنا أخطرُ من حارس applySheet: هذا المعالج **يُسنِد** المسودة فلا
+       يرمي، فكان يُحيي مسودةً مصفّرة على ورقة مغلقة ⇒ ضغطةُ «تطبيق» بعده
+       تُطبّق فلاتر **بصمت** بلا أن يرى المستخدم ورقةً. */
+    if(!draft) return;
     /* «إعادة تعيين» مسٌّ صريح للدرجة كذلك — وإلا نجا minScorePrev من محوٍ قصده
        المستخدم فأُحيي حدٌّ محاه بيده (عيب كشفه ختم 05-10ب). */
     draft={minScore:0,minScoreTouched:true,timing:"",quality:"",sector:"",adv:{sma:false,rev:false,div:false,pe:false,liq:false}};
@@ -1893,6 +1923,13 @@ function renderSheet(){
   });
 }
 function applySheet(){
+  /* حارس الورقة المغلقة (ختم 06-10): `closeSheet` تضع `draft=null`، وأول قراءة
+     هنا `draft.minScoreTouched` — فتنشيط «تطبيق» بالمفتاح على ورقة مغلقة كان
+     يرمي. والتعرّض **موروث لا وليد**: الإيداعات الثلاثة الأخيرة كلها تقرأ
+     `draft.…` أول سطر (`draft.minScore` ⇒ `draft.minScore!==…` ⇒
+     `draft.minScoreTouched`)، فتغيّر اسمُ الحقل وحده. وهذا حزامٌ لا علاج:
+     العلاج أن الورقة المغلقة `inert` فلا يُنشَّط زرّها أصلاً. */
+  if(!draft) return;
   /* الملكية تنتقل بـ**لمسة** المستخدم خانةَ الدرجة، لا بمجرد ضغط «تطبيق» ولا بفرق
      القيمة (ختمان 05-10):
      · كانت تُصفَّر بلا شرط، فيكفي فتح الورقة والضغط — وورقةُ الجوال هي واجهة الفلترة
@@ -1915,12 +1952,29 @@ function openSheet(){
   sheetOpener=document.activeElement;
   draft={minScore:state.minScore,minScoreTouched:false,timing:state.timing,quality:state.quality,sector:state.sector,adv:{...state.adv}};
   renderSheet();
-  $("sheet").classList.add("open"); $("ovl").classList.add("open"); lockBodyScroll();
+  const sh=$("sheet");
+  setModalHidden(sh,false);                      /* قبل focus: inert لا يقبل التركيز */
+  sh.classList.add("open"); $("ovl").classList.add("open"); lockBodyScroll();
+  /* `aria-modal="true"` كانت **ادعاءً كاذباً** على الورقة: بخلاف الدرج لم تكن
+     تُخرج الخلفية ولا تحصر التنقّل، فمقيس 22 من 30 ضغطة Tab تهرب من الورقة
+     المفتوحة إلى الصفحة خلفها. وsetBgInert وtrapFocus قائمتان أصلاً للدرج. */
+  setBgInert(true);
+  sh.onkeydown=ev=>trapFocus(sh,ev);
   $("shX").focus();
 }
 function closeSheet(){
-  $("sheet").classList.remove("open"); draft=null;
-  if(!state.drawerSym){ $("ovl").classList.remove("open"); unlockBodyScroll(); }
+  const sh=$("sheet");
+  /* حارسٌ كحارس closeDrawer: بلا ورقةٍ مفتوحة كانت الدالة تُمضي إلى
+     `sheetOpener.focus()` فتَسرق التركيز إلى زرٍّ بائت. ومقيس: التركيز على حقل
+     البحث ثم Escape ⇒ يقفز إلى #fabFilters. وأسوأ منه على الطبقة: closeDrawer
+     تُعيد التركيز إلى lastFocus ثم تنقضه closeSheet بعدها في المعالج نفسه. */
+  if(!sh.classList.contains("open")) return;
+  sh.classList.remove("open"); draft=null;
+  setModalHidden(sh,true); sh.onkeydown=null;
+  /* الترتيب حاكم: رفعُ inert عن الخلفية **قبل** الإعادة — فـfocus() على عنصر
+     داخل شجرة inert لاغٍ بصمت. وحين يكون الدرج مفتوحاً تبقى الخلفية inert
+     ويبقى التركيز له، وهو الصحيح. */
+  if(!state.drawerSym){ $("ovl").classList.remove("open"); unlockBodyScroll(); setBgInert(false); }
   if(sheetOpener&&sheetOpener.focus) sheetOpener.focus();
 }
 
