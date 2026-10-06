@@ -463,6 +463,12 @@ ok(at0.scrollY===at700.scrollY,
    حذفَ الإعادة أو إعادتَها إلى موضعٍ خاطئ كان يمرّ 64/0 صامتاً. */
 ok(at0.scrollY === -lockedAt,
    "٩ز٢و والإزاحةُ عادت إلى المحفوظ لا إلى موضعٍ آخر", {restored:at0.scrollY, saved:-lockedAt});
+/* وترجيحُ غيرِ حقول الإدخال: كان المرتَدُّ يقع على #q فيستدعي لوحةَ مفاتيحَ لم
+   يطلبها أحد — ودعوى الترجيح كانت بلا حارس، تمرّ طفرةُ نزعِها 65/0. */
+const landedTag = await page.evaluate(()=>{
+  const a=document.activeElement; return a?a.tagName:null; });
+ok(landedTag && !/^(INPUT|TEXTAREA|SELECT)$/.test(landedTag),
+   "٩ز٢ز والمرتَدُّ ليس حقلَ إدخال (فلا لوحةَ مفاتيحَ يستدعيها إغلاق)", landedTag);
 await page.setViewportSize({width:390,height:844});
 await page.waitForTimeout(120);
 await ensureClosed();
