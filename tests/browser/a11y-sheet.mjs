@@ -473,6 +473,29 @@ await page.setViewportSize({width:390,height:844});
 await page.waitForTimeout(120);
 await ensureClosed();
 
+/* ولافتةُ ٩ز٢ز خطرُها جوّالٌ (لوحةُ مفاتيح) وقياسُها وقع عند 1280 — فيُعاد على 390
+   حيث يقع الخطر: مقيسٌ أن #q أوّلُ مرشّحٍ في المدى على العرضين، فطبقةُ !typing هي
+   وحدها ما يصرف المرتَدَّ عنه. */
+await ensureClosed();
+const mobileFallback = await page.evaluate(()=>{
+  const SEL='a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])';
+  const all=[...document.querySelectorAll(SEL)];
+  const inView=el=>{ const r=el.getBoundingClientRect();
+    return r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth; };
+  const firstInView = all.find(inView);
+  /* ‏restoreFocus معدومةٌ على أساسِ ما قبل العلاج — فيُبلَّغ غيابُها لا يُرمى */
+  if(typeof restoreFocus!=="function") return { absent:true, firstInView:firstInView?firstInView.id:null };
+  restoreFocus(document.createElement("button"));   /* هدفٌ لا يقع ⇒ المرتَدّ */
+  const a=document.activeElement;
+  return { firstInView: firstInView?firstInView.id||firstInView.tagName:null,
+           landed: a?(a.id||a.className||a.tagName):null, tag:a?a.tagName:null };
+});
+ok(mobileFallback.firstInView==="q",
+   "٩ز٢ح على 390: ‏#q أوّلُ مرشّحٍ في المدى (وإلا فالترجيح بلا أثرٍ يُقاس)", mobileFallback);
+ok(!mobileFallback.absent && !/^(INPUT|TEXTAREA|SELECT)$/.test(mobileFallback.tag||""),
+   "٩ز٢ط وعلى 390 كذلك لا يقع المرتَدُّ على حقلِ إدخال (حيث يقع خطرُ لوحةِ المفاتيح)",
+   mobileFallback);
+
 /* Escape ولا حوار مفتوح — لا يسرق التركيز */
 await ensureClosed();
 await page.focus(`.mcard[data-sym="${rowSym}"]`);

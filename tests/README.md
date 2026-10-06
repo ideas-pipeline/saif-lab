@@ -34,7 +34,7 @@ node tests/test_contract.js       # 4 — يشغّل scripts/self-check-L1.py و
 ## حزام المتصفح — في مجلّد منفصل
 
 ```
-node tests/browser/a11y-sheet.mjs   # 66 تأكيداً: إتاحة الحوارات على 390×844 و1280×900
+node tests/browser/a11y-sheet.mjs   # 68 تأكيداً: إتاحة الحوارات على 390×844 و1280×900
 ```
 
 يُقاس به ما لا يُقاس إلا بمتصفّح: الحوارَان مخفيان **بالإزاحة** لا بـ`display`، فسؤالُ
