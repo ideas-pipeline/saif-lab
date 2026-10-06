@@ -319,9 +319,14 @@ for s in S:
         elif ni_a <= 0:
             # تفريق الواجهة نفسه: القطع حيث يوافق السجل، والنسب حيث يعارض
             fin_a = s.get("financials") or {}
+            # الشاهد المعارِض يُقرأ من حقل المزوّد المحفوظ لا من المحسوب — مطابقةً
+            # لما تقرؤه الواجهة (ختم 06-10): المحسوب مشتقٌّ من netIncome فاتفاقه معه
+            # متطابقة رياضية لا شهادة. وأي انحراف هنا يكسر عقد المطابقة مع dyFlags.
+            _src = lambda k: (fin_a.get(k + "Src") if isinstance(fin_a.get(k + "Src"), (int, float))
+                              else fin_a.get(k))
             opp = [n for n, v in (("هامش", fin_a.get("profitMargins")),
-                                  ("ROE", fin_a.get("returnOnEquity")),
-                                  ("ROA", fin_a.get("returnOnAssets")))
+                                  ("ROE", _src("returnOnEquity")),
+                                  ("ROA", _src("returnOnAssets")))
                    if isinstance(v, (int, float)) and v > 0]
             if opp:
                 loss_contested.append((s["symbol"], "+".join(opp)))
@@ -391,7 +396,12 @@ print("    أساس ROE: من القوائم %d · من المزوّد %d · ب�
 ident = []
 for s_ in S:
     f_ = s_.get("financials") or {}
-    if "bank" not in (s_.get("industry") or "").lower():
+    # التعريف الموحد §3.1ب لا تعريفٌ محلي (ختم 06-10): تعريفٌ بـ"bank" وحده يغطّي
+    # صفر بنك لو عرّب المزوّد التصنيف — فيمرّ الحارس بألّا يحرس شيئاً ويطبع «شاذّ 0».
+    _sec = (s_.get("sector") or "").lower(); _ind = (s_.get("industry") or "").lower()
+    _fin = ("financ" in _sec) or ("مالية" in _sec) or ("مصارف" in _sec) or ("بنوك" in _sec)
+    _bk = ("bank" in _ind) or ("بنك" in _ind) or ("مصرف" in _ind)
+    if not ((_fin and _bk) if _sec else _bk):
         continue
     re_, ra_ = f_.get("returnOnEquitySrc"), f_.get("returnOnAssetsSrc")
     eq_, ta_ = f_.get("equity"), f_.get("totalAssets")

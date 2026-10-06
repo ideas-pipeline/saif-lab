@@ -44,21 +44,25 @@ console.log("── تأكيدات dyFlags (بعد ختم الناقد) ──")
 eq(gFlip.sort(), ["4012","4180","4194","4292","6014"], "1) وسم تعارض الأساس = خمسة (7200 أسقطه اشتراط العددين)");
 ok(!after["7200"].some(x => x.includes(FLIP)), "1أ) 7200 بلا وسم تعارض");
 // ٢ فرع الخسارة صار حياً ومستقلاً
-eq(gLoss.sort(), ["2010","2250","2310","4144"],
-   "2) القطع بالخسارة = الأربعة الذين يوافقهم سجلهم (انضم 2250 بعد تصحيح أساس النسب 06-10)");
+eq(gLoss.sort(), ["2010","2310","4144"], "2) القطع بالخسارة = الثلاثة الذين يوافقهم سجلهم");
 const gCont = stocks.filter(s => dyFlags(s).some(x => x.includes("أساسان متعارضان للربح"))).map(s => s.symbol).sort();
-eq(gCont, ["2170","2282","2290","3050"],
-   "2ز) «أساسان متعارضان» = الأربعة الذين ما زال الهامش وحده يعارضهم");
-/* 2ح) انقلب بتصحيح أساس النسب (06-10): كان ROE وROA من المزوّد موجبَين على سهم
-   صافي ربحه سالب، فيُسكتان القطع ويُبقيانه «نسبةً لا حكماً». وبعد أن صارا يُحسبان
-   من صافي الربح نفسه (‎−1.2%‎ و‎−1.18%‎) لم يبقَ معارض — فهامشه 0.0 لا موجب — فصار
-   القطع جائزاً. وهذا تحقّقٌ من أن التعارض كان أثر أساسٍ خاطئ لا تناقضاً في السجل. */
-ok(dyFlags(stocks.find(s => s.symbol === "2250")).some(x => x.includes("أُقفلت بخسارة")) &&
-   !dyFlags(stocks.find(s => s.symbol === "2250")).some(x => x.includes("متعارضان")),
-   "2ح) 2250 صار قطعاً بالخسارة لا نسبةً — زال معارضاه بزوال الأساس الخاطئ");
-{ const f2170 = dyFlags(stocks.find(s => s.symbol === "2170")).find(x => x.includes("متعارضان")) || "";
-  ok(f2170.includes("الهامش الصافي") && !f2170.includes("العائد على حقوق") && !f2170.includes("العائد على الأصول"),
-     "2ي) ومن بقي في التعارض يسمّي الهامش وحده معارِضاً — " + f2170); }
+eq(gCont, ["2170","2250","2282","2290","3050"], "2ز) «أساسان متعارضان» = الخمسة الذين تعارضهم حقول كتلتهم");
+ok(dyFlags(stocks.find(s => s.symbol === "2250")).some(x => x.includes("متعارضان") && !x.includes("الهامش الصافي")),
+   "2ح) 2250 يسمّي الحقلين المعارضين فقط (هامشه 0.0 لا موجب)");
+/* ١١ حارس حياة للشاهدين المستقلّين (شرط ختم 06-10): منذ أن صار ROE وROA يُحسبان
+   عندنا من netIncome، لو قرأ الوسمُ الحقلَ المحسوب بدل حقل المزوّد المحفوظ لصار
+   اتفاقُهما مع netIncome متطابقةً رياضية — أي شاهدين ميتين بالبناء يمرّان صامتَين
+   (قِيس: 32 سهماً ⇒ صفر). فيُشترط أن يبقيا **حيَّين على بيانات اليوم**. */
+{
+  const neg = stocks.filter(s => ((s.financials || {}).netIncome || 0) < 0);
+  const wit = k => neg.filter(s => typeof (s.financials || {})[k + "Src"] === "number" &&
+                                   s.financials[k + "Src"] > 0).length;
+  ok(wit("returnOnEquity") >= 20, "11) شاهد ROE المستقل حيّ على " + wit("returnOnEquity") + " سهماً خاسراً");
+  ok(wit("returnOnAssets") >= 20, "11أ) وشاهد ROA كذلك على " + wit("returnOnAssets"));
+  const named = dyFlags(stocks.find(s => s.symbol === "2250")).find(x => x.includes("متعارضان")) || "";
+  ok(named.includes("العائد على حقوق الملكية") && named.includes("العائد على الأصول"),
+     "11ب) والوسم يسمّيهما فعلاً (لا يقرأ الحقل المحسوب) — " + named);
+}
 ok(!gCont.some(x => gLoss.includes(x)), "2ط) الفئتان متنافيتان");
 ok(after["2010"].some(x => x.includes("خسارة (8.59 ريال للسهم)")), "2أ) سابك: نص الخسارة بالمبلغ — " + JSON.stringify(after["2010"]));
 ok(after["2290"].some(x => x.includes("أساسان متعارضان")) && after["2290"].some(x => x.includes("التوزيع أكبر من ربح")),
@@ -70,11 +74,38 @@ eq(after["4194"].find(x => x.includes(FLIP)),
 // ٤ تفوُّق لكل سهم
 const lost = [];
 for (const s of stocks) for (const o of (before[s.symbol] || [])) if (!after[s.symbol].includes(o)) lost.push(s.symbol + ": " + o);
-if (B.identical) vac("4) لا سهم يفقد وسماً قائماً"); else eq(lost, [], "4) لا سهم يفقد وسماً قائماً");
+/* ٤) هذه الموجة **تغيّر** خرج dyFlags بقصد: الوسم صار يقرأ حقل المزوّد المحفوظ
+   (*Src) بدل الحقل المحسوب، فيعود الشاهدان المستقلان. فلا يصحّ تأكيد «دلتا صفر»
+   هنا — ولا يصحّ تمييعه. والمؤكَّد هو **شكل الدلتا بعينه**: لا سهم يخرج من فئته،
+   ولا يفقد وسماً إلا ليكسب نسخةً أغنى منه تسمّي شهوداً أكثر. */
+const OPPO = "أساسان متعارضان";
+if (B.identical) vac("4) لا سهم يفقد وسماً قائماً");
+else {
+  const bad = [];
+  for (const s of stocks) {
+    for (const o of (before[s.symbol] || [])) {
+      if (after[s.symbol].includes(o)) continue;
+      const nw = after[s.symbol].find(x => x.slice(0, 20) === o.slice(0, 20));
+      const richer = o.includes(OPPO) && nw && nw.length > o.length;
+      /* والاتجاه الثاني المسموح: قطعٌ قاطع يعود **نسبةً** — أي الوسم يصير أقلّ
+         حكماً لا أكثر، وهو عين مبدأ الموجة (ننسب ولا ندّعي). العكس ممنوع. */
+      const softer = (o.includes(LOSS) || o.includes(NOPROFIT)) &&
+                     after[s.symbol].some(x => x.includes(OPPO));
+      if (!richer && !softer) bad.push(s.symbol + ": " + o);
+    }
+  }
+  eq(bad, [], "4) لا سهم يفقد وسماً إلا ليكسب نسخةً أغنى منه (وسم التعارض يسمّي شهوداً أكثر)");
+  const grew = stocks.filter(s => (before[s.symbol] || []).some(o =>
+    o.includes(OPPO) && !after[s.symbol].includes(o))).map(s => s.symbol).sort();
+  eq(grew, ["2170", "2282", "2290", "3050"], "4أ) والأغنياء هم الأربعة بعينهم");
+  const softened = stocks.filter(s => (before[s.symbol] || []).some(o =>
+    (o.includes(LOSS) || o.includes(NOPROFIT)) && !after[s.symbol].includes(o))).map(s => s.symbol);
+  eq(softened, ["2250"], "4ب) ولا يلين إلا 2250: يعود من القطع إلى النسبة بعودة شاهدَيه");
+}
 // ٥ المجاميع والقواعد الخمس
 if (B.identical) vac("5) دلتا الكود صفر");
 else eq([withFlag - bWith, total - bTotal], [0, 0],
-   "5) دلتا الكود صفر: التغيير الحالي لا يمسّ dyFlags إطلاقاً (مقيسة على بيانات اليوم نفسها)");
+   "5) المجاميع ثابتة: التغيير يُغني نصوصاً ولا يُنشئ وسماً ولا يُلغيه");
 const RULES = ["التوزيع أكبر من ربح 12 شهراً", "يوزّع بلا ربح معلن", "السعر أدنى من متوسطه الطويل", "بلا سجل دفعات ولا قاعدة 200", "ضعف وسيط قطاعه أو أكثر"];
 const nRule = p => stocks.filter(s => after[s.symbol].some(x => x.startsWith(p))).length;
 const nRuleHEAD = p => stocks.filter(s => dyFlagsHEAD(s).some(x => x.startsWith(p))).length;
@@ -104,7 +135,9 @@ deg("4194", x => x.valuationInputs.sharesOutstanding = 0, false, false, "أسه�
   ok(dyFlags(x).some(y => y.includes("أساسان متعارضان")), "8) ربح سالب وهوامش موجبة → نسبة لا قطع"); }
 // وبإسكات الحقول المعارضة يعود القطع
 { const x = JSON.parse(JSON.stringify(stocks.find(s => s.symbol === "4194"))); x.financials.netIncome = -1;
-  x.financials.profitMargins = null; x.financials.returnOnEquity = null; x.financials.returnOnAssets = null;
+  /* الإسكات يشمل حقول المزوّد المحفوظة لأن الوسم يقرؤها هي (ختم 06-10) */
+  for (const k of ["profitMargins", "returnOnEquity", "returnOnAssets",
+                   "returnOnEquitySrc", "returnOnAssetsSrc"]) x.financials[k] = null;
   ok(dyFlags(x).some(y => y.includes(LOSS)), "8أ) وبلا حقول معارضة يعود القطع بالخسارة"); }
 deg("4194", x => x.financials.netIncome = 0, false, true, "ربح صفر → «بلا ربح»");
 deg("4194", x => { delete x.valuationInputs.marketCap; }, true, false, "بلا marketCap → يُفشَل مفتوحاً فيصمد الوسم");

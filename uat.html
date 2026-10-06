@@ -644,7 +644,9 @@ function excludeWhy(s){
 }
 const bandHtml=s=>{const b=qualityBand(s), w=excludeWhy(s);
   const badge=`<span class="badge ${b.cls}">${b.label}</span>`;
-  return w?`<span class="band">${badge}<span class="ex-why">${esc(w)}</span></span>`:badge;};
+  /* مسافة صريحة بين الشارة والسبب: الفجوة البصرية من flex-gap لا من النص، فكان
+     textContent يقرأ «مستبعدتحت متوسط 200 أسبوع» ملتحمةً في النسخ وقارئ الشاشة. */
+  return w?`<span class="band">${badge} <span class="ex-why">${esc(w)}</span></span>`:badge;};
 function qualityBand(s){
   if(!rated(s)) return {code:"excluded", label:isc(s).unrated?"غير مقيّم":"مستبعد", cls:"b-na"};
   const t=isc(s).total;
@@ -956,7 +958,10 @@ function scoreRing(total, color, size=52){
 }
 function scoreHtml(s){
   const t=scoreOf(s);
-  if(t==null) return `<span class="badge b-na">${isc(s).unrated?"غير مقيّم":"مستبعد"}</span>`;
+  /* عمود الدرجة لا يعيد كلمة العمود المجاور (ختم 06-10): كانت «مستبعد» تُطبع
+     مرتين في الصف الواحد على **212 من 248 صفاً**، وموجةٌ كاملةٌ قامت لأن المالك
+     قرأ الكلمة حكماً — فالتكرار بجوار السبب ضجيج. شُرطةٌ هنا، والحكم في عموده. */
+  if(t==null) return `<span class="num" style="color:var(--text3)" aria-label="${isc(s).unrated?"غير مقيّم":"مستبعد من التقييم"}">—</span>`;
   return `<span class="score-cell"><span class="n num" style="color:${scoreColor(t)}">${t}</span><span class="sbar"><i style="width:${t}%;background:${scoreColor(t)}"></i></span></span>`;
 }
 /* شريط الصف (اتجاه «أزرق ليلي» 04-10): يحمل لون الدرجة نفسه فيُقرأ المستوى
@@ -1064,9 +1069,17 @@ function dyFlags(s){
      من مزوّد آخر (S&P Global الموروث)، و«netIncome» بلا ختم في financialsParts.
      فالأسرتان غير متقايستين منهجياً — وهذا يقوّي الحجة على عدم القطع لا يضعفها.
      فيُنسب الوقت لا المكان، والختم يُقرأ من البيانات لا يُكتب صلباً. */
+  /* الشاهد المعارِض يجب أن يكون **مستقلاً** عن صافي الربح (تصحيح ختم 06-10):
+     منذ 06-10 يُحسب ROE وROA عندنا من netIncome نفسه، فاتفاقهما معه صار متطابقةً
+     رياضية — أي شاهدان ميتان بالبناء، وقد قِيس: من 32 سهماً إلى صفر. والدليل لم
+     يزل بل انتقل إلى returnOnEquitySrc/returnOnAssetsSrc (قيمة المزوّد المحفوظة،
+     موجبة على 32 سهماً صافي ربحها سالب). فتُقرأ هي: يعود الشاهد حياً، ويصير الحقل
+     المحفوظ أداءً لغرضه المعلن لا مخزَّناً بلا قارئ. والمبدأ يُصان: ننسب كل رقم
+     لمصدره ولا ندّعي أيَّهما صحيح — وإسكاتُ الشاهد كان نقضاً له لا تطبيقاً. */
+  const srcOf=(k)=>{const v=finA[k+"Src"]; return typeof v==="number"?v:finA[k];};
   const oppoP=[["الهامش الصافي","profitMargins",finA.profitMargins],
-               ["العائد على حقوق الملكية","returnOnEquity",finA.returnOnEquity],
-               ["العائد على الأصول","returnOnAssets",finA.returnOnAssets]]
+               ["العائد على حقوق الملكية","returnOnEquity",srcOf("returnOnEquity")],
+               ["العائد على الأصول","returnOnAssets",srcOf("returnOnAssets")]]
               .filter(x=>typeof x[2]==="number"&&x[2]>0);
   const oppo=oppoP.map(x=>x[0]);
   const fparts=s.financialsParts||{};
