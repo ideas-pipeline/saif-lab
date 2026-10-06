@@ -352,13 +352,23 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
   opacity:0; pointer-events:none; transition:opacity var(--dur);
 }
 .ovl.open{opacity:1; pointer-events:auto}
+/* ‏visibility أرضيةٌ إعلانية معلَّقة على .open نفسه (لا مصدرَ حقيقةٍ ثانياً): تُخرج
+   الشجرة من التنقّل والإتاحة في كل متصفّح، فلا تتعلّق بأرضية inert ولا بنجاح JS —
+   وهي ما يُغلق سقفَ دعم inert الذي يحمله setDialogOpen وحده. والتأخير 220ms على
+   الإغلاق وحده (0s على الفتح) يُبقي الانزلاق كما هو: ‏visibility خاصّةٌ منفصلة لا
+   تنتقل تدريجياً، فبلا تأخيرٍ كان الحوار يختفي فجأةً بدل أن ينزلق. */
 .drawer{
   position:fixed; top:0; bottom:0; left:0; width:42%; min-width:480px; max-width:640px;
   background:var(--surface); border-right:1px solid var(--border2); z-index:90;
-  transform:translateX(-102%); transition:transform 220ms cubic-bezier(0.3,0.8,0.4,1);
+  visibility:hidden;
+  transform:translateX(-102%);
+  transition:transform 220ms cubic-bezier(0.3,0.8,0.4,1), visibility 0s linear 220ms;
   display:flex; flex-direction:column; overflow:hidden;
 }
-.drawer.open{transform:translateX(0)}
+.drawer.open{
+  transform:translateX(0); visibility:visible;
+  transition:transform 220ms cubic-bezier(0.3,0.8,0.4,1), visibility 0s linear 0s;
+}
 @media(max-width:767px){
   .drawer{width:100%; min-width:0; max-width:none; border:none}
 }
@@ -463,13 +473,18 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .tip.show{opacity:1}
 
 /* Mobile filter sheet */
-.sheet{
+.sheet{                                        /* الأرضية نفسها — انظر .drawer أعلاه */
   position:fixed; left:0; right:0; bottom:0; z-index:100; background:var(--surface);
   border-top:1px solid var(--border2); border-radius:16px 16px 0 0;
-  transform:translateY(105%); transition:transform 220ms cubic-bezier(0.3,0.8,0.4,1);
+  visibility:hidden;
+  transform:translateY(105%);
+  transition:transform 220ms cubic-bezier(0.3,0.8,0.4,1), visibility 0s linear 220ms;
   max-height:78vh; overflow-y:auto; padding:18px 18px calc(22px + env(safe-area-inset-bottom));
 }
-.sheet.open{transform:translateY(0)}
+.sheet.open{
+  transform:translateY(0); visibility:visible;
+  transition:transform 220ms cubic-bezier(0.3,0.8,0.4,1), visibility 0s linear 0s;
+}
 .sheet .sh-t{font-size:15px; font-weight:700; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center}
 .sheet .fgroup{margin-bottom:16px}
 .sheet .fgroup .gt{font-size:11.5px; color:var(--text3); font-weight:600; margin-bottom:8px}
@@ -583,7 +598,7 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
 <div class="ovl" id="ovl" aria-hidden="true"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="تفاصيل السهم" inert aria-hidden="true"></aside>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="الفلاتر" inert aria-hidden="true"></div>
-<div class="tip" id="tip" role="tooltip"></div>
+<div class="tip" id="tip" role="tooltip" aria-hidden="true"></div>
 
 <footer>
   نسخة UAT تجريبية لتجربة تصميم سيف الجديد — تقرأ بيانات المنصة الحقيقية نفسها ولا تُعدّل أي شيء.
@@ -1764,6 +1779,24 @@ function setDialogOpen(el,open){
   if(open){ el.removeAttribute("inert"); el.removeAttribute("aria-hidden"); }
   else { el.setAttribute("inert",""); el.setAttribute("aria-hidden","true"); }
 }
+/* إرجاعُ التركيز لا يُنادى على هدفٍ لا يقع: فاتحٌ صار داخل حوارٍ سُدّ تحته، أو ضابطٌ
+   صار display:none بتغيّر العرض — كلاهما يُفشل focus() صامتاً فيهبط التركيز إلى body،
+   فشلاً بلا استثناء ولا عَرَض إلا حلقةَ تركيزٍ مفقودة.
+   والفحصُ بالوقوع لا بالاستدلال: شرطُ `offsetParent!==null` (كما في trapFocus) **يكذب
+   على كل عنصر position:fixed** فـoffsetParent له null — وأوّلُ ما رفضه كان #fabFilters
+   نفسه، أي الهدفَ الأشيع. فالحقيقةُ الوحيدة أن نُنادي ونسأل مَن المركَّز، وهي تغطّي
+   inert وdisplay:none وvisibility:hidden وdisabled في كل متصفّح بلا استدلال. */
+function tryFocus(el){
+  if(!el||typeof el.focus!=="function") return false;
+  try{ el.focus(); }catch(e){ return false; }
+  return document.activeElement===el;
+}
+function restoreFocus(target){
+  if(tryFocus(target)) return;
+  /* الهدف لا يقع — فأولُ ضابطٍ يقع: مكانٌ معلومٌ دون body وإن لم يكن المكانَ المثالي */
+  for(const el of document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])'))
+    if(tryFocus(el)) return;
+}
 function trapFocus(container,ev){
   if(ev.key!=="Tab") return;
   const f=[...container.querySelectorAll('button,[href],input,select,[tabindex]:not([tabindex="-1"])')]
@@ -1825,7 +1858,12 @@ function closeDrawer(){
     drawerHistActive=false;
     if(!drawerFromPop){ try{ history.back(); }catch(e){} }
   }
-  if(lastFocus&&lastFocus.focus) lastFocus.focus();
+  /* مرآةُ تصفيرِ sheetOpener، ومعها حارسُ وصولٍ: هدفٌ صار داخل حوارٍ مغلق (مقيس:
+     lastFocus=#shX إن فُتح الدرج فوق ورقةٍ مفتوحة) يفشل تركيزه صامتاً فيهبط إلى
+     body — فلا يُنادى تركيزٌ لا يقع. ويبقى المسار غير قابل للوصول (نقرةُ مؤشّرٍ
+     والورقةُ مفتوحة تهبط على #ovl لا على البطاقة — مقيس)، وهذه شبكةُ أمانٍ تامّة
+     لا نصفُ شبكة. */
+  restoreFocus(lastFocus); lastFocus=null;   /* ومرآةُ تصفيرِ sheetOpener */
   setDialogOpen(dr,false);   /* بعد نقل التركيز خارج الدرج: inert يُفقده التركيزَ أولاً */
 }
 
@@ -1839,8 +1877,13 @@ function showTip(el){
   let x=r.left+r.width/2-tw/2; x=Math.max(8,Math.min(x,innerWidth-tw-8));
   let y=r.top-th-8; if(y<8) y=r.bottom+8;
   t.style.left=x+"px"; t.style.top=y+"px";
+  t.removeAttribute("aria-hidden");
 }
-function hideTip(){ $("tip").classList.remove("show"); }
+/* الشقيق الرابع: ‏#tip يُخفى بـopacity:0 + pointer-events:none، و**opacity لا تُخرج
+   من شجرة الإتاحة** كما لا تُخرجها الإزاحة — فكان يحمل نصَّ آخر تلميحٍ أُظهر، معلَناً
+   لمن يتصفّح بالعناصر طولَ الجلسة (مقيس: name=«…» وaria=null على تلميحٍ مُخفى).
+   ولا أبناءَ له قابلين للتركيز، فالعلاج إعلانيّ وحده كـ#ovl. */
+function hideTip(){ const t=$("tip"); t.classList.remove("show"); t.setAttribute("aria-hidden","true"); }
 document.addEventListener("mouseover",e=>{
   const el=e.target.closest("[data-tip]");
   if(el){ clearTimeout(tipTimer); tipTimer=setTimeout(()=>showTip(el),150); }
@@ -1957,13 +2000,13 @@ function closeSheet(){
     /* الدرجُ مفتوح: حالٌ صار غير قابل للوصول بحصر التنقّل في الورقة (مقيس)، ويبقى
        الفرع شبكةَ أمان — فلا تُفكّ خلفيةٌ يملكها الدرج، والتركيز يعود إليه لا إلى
        فاتح الورقة (وهو inert حينئذ فيفشل تركيزه صامتاً ويهبط إلى body). */
-    const x=$("drX"); if(x) x.focus();
+    restoreFocus($("drX"));
   } else {
     $("ovl").classList.remove("open");
     /* رفعُ inert عن الخلفية قبل الإرجاع: #fabFilters ابنٌ مباشر لـbody فيفشل تركيزه
        صامتاً وهو inert — فشلٌ بلا استثناء ولا عَرَض، إلا حلقةَ تركيزٍ مفقودة. */
     setBgInert(false); unlockBodyScroll();
-    if(sheetOpener&&sheetOpener.focus) sheetOpener.focus();
+    restoreFocus(sheetOpener);
   }
   setDialogOpen(sh,false);   /* بعد نقل التركيز خارج الورقة */
   sheetOpener=null;

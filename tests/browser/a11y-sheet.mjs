@@ -81,27 +81,44 @@ function tools(page){
     try{ prev&&prev.focus&&prev.focus(); }catch{}
     return { count:cands.length, reachable };
   }, sel);
-  /* مسح Tab من رأس الصفحة حتى تمام الدورة. كشفُ التمام بهوية العنصر لا بتوقيعه:
-     مئات البطاقات تتشابه صنفاً وتخلو من المعرّف، فالمقارنة النصّية تُعلن الدورة
-     تامّةً بعد ثلاث خطوات (أوّلُ ما أعطى هذا الحزام نتيجةً زائفة). */
-  async function tabSweep(back=false, cap=3000){
-    await page.evaluate(()=>{ try{ document.activeElement&&document.activeElement.blur(); }catch{} window.__swFirst=null; });
-    const hits=[]; let steps=0, seen=new Set();
+  /* مسحٌ من رأس الصفحة حتى آخرها — ورأسُها يُثبَّت بعنصرٍ معلوم لا بـblur():
+     ‏blur() لا يُصفّر «نقطةَ بدء التنقّل التسلسلي» في Chromium، فكان كل مسحٍ يُكمل من
+     حيث تركه السابق، وقِيس من حالةِ تركيزٍ أخرى فأعطى 3 خطوات — فالادعاء «من رأس
+     الصفحة» كان أوسعَ من المقيس. ويُثبَت الوصولُ إلى الطرف الآخر فعلاً، فعتبةُ
+     «تواقيع متمايزة» رقيقة: مئات البطاقات تشترك في توقيعٍ واحد.
+     وكشفُ تمام الدورة بهوية العنصر لا بتوقيعه، لِعلّة التشابه نفسها. */
+  const markEnds = () => page.evaluate(()=>{
+    const all=[...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')]
+      .filter(el=>!el.closest("#sheet")&&!el.closest("#drawer")&&!el.closest("#tip")
+                  &&!el.closest("[inert]")&&!el.disabled&&el.offsetParent!==null);
+    document.querySelectorAll("[data-sw]").forEach(el=>el.removeAttribute("data-sw"));
+    if(all.length<2) return 0;
+    all[0].setAttribute("data-sw","first"); all[all.length-1].setAttribute("data-sw","last");
+    return all.length;
+  });
+  async function tabSweep(back=false, cap=4000){
+    const n = await markEnds();
+    const from = back ? "last" : "first", to = back ? "first" : "last";
+    await page.focus(`[data-sw="${from}"]`);
+    await page.evaluate(()=>{ window.__swFirst=null; });
+    const hits=[]; let steps=0, reachedEnd=false, seen=new Set();
     for(let i=0;i<cap;i++){
       await page.keyboard.press(back?"Shift+Tab":"Tab"); steps++;
-      const st=await page.evaluate(()=>{
+      const st=await page.evaluate(t=>{
         const a=document.activeElement;
         if(!a||a===document.body) return { end:true };
         if(window.__swFirst===null) window.__swFirst=a;
         else if(window.__swFirst===a) return { end:true };
         return { end:false, id:a.id||null, cls:a.className||null, tag:a.tagName,
+                 atEnd:a.getAttribute("data-sw")===t,
                  inSheet:!!a.closest("#sheet"), inDrawer:!!a.closest("#drawer") };
-      });
+      }, to);
       if(st.end) break;
       seen.add(`${st.tag}#${st.id}.${st.cls}`);
+      if(st.atEnd) reachedEnd=true;
       if(st.inSheet||st.inDrawer) hits.push(st);
     }
-    return { steps, hits, distinct:seen.size };
+    return { steps, hits, reachedEnd, candidates:n, distinct:seen.size };
   }
   async function ensureClosed(){
     for(const sel of ["#sheet","#drawer"]){
@@ -199,11 +216,43 @@ const drKept=await page.evaluate(()=>({ len:document.querySelector("#drawer").in
                                         inert:document.querySelector("#drawer").hasAttribute("inert") }));
 ok(drKept.len>0 && drKept.inert, "٤ج الدرج المغلق يُسَد بـinert ولا يُفرَّغ (موقف معلن)", drKept);
 
+/* أرضيةُ visibility — الإجراء الذي لا يتعلّق بأرضية inert ولا بنجاح JS */
+const vis = sel => page.evaluate(x=>getComputedStyle(document.querySelector(x)).visibility, sel);
+for(const [sel,lbl] of [["#sheet","الورقة"],["#drawer","الدرج"]])
+  ok(await vis(sel)==="hidden", `٤د ${lbl} المغلق visibility:hidden (أرضيةٌ في كل متصفّح)`, await vis(sel));
+await page.click("#fabFilters"); await page.waitForSelector("#sheet.open");
+ok(await vis("#sheet")==="visible", "٤هـ الورقة المفتوحة visibility:visible");
+/* الانزلاق محفوظ: التأخير يُبقيها مرئيةً طولَ الـ220ms ثم تُخفى.
+   والإغلاق بقناته الحقيقية لا بنزع .open: نزعُه يتخطّى closeSheet فتبقى الخلفية
+   inert — وهذا بعينه ما أفسد هذا القياس أولَ مرة. */
+await page.click("#shX");
+await page.waitForTimeout(60);
+const midSlide = await vis("#sheet");
+await page.waitForTimeout(340);
+const afterSlide = await vis("#sheet");
+ok(midSlide==="visible" && afterSlide==="hidden",
+   "٤و الأرضية لا تكسر انزلاق الإغلاق (مرئيةٌ وسطه، مخفيةٌ بعده)", {midSlide, afterSlide});
+
+/* الشقيق الرابع #tip: opacity:0 لا تُخرج من شجرة الإتاحة، فالنصّ المتقادم كان يُعلَن */
+const tipState = await page.evaluate(()=>{
+  const t=document.querySelector("#tip"), src=document.querySelector("[data-tip]");
+  const out={ born:t.getAttribute("aria-hidden") };
+  if(!src) return out;
+  showTip(src); out.shown=t.getAttribute("aria-hidden");
+  hideTip();    out.hidden=t.getAttribute("aria-hidden"); out.textKept=t.textContent.length>0;
+  return out;
+});
+ok(tipState.born==="true", "٤ز ‏#tip يبدأ aria-hidden", tipState);
+ok(tipState.shown===null, "٤ح الإظهار يرفع aria-hidden عن #tip", tipState);
+ok(tipState.hidden==="true" && tipState.textKept,
+   "٤ط الإخفاء يُعيده وإن بقي نصُّه (فلا نصَّ متقادماً يُعلَن)", tipState);
+
 /* مسح Tab من رأس الصفحة إلى آخرها — الاتجاهان. والخلف أقوى: #sheet آخرُ أشقّائه */
 for(const back of [false,true]){
   const sw=await tabSweep(back);
   const dir=back?"Shift+Tab":"Tab";
-  ok(sw.distinct>=5, `٥ مسح ${dir} غطّى الصفحة فعلاً (لا تركيزٌ عالقٌ على body)`, sw);
+  ok(sw.candidates>10, `٥ مرشّحو المسح موجودون (${dir})`, sw.candidates);
+  ok(sw.reachedEnd===true, `٥ مسح ${dir} بلغ الطرفَ الآخر فعلاً — لا تقصيرٌ صامت`, sw);
   ok(sw.hits.length===0, `٥ ${dir} لا يلمس أي عنصر داخل #sheet أو #drawer`, sw.hits.slice(0,4));
 }
 
@@ -281,6 +330,23 @@ await page.click(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#d
 const fabInert=await page.evaluate(()=>({ inert:!!document.querySelector("#fabFilters").closest("[inert]"),
   sheetOpen:document.querySelector("#sheet").classList.contains("open") }));
 ok(fabInert.inert && !fabInert.sheetOpen, "٩ب الدرج مفتوح ⇒ #fabFilters inert فلا ورقة تُفتح فوقه", fabInert);
+
+/* التداخل المُجبَر — شبكةُ الأمان تُقاس تامّةً لا نصفَ شبكة: lastFocus يصير داخل
+   ورقةٍ سَتُسَد، فنداءُ تركيزه كان يفشل صامتاً فيهبط إلى body في الخطوة التالية. */
+await ensureClosed();
+await page.click("#fabFilters"); await page.waitForSelector("#sheet.open");
+await page.evaluate(s=>openDrawer(s), rowSym);
+await page.waitForSelector("#drawer.open");
+const both=await page.evaluate(()=>({ sh:document.querySelector("#sheet").classList.contains("open"),
+                                      dr:document.querySelector("#drawer").classList.contains("open") }));
+ok(both.sh && both.dr, "٩د الحالُ المُجبَر تحقّق فعلاً (وإلا فالقياس زائف)", both);
+await page.click("#shX");
+const step1=await where();
+ok(step1 && step1.id==="drX", "٩هـ إغلاق الورقة فوق درجٍ مفتوح ⇒ التركيز إلى #drX", step1);
+await page.keyboard.press("Escape");
+await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
+const step2=await where();
+ok(step2 && !step2.body, "٩و ثم إغلاق الدرج ⇒ التركيز لا يهبط إلى body", step2);
 
 /* Escape ولا حوار مفتوح — لا يسرق التركيز */
 await ensureClosed();
