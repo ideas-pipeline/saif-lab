@@ -81,26 +81,37 @@ function tools(page){
     try{ prev&&prev.focus&&prev.focus(); }catch{}
     return { count:cands.length, reachable };
   }, sel);
-  /* مسحٌ من رأس الصفحة حتى آخرها — ورأسُها يُثبَّت بعنصرٍ معلوم لا بـblur():
-     ‏blur() لا يُصفّر «نقطةَ بدء التنقّل التسلسلي» في Chromium، فكان كل مسحٍ يُكمل من
-     حيث تركه السابق، وقِيس من حالةِ تركيزٍ أخرى فأعطى 3 خطوات — فالادعاء «من رأس
-     الصفحة» كان أوسعَ من المقيس. ويُثبَت الوصولُ إلى الطرف الآخر فعلاً، فعتبةُ
-     «تواقيع متمايزة» رقيقة: مئات البطاقات تشترك في توقيعٍ واحد.
-     وكشفُ تمام الدورة بهوية العنصر لا بتوقيعه، لِعلّة التشابه نفسها. */
+  /* مسحٌ من رأس الصفحة حتى آخرها — ورأسُها عنصرٌ موسوم لا `blur()`: ‏blur() لا يُصفّر
+     «نقطةَ بدء التنقّل التسلسلي» في Chromium، فكان كل مسحٍ يُكمل من حيث تركه السابق.
+     **ويُحرَس البدءُ بتأكيدٍ صريح (startedAt)**: كشفُ تمام الدورة بالهوية يستوفي
+     الحلقةَ من أي نقطةِ بدء، فـreachedEnd يحرس «استيفاء الدورة» لا «البدء من الرأس» —
+     وبلا حارسٍ على البدء كان إرجاعُ blur() يمرّ صامتاً (برهنه ختمُ المراجعة بطفرة).
+     وكشفُ التمام بالهوية لا بالتوقيع لأن مئات البطاقات تتشابه توقيعاً، فالمقارنةُ
+     النصّية كانت تُعلن الدورة تامّةً بعد ثلاث خطوات.
+     وتعيينُ الطرفين بالوقوع لا بـoffsetParent: الأخيرُ يكذب على كل عنصر
+     position:fixed — وهو الاستدلالُ نفسه الذي أسقطه restoreFocus. */
   const markEnds = () => page.evaluate(()=>{
-    const all=[...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')]
-      .filter(el=>!el.closest("#sheet")&&!el.closest("#drawer")&&!el.closest("#tip")
-                  &&!el.closest("[inert]")&&!el.disabled&&el.offsetParent!==null);
+    const SEL='a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])';
+    const all=[...document.querySelectorAll(SEL)]
+      .filter(el=>!el.closest("#sheet")&&!el.closest("#drawer")&&!el.closest("#tip"));
+    const can=el=>{ try{ el.focus(); }catch(e){ return false; } return document.activeElement===el; };
     document.querySelectorAll("[data-sw]").forEach(el=>el.removeAttribute("data-sw"));
-    if(all.length<2) return 0;
-    all[0].setAttribute("data-sw","first"); all[all.length-1].setAttribute("data-sw","last");
+    let a=null,b=null;
+    for(let i=0;i<all.length&&!a;i++) if(can(all[i])) a=all[i];
+    for(let i=all.length-1;i>=0&&!b;i--) if(can(all[i])) b=all[i];
+    if(!a||!b||a===b) return 0;
+    a.setAttribute("data-sw","first"); b.setAttribute("data-sw","last");
     return all.length;
   });
   async function tabSweep(back=false, cap=4000){
     const n = await markEnds();
     const from = back ? "last" : "first", to = back ? "first" : "last";
     await page.focus(`[data-sw="${from}"]`);
-    await page.evaluate(()=>{ window.__swFirst=null; });
+    const startedAt = await page.evaluate(()=>{
+      const a=document.activeElement;
+      window.__swFirst=null;
+      return a && a.getAttribute ? a.getAttribute("data-sw") : null;
+    });
     const hits=[]; let steps=0, reachedEnd=false, seen=new Set();
     for(let i=0;i<cap;i++){
       await page.keyboard.press(back?"Shift+Tab":"Tab"); steps++;
@@ -118,7 +129,7 @@ function tools(page){
       if(st.atEnd) reachedEnd=true;
       if(st.inSheet||st.inDrawer) hits.push(st);
     }
-    return { steps, hits, reachedEnd, candidates:n, distinct:seen.size };
+    return { steps, hits, reachedEnd, startedAt, expectStart:from, candidates:n, distinct:seen.size };
   }
   async function ensureClosed(){
     for(const sel of ["#sheet","#drawer"]){
@@ -252,6 +263,9 @@ for(const back of [false,true]){
   const sw=await tabSweep(back);
   const dir=back?"Shift+Tab":"Tab";
   ok(sw.candidates>10, `٥ مرشّحو المسح موجودون (${dir})`, sw.candidates);
+  ok(sw.startedAt===sw.expectStart,
+     `٥ مسح ${dir} بدأ من الطرف الموسوم فعلاً — لا من حيث تركه السابق`,
+     {startedAt:sw.startedAt, expect:sw.expectStart});
   ok(sw.reachedEnd===true, `٥ مسح ${dir} بلغ الطرفَ الآخر فعلاً — لا تقصيرٌ صامت`, sw);
   ok(sw.hits.length===0, `٥ ${dir} لا يلمس أي عنصر داخل #sheet أو #drawer`, sw.hits.slice(0,4));
 }
@@ -330,6 +344,32 @@ await page.click(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#d
 const fabInert=await page.evaluate(()=>({ inert:!!document.querySelector("#fabFilters").closest("[inert]"),
   sheetOpen:document.querySelector("#sheet").classList.contains("open") }));
 ok(fabInert.inert && !fabInert.sheetOpen, "٩ب الدرج مفتوح ⇒ #fabFilters inert فلا ورقة تُفتح فوقه", fabInert);
+
+/* حرّاسُ انحدارٍ على ثلاثِ ثابتاتٍ كانت بلا حارس (ختم المراجعة الثاني) */
+const trans = await page.evaluate(()=>{
+  const b=document.querySelector("#chartTabs button");
+  return b ? getComputedStyle(b).transitionProperty : null;
+});
+ok(trans && !/\ball\b|\bvisibility\b/.test(trans),
+   "٩ز انتقالاتُ أزرار الشارت مسمّاةٌ لا all (فلا تمدّ نافذةَ visibility فوق الأرضية)", trans);
+
+await ensureClosed();
+await page.click(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
+await page.click("#drX");
+await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
+ok(await page.evaluate(()=>lastFocus)===null,
+   "٩ح ‏lastFocus يُصفَّر بعد الإغلاق (مرآةُ sheetOpener، لا تناظرٌ شكليّ)");
+
+/* iOS: لمسةُ زرٍّ لا تُركّزه فالفاتحُ body — فلا يُختلق مكانٌ في كل إغلاق */
+await ensureClosed();
+await page.evaluate(()=>{ try{ document.activeElement.blur(); }catch(e){} openSheet(); });
+await page.waitForSelector("#sheet.open");
+ok(await page.evaluate(()=>sheetOpener===document.body), "٩ط الحالُ محاكًى: الفاتحُ body");
+await page.click("#shX");
+await page.waitForFunction(()=>!document.querySelector("#sheet").classList.contains("open"));
+const noInvent=await where();
+ok(noInvent && noInvent.body,
+   "٩ي فاتحٌ body ⇒ لا مرتَدَّ يَنقل التركيز إلى رأس الصفحة", noInvent);
 
 /* التداخل المُجبَر — شبكةُ الأمان تُقاس تامّةً لا نصفَ شبكة: lastFocus يصير داخل
    ورقةٍ سَتُسَد، فنداءُ تركيزه كان يفشل صامتاً فيهبط إلى body في الخطوة التالية. */
