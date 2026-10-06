@@ -474,8 +474,9 @@ await page.waitForTimeout(120);
 await ensureClosed();
 
 /* ولافتةُ ٩ز٢ز خطرُها جوّالٌ (لوحةُ مفاتيح) وقياسُها وقع عند 1280 — فيُعاد على 390
-   حيث يقع الخطر: مقيسٌ أن #q أوّلُ مرشّحٍ في المدى على العرضين، فطبقةُ !typing هي
-   وحدها ما يصرف المرتَدَّ عنه. */
+   حيث يقع الخطر. ونداءٌ مباشرٌ لا مسار: لا مسارَ مرتَدٍّ قابلَ الوصول على 390.
+   و#q أوّلُ مرشّحٍ في المدى **في الحال التي يقع فيها هذا القياس** (الصفحةُ ممرَّرة)
+   لا بإطلاق — ويحرسه ٩ز٢ح، فلو بطل الشرطُ سقط ولم يمرّ زائفاً. */
 await ensureClosed();
 const mobileFallback = await page.evaluate(()=>{
   const SEL='a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])';
@@ -484,15 +485,17 @@ const mobileFallback = await page.evaluate(()=>{
     return r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth; };
   const firstInView = all.find(inView);
   /* ‏restoreFocus معدومةٌ على أساسِ ما قبل العلاج — فيُبلَّغ غيابُها لا يُرمى */
-  if(typeof restoreFocus!=="function") return { absent:true, firstInView:firstInView?firstInView.id:null };
+  const name=el=>el?(el.id||el.className||el.tagName):null;
+  if(typeof restoreFocus!=="function") return { absent:true, firstInView:name(firstInView) };
   restoreFocus(document.createElement("button"));   /* هدفٌ لا يقع ⇒ المرتَدّ */
   const a=document.activeElement;
-  return { firstInView: firstInView?firstInView.id||firstInView.tagName:null,
-           landed: a?(a.id||a.className||a.tagName):null, tag:a?a.tagName:null };
+  return { firstInView: name(firstInView), landed: name(a),
+           tag:a?a.tagName:null, body:a===document.body };
 });
 ok(mobileFallback.firstInView==="q",
    "٩ز٢ح على 390: ‏#q أوّلُ مرشّحٍ في المدى (وإلا فالترجيح بلا أثرٍ يُقاس)", mobileFallback);
-ok(!mobileFallback.absent && !/^(INPUT|TEXTAREA|SELECT)$/.test(mobileFallback.tag||""),
+ok(!mobileFallback.absent && mobileFallback.body===false
+   && !/^(INPUT|TEXTAREA|SELECT)$/.test(mobileFallback.tag||""),
    "٩ز٢ط وعلى 390 كذلك لا يقع المرتَدُّ على حقلِ إدخال (حيث يقع خطرُ لوحةِ المفاتيح)",
    mobileFallback);
 
