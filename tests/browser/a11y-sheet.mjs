@@ -408,15 +408,63 @@ await page.keyboard.press("Escape");
 await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
 const step2=await where();
 ok(step2 && !step2.body, "٩و ثم إغلاق الدرج ⇒ التركيز لا يهبط إلى body", step2);
-/* والمرتَدُّ يُقاس موضعُه: مقيسٌ أنه قد يقع خارج الشاشة بـ970px والصفحةُ ممرَّرة
-   (سلفٌ بـoverflow يستهلك إزاحة التركيز) فحلقةُ تركيزٍ لا تُرى. */
-const landed=await page.evaluate(()=>{
-  const a=document.activeElement; if(!a||a===document.body) return null;
-  const r=a.getBoundingClientRect();
-  return { top:Math.round(r.top), bottom:Math.round(r.bottom), vh:window.innerHeight };
+/* والمرتَدُّ يُقاس موضعُه على مسارٍ **قابلٍ للوصول** لا مُجبَر، و**بعد استقرار
+   الإزاحة** لا قبلها: فكُّ قفلِ الجسم يُعيد الإزاحةَ المحفوظة بعد الارتداد، فقياسٌ
+   قبله يُعلن سلامةً ثم يستقرّ العنصرُ خارج الشاشة (مقيسٌ عند الختم: top=-176).
+   المسار: صفحةٌ ممرَّرة ⇒ لمسُ بطاقة ⇒ تغيُّرُ العرض والدرجُ مفتوح (تدويرُ جهاز)
+   فيُفصَل lastFocus ⇒ Escape ⇒ المرتَدّ. */
+await ensureClosed();
+await page.waitForFunction(()=>document.documentElement.scrollHeight>8000);
+/* ‏scroll-behavior:smooth يجعل scrollTo انتقالاً، فقياسٌ بعده بـ80ms يقع وسطه
+   (مقيس: 54 ثم 166 ثم 196 على ثلاث مناداة) — فيُطلب الفوريُّ ويُنتظَر الاستقرار. */
+await page.evaluate(()=>window.scrollTo({top:3000, behavior:"instant"}));
+await page.waitForFunction(()=>{
+  const y=window.scrollY;
+  if(window.__lastY===y){ return true; }
+  window.__lastY=y; return false;
+}, null, { polling:120, timeout:5000 });
+const scrolledTo = await page.evaluate(()=>Math.round(window.scrollY));
+ok(scrolledTo>200, "٩ز٢أ الصفحةُ ممرَّرةٌ فعلاً قبل القياس (وإلا مرّ عند scrollY=0 زائفاً)", scrolledTo);
+/* بطاقةٌ **مرئيةٌ الآن** لا الأولى: نقرُ Playwright يجرّ هدفَه إلى المدى، فاختيارُ
+   الأولى يُعيد الإزاحة إلى الصفر قبل القفل فيَنقض الشرطَ الذي يقيسه هذا التأكيد. */
+const farSym = await page.evaluate(()=>{
+  const v=[...document.querySelectorAll(".mcard[data-sym]")]
+    .find(c=>{ const r=c.getBoundingClientRect(); return r.top>0 && r.top<innerHeight; });
+  return v ? v.dataset.sym : null;
 });
-ok(landed && landed.bottom>0 && landed.top<landed.vh,
-   "٩ز٢ المرتَدُّ يقع داخل المدى المرئي (حلقةُ تركيزٍ تُرى)", landed);
+ok(!!farSym, "٩ز٢ب بطاقةٌ مرئيةٌ على الإزاحة الحالية (وإلا فالقياس زائف)", farSym);
+await page.click(`.mcard[data-sym="${farSym}"]`);
+await page.waitForSelector("#drawer.open");
+const lockedAt = await page.evaluate(()=>parseInt(document.body.style.top,10)||0);
+ok(lockedAt<-200, "٩ز٢ج القفلُ حفظ إزاحةً غيرَ صفرية (شرطُ القياس)", lockedAt);
+await page.setViewportSize({width:1280,height:900});
+await page.waitForTimeout(120);
+ok(await page.evaluate(s=>{ const el=document.querySelector(s);
+     return !el || el.getClientRects().length===0; }, `.mcard[data-sym="${farSym}"]`),
+   "٩ز٢د تغيُّرُ العرض فصل الهدفَ المحفوظ فعلاً (وإلا فلا مرتَدَّ يُقاس)");
+const probe = () => page.evaluate(()=>{
+  const a=document.activeElement; if(!a||a===document.body) return {body:true};
+  const r=a.getBoundingClientRect();
+  return { who:a.id||a.className||a.tagName, top:Math.round(r.top),
+           scrollY:Math.round(window.scrollY),
+           inView:r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth };
+});
+await page.keyboard.press("Escape");
+await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
+const at0=await probe();
+await page.waitForTimeout(700);
+const at700=await probe();
+/* ثابتتان، وكلتاهما مُبرهَنةٌ بطفرة (نزعُ ترجيح المدى من restoreFocus يُسقطهما):
+   المرتَدُّ في المدى **لحظةَ الإغلاق وبعد الاستقرار** — لا لحظةً واحدةً وسط حركة —
+   و**الإزاحةُ لا تنزلق** بعده: مقيسٌ أن الوقوعَ على عنصرٍ بعيدٍ يجرّ الصفحةَ كلَّها
+   (2260 ⇒ 0) لأن focus() يُمرّر وscroll-behavior:smooth يُحوّله انزلاقاً. */
+ok(at0.inView===true && at700.inView===true,
+   "٩ز٢ المرتَدُّ في المدى المرئي لحظةَ الإغلاق وبعد الاستقرار", {at0, at700});
+ok(at0.scrollY===at700.scrollY,
+   "٩ز٢هـ والإزاحةُ لا تنزلق بعد الإغلاق (لا قفزةَ صفحةٍ تحت المستخدم)", {at0, at700});
+await page.setViewportSize({width:390,height:844});
+await page.waitForTimeout(120);
+await ensureClosed();
 
 /* Escape ولا حوار مفتوح — لا يسرق التركيز */
 await ensureClosed();

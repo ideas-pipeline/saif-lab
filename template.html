@@ -370,7 +370,10 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
    **تنتقل** فعلاً — خاصّةٌ منفصلة تُبقي طرفَها المرئي طولَ المدّة — فالاختفاءُ
    الفجائي سببُه غيابُ المدّة **والتأخير** معاً لا امتناعُ الانتقال (مقيس: `220ms
    linear` بلا تأخير يُبقيها مرئيةً وسطَ الإغلاق كذلك؛ و`0s linear 0s` وحدها تُخفيها
-   فوراً). واختير التأخير لأنه يُخفيها **عند** تمام الانزلاق لا تدريجياً خلاله. */
+   فوراً). والصيغتان صالحتان — واختيرت صيغةُ التأخير لأنها **تُصرّح بالنيّة** («أخفِها
+   بعد 220ms») لا لفرقٍ في الأثر: مقيسٌ أن `0s linear 220ms` و`220ms linear 0s`
+   لا فرقَ بينهما. (وكُتب هنا أولاً سببٌ آخر — «يُخفيها عند التمام لا تدريجياً» —
+   وسُحب: لا يقوم بالقياس، ويناقض «تُبقي طرفَها المرئي طولَ المدّة» أعلاه.) */
 .drawer{
   position:fixed; top:0; bottom:0; left:0; width:42%; min-width:480px; max-width:640px;
   background:var(--surface); border-right:1px solid var(--border2); z-index:90;
@@ -1759,7 +1762,14 @@ function unlockBodyScroll(){
   if(document.body.style.position!=="fixed") return;
   const b=document.body.style;
   b.position=""; b.top=""; b.left=""; b.right=""; b.width="";
-  try{ window.scrollTo(0,bodyScrollY); }catch(e){}
+  /* إعادةٌ **فورية** لا منزلِقة: ‏html{scroll-behavior:smooth} يُحوّل هذه الإعادة إلى
+     انزلاقٍ يقارب الثانية، فتُستعاد الإزاحةُ زحفاً بعد أن أُرجع التركيز — فيستقرّ
+     العنصرُ المركَّز خارج الشاشة والصفحةُ تزحف من تحته (مقيس: top=74 عند اللحظة صفر،
+     ثم ‎-871 عند 300ms، ثم ‎-2186 عند 900ms). وهي علّةُ ما قُرئ خطأً عيباً في مرتَدّ
+     التركيز: إطارُ القياس كان يتحرّك لا موضعُ العنصر. والفوريةُ هي نيّةُ القفل أصلاً
+     (ومعها scrollRestoration='manual'). */
+  try{ window.scrollTo({top:bodyScrollY, left:0, behavior:"instant"}); }
+  catch(e){ try{ window.scrollTo(0,bodyScrollY); }catch(e2){} }
 }
 /* الدفع مؤجل 60ms: pushState المتزامن مع اللمس يعطل تمرير الحاويات في سفاري iOS */
 function commitDrawerHistory(){
@@ -1812,13 +1822,18 @@ function restoreFocus(target){
   if(!target || target===document.body) return;
   if(tryFocus(target)) return;
   /* الهدف كان حقيقياً وصار لا يقع (حوارٌ سُدّ تحته · ضابطٌ صار display:none بتغيّر
-     العرض) — فأولُ ضابطٍ يقع: مكانٌ معلومٌ دون body، لا مكانٌ مثاليّ.
-     ولا جَرَّ إلى المدى هنا: ‏focus() بلا preventScroll يُمرّر أصلاً، ومقيسٌ على ثلاثة
-     مواضعِ تمرير (0 · 1200 · 2400) أن المرتَدّ يقع داخل المدى بـscrollIntoView وبدونه
-     سواءً بسواء — فكان سطراً بلا أثرٍ قابلٍ للقياس، ومحروسٌ أثرُه بتأكيدٍ على
-     **الموضع** لا على الوسيلة. */
-  for(const el of document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])'))
-    if(tryFocus(el)) return;
+     العرض) — فيُختار ضابطٌ **في المدى المرئي أصلاً**، لا أوّلُ ضابطٍ في ترتيب
+     المستند: الأوّلُ عند رأس المستند دائماً، فتركيزُه يقفز بالتمرير إلى الرأس، ثم
+     يُعيد فكُّ قفلِ الجسم الإزاحةَ المحفوظة **بعد** الارتداد فينتزع المنظورَ من تحت
+     العنصر المركَّز — فيستقرّ التركيز خارج الشاشة بلا حلقةٍ مرئية (مقيس: ‏top=-176
+     بعد لمسةِ بطاقةٍ ثم تغيُّرِ العرض والدرجُ مفتوح ثم Escape). والترجيحُ بالمدى
+     يُسقط العلّتين معاً: لا قفزةَ تمرير، والرأسُ لاصقٌ فيبقى في المدى بعد الإعادة.
+     ويبقى ترتيبُ المستند مرتَدَّ المرتَدّ إن لم يكن في المدى شيء. */
+  const all=[...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')];
+  const inView=el=>{ const r=el.getBoundingClientRect();
+    return r.bottom>0 && r.top<innerHeight && r.right>0 && r.left<innerWidth; };
+  for(const el of all) if(inView(el)&&tryFocus(el)) return;
+  for(const el of all) if(tryFocus(el)) return;
 }
 function trapFocus(container,ev){
   if(ev.key!=="Tab") return;
