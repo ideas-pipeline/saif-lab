@@ -641,6 +641,57 @@ def note_fail(counters, key, label, sym, err, limit=3):
         print("  ✗ %s: ... (أول %d أسباب فقط)" % (label, limit))
 
 
+RATIO_ABS_MAX = 1000          # ‏±1000% — مصيدة الوحدات القائمة (تُطبَّق على المزوّد أصلاً)
+
+
+def apply_computed_ratios(st, today):
+    """ROE وROA من قوائم السجل نفسه لا من /analytics/ratios (قرار المالك 06-10).
+
+    العلّة المقيسة: حقول /analytics/ratios مختومة 2026-08-04 وتخالف القوائم
+    (reportDate 2025-12-31، fiscalYear 2025) — وسيط (محسوب ÷ حقل) = 1.91× على
+    191 سهماً لـROE و2.01× على 157 لـROA. والمحسوب هو الذي يطابق الواقع المعروف:
+    الراجحي ROE حقل 9.0% ومحسوب 17.3% · الرياض 6.5% و13.8%.
+    وليس تنصيفاً منتظماً: 76 سهماً حقلُهم يتجاوز المحسوب، و32 سهماً صافي ربحهم
+    سالب وحقل ROE موجب لديهم — فهذا تصحيحُ أساس لا رفعُ أرقام.
+
+    والبسط والمقام من **السنة المالية نفسها** بالبناء: netIncome وequity
+    وtotalAssets كلها من حِمل /financials الواحد (وهو اصطلاح ocfLiabilities
+    القائم أعلاه، فيُتّبع لا يُبتكر).
+
+    وما لا يُحسب (ملكية ≤ 0، أو بسط/مقام غائب، أو راسب حارس الوحدات) يبقى على
+    قيمة المزوّد موسوماً — لا يُحذف ولا يُلفَّق. وprofitMargins لا يُمَسّ: revenue
+    غائب على الكون كله (248/248) فلا مرجع مستقل له، وهذه عدم تناظر تُعلَن.
+    """
+    fin = st.get("financials") or {}
+    if not fin:
+        # كتلةٌ فارغة تبقى فارغة: investment_filter في المحرك يردّ «لا توجد بيانات
+        # مالية» على `not fin`، فكتابة ratiosBasis وحدها كانت تجعلها غير فارغة
+        # فيعبر السهم الفلتر زوراً (مقيس: 4 أسهم انقلبت مستبعد ⇐ غير مُقيَّم).
+        return
+    ni = fin.get("netIncome")
+    basis = dict(fin.get("ratiosBasis") or {})
+    basis["profitMargins"] = "provider"
+    for dst, den_k, den_label, dp in (("returnOnEquity", "equity", "ملكية", 1),
+                                      ("returnOnAssets", "totalAssets", "أصول", 2)):
+        prov = fin.get(dst)
+        if prov is not None:
+            fin.setdefault(dst + "Src", prov)      # قيمة المزوّد تُحفظ فيبقى التباعد مقيساً
+        den = fin.get(den_k)
+        if ni is None or den is None or den <= 0:
+            basis[dst] = "provider"
+            continue
+        v = round(ni / den * 100, dp)
+        if abs(v) > RATIO_ABS_MAX:
+            # مصيدة مقام ضئيل (مقيس: 1820 ‎−7230.9%‎ · 4270 ‎−2176.4%‎ · 8190 ‎−1042.4%‎)
+            reject(st, dst, v, "محسوب خارج ±%d%% — مقام ضئيل، أُبقي حقل المزوّد" % RATIO_ABS_MAX, today)
+            basis[dst] = "provider"
+            continue
+        fin[dst] = v
+        basis[dst] = "statements"
+    fin["ratiosBasis"] = basis
+    st["financials"] = fin
+
+
 def reject(st, field, value, reason, today):
     """حارس معقولية راسب → null موسوم (§8)"""
     st.setdefault("guardRejected", []).append(
@@ -978,6 +1029,12 @@ def parse_financials(f):
         r1 = _fs_val(fy_inc[1], "total_revenue", *NI)
         if y0 is not None and y1 is not None and y0 - y1 == 1 and r0 is not None and r1:
             out["revenueGrowthRaw"] = round((r0 - r1) / abs(r1) * 100, 1)
+        # السنة الكاملة السابقة تُحفظ (حكم المحلل 06-10): تفتح نمو صافي الربح
+        # كبديل مقيس حيث يغيب الإيراد، وتسمح بمراجعة أساس النمو بدل افتراضه.
+        if y0 is not None and y1 is not None and y0 - y1 == 1:
+            out["totalRevenuePrev"] = r1
+            out["netIncomePrev"] = _fs_val(fy_inc[1], "net_income", *NI)
+            out["fiscalYearPrev"] = y1
     return out
 
 
@@ -1145,8 +1202,14 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
                 a = reject(st, "totalAssets", a, "أصول ≤ 0", today)
             if e is not None and a and abs(e) > a * 2:
                 e = reject(st, "equity", e, "|ملكية| > أصول×2 — مصيدة وحدات", today)
+            # ‏totalRevenue كان يُستخرج في parse_financials ثم **يُسقط هنا** فلا يصل
+            # السجل إطلاقاً (حكم المحلل 06-10). فـ«الإيراد لا يصلنا من المزوّد» كانت
+            # دعوى عن أنبوبنا لا عن مصدرهم — وهي تحجب المرجع المستقل الوحيد الممكن
+            # لـprofitMargins، ونموَّ صافي الربح كبديل حيث يغيب الإيراد.
             fin.update({"totalAssets": a, "totalLiabilities": l, "equity": e,
                         "ocf": p.get("ocf"), "fcf": p.get("fcf"), "netIncome": p.get("netIncome"),
+                        "revenue": p.get("totalRevenue"), "revenuePrev": p.get("totalRevenuePrev"),
+                        "netIncomePrev": p.get("netIncomePrev"), "fiscalYearPrev": p.get("fiscalYearPrev"),
                         "fiscalYear": p.get("fiscalYear"), "reportDate": p.get("reportDate"),
                         "cfReportDate": p.get("cfReportDate")})
             rg = p.get("revenueGrowthRaw")
@@ -1171,6 +1234,11 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
                 if dst_k in ("profitMargins", "returnOnEquity") and abs(v) > 1000:
                     v = reject(st, dst_k, v, "خارج ±1000% — مصيدة وحدات", today)
                 fin[dst_k] = round(v, dp) if v is not None else None
+        # أساس النسب من القوائم (قرار المالك 06-10) — بعد إسناد المزوّد كي تُحفظ قيمته
+        merged_now = dict(st.get("financials") or {}); merged_now.update(fin)
+        st["financials"] = merged_now
+        apply_computed_ratios(st, today)
+        fin = st["financials"]
         if fin.get("returnOnEquity") is not None and fin.get("equity") is not None and fin["equity"] <= 0:
             fin["returnOnEquity"] = reject(st, "returnOnEquity", fin["returnOnEquity"],
                                            "ملكية سالبة — غير معرف", today)

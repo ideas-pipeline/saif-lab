@@ -38,8 +38,8 @@ eq(flagged(base.replace("const COV_FLIP_MARGIN=1.05;", "const COV_FLIP_MARGIN=1.
 const fnBase = new Function("DATA", pre + base + "\nreturn dyFlags;")(data);
 const lossN = stocks.filter(s => fnBase(s).some(x => x.includes("أُقفلت بخسارة") || x.includes("أُقفلت بلا ربح"))).length;
 const contN = stocks.filter(s => fnBase(s).some(x => x.includes("أساسان متعارضان للربح"))).length;
-eq([lossN, contN, lossN + contN], [3, 5, 8],
-   "4) فرع الخسارة حيٌّ على الثمانية: قطعٌ لثلاثة ونسبةٌ لخمسة");
+eq([lossN, contN, lossN + contN], [4, 4, 8],
+   "4) فرع الخسارة حيٌّ على الثمانية: قطعٌ لأربعة ونسبةٌ لأربعة (انتقل 2250 بتصحيح أساس النسب 06-10)");
 
 // لا سنة صلبة
 const blk = base.slice(base.indexOf("/* ‏(أ) خسارة السنة"), base.indexOf("if(wt.sma200w"));
