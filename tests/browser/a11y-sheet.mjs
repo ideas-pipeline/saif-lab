@@ -101,7 +101,9 @@ function tools(page){
     for(let i=all.length-1;i>=0&&!b;i--) if(can(all[i])) b=all[i];
     if(!a||!b||a===b) return 0;
     a.setAttribute("data-sw","first"); b.setAttribute("data-sw","last");
-    return all.length;
+    /* يُرجَع عددُ ما يقع فعلاً لا العدُّ الخام: الخامُ 1205 والواقعُ ~596، ولافتةُ
+       التأكيد تقول «مرشّحو المسح» فتُقاس بما تعني. */
+    return all.filter(can).length;
   });
   async function tabSweep(back=false, cap=4000){
     const n = await markEnds();
@@ -112,7 +114,7 @@ function tools(page){
       window.__swFirst=null;
       return a && a.getAttribute ? a.getAttribute("data-sw") : null;
     });
-    const hits=[]; let steps=0, reachedEnd=false, seen=new Set();
+    const hits=[]; let steps=0, reachedEnd=false;
     for(let i=0;i<cap;i++){
       await page.keyboard.press(back?"Shift+Tab":"Tab"); steps++;
       const st=await page.evaluate(t=>{
@@ -125,11 +127,10 @@ function tools(page){
                  inSheet:!!a.closest("#sheet"), inDrawer:!!a.closest("#drawer") };
       }, to);
       if(st.end) break;
-      seen.add(`${st.tag}#${st.id}.${st.cls}`);
       if(st.atEnd) reachedEnd=true;
       if(st.inSheet||st.inDrawer) hits.push(st);
     }
-    return { steps, hits, reachedEnd, startedAt, expectStart:from, candidates:n, distinct:seen.size };
+    return { steps, hits, reachedEnd, startedAt, expectStart:from, candidates:n };
   }
   async function ensureClosed(){
     for(const sel of ["#sheet","#drawer"]){
@@ -346,12 +347,28 @@ const fabInert=await page.evaluate(()=>({ inert:!!document.querySelector("#fabFi
 ok(fabInert.inert && !fabInert.sheetOpen, "٩ب الدرج مفتوح ⇒ #fabFilters inert فلا ورقة تُفتح فوقه", fabInert);
 
 /* حرّاسُ انحدارٍ على ثلاثِ ثابتاتٍ كانت بلا حارس (ختم المراجعة الثاني) */
-const trans = await page.evaluate(()=>{
-  const b=document.querySelector("#chartTabs button");
-  return b ? getComputedStyle(b).transitionProperty : null;
+/* الثابتةُ تُستعلَم على **كل** سليل، لا على مخالفها الأوّل: استعلامُ
+   `#chartTabs button` وحده كان يحرس ما عُولج ويعمى عن .dr-x و.cmd-btn و.sheet .opt —
+   ومنها #drX و#shX نفساهما، فبقيت النافذةُ قائمةً وقد أُعلن إغلاقُها. */
+const visTrans = await page.evaluate(()=>{
+  const bad=[]; let n=0;
+  for(const host of ["#sheet","#drawer"]) for(const el of document.querySelectorAll(host+" *")){
+    n++;
+    const cs=getComputedStyle(el);
+    const props=cs.transitionProperty.split(",").map(x=>x.trim());
+    const durs=cs.transitionDuration.split(",").map(x=>parseFloat(x)||0);
+    const dels=cs.transitionDelay.split(",").map(x=>parseFloat(x)||0);
+    let i=-1; props.forEach((pr,k)=>{ if(pr==="visibility"||pr==="all") i=k; });  /* الأخيرةُ تُرجَّح */
+    if(i<0) continue;
+    const d=durs[i%durs.length]||0, dl=dels[i%dels.length]||0;
+    if(d>0||dl>0) bad.push({el:el.id||el.className||el.tagName, prop:props[i], dur:d, delay:dl});
+  }
+  return { n, bad };
 });
-ok(trans && !/\ball\b|\bvisibility\b/.test(trans),
-   "٩ز انتقالاتُ أزرار الشارت مسمّاةٌ لا all (فلا تمدّ نافذةَ visibility فوق الأرضية)", trans);
+ok(visTrans.n>20, "٩ز سلائلُ الحوارين موجودةٌ للاستعلام (وإلا فالقياس زائف)", visTrans.n);
+ok(visTrans.bad.length===0,
+   "٩ز لا سليلَ في الحوارين يُنقل visibility بمدّةٍ أو تأخير (فلا نافذةَ فوق الأرضية)",
+   visTrans.bad.slice(0,6));
 
 await ensureClosed();
 await page.click(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
@@ -374,6 +391,10 @@ ok(noInvent && noInvent.body,
 /* التداخل المُجبَر — شبكةُ الأمان تُقاس تامّةً لا نصفَ شبكة: lastFocus يصير داخل
    ورقةٍ سَتُسَد، فنداءُ تركيزه كان يفشل صامتاً فيهبط إلى body في الخطوة التالية. */
 await ensureClosed();
+/* والصفحةُ ممرَّرة: عند scrollY=0 يقع المرتَدُّ في المدى بلا علاجٍ، فالقياسُ عندها
+   زائف — ومقيسُ الختم كان top=-970 على صفحةٍ ممرَّرة. */
+await page.evaluate(()=>window.scrollTo(0,1200));
+await page.waitForTimeout(60);
 await page.click("#fabFilters"); await page.waitForSelector("#sheet.open");
 await page.evaluate(s=>openDrawer(s), rowSym);
 await page.waitForSelector("#drawer.open");
@@ -387,6 +408,15 @@ await page.keyboard.press("Escape");
 await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
 const step2=await where();
 ok(step2 && !step2.body, "٩و ثم إغلاق الدرج ⇒ التركيز لا يهبط إلى body", step2);
+/* والمرتَدُّ يُقاس موضعُه: مقيسٌ أنه قد يقع خارج الشاشة بـ970px والصفحةُ ممرَّرة
+   (سلفٌ بـoverflow يستهلك إزاحة التركيز) فحلقةُ تركيزٍ لا تُرى. */
+const landed=await page.evaluate(()=>{
+  const a=document.activeElement; if(!a||a===document.body) return null;
+  const r=a.getBoundingClientRect();
+  return { top:Math.round(r.top), bottom:Math.round(r.bottom), vh:window.innerHeight };
+});
+ok(landed && landed.bottom>0 && landed.top<landed.vh,
+   "٩ز٢ المرتَدُّ يقع داخل المدى المرئي (حلقةُ تركيزٍ تُرى)", landed);
 
 /* Escape ولا حوار مفتوح — لا يسرق التركيز */
 await ensureClosed();

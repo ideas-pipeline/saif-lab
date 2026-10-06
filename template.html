@@ -211,7 +211,13 @@ a{color:var(--accent); text-decoration:none}
 .cmd-btn{
   height:36px; padding:0 13px; border:1px solid var(--border); border-radius:var(--radius-sm);
   background:var(--surface); color:var(--text2); font-size:13px;
-  display:flex; align-items:center; gap:6px; transition:all var(--dur);
+  display:flex; align-items:center; gap:6px;
+  /* ‏`, visibility 0s` بعد `all` — تكرارُ الخاصّة في القائمة يُرجّح الأخيرة، فتبقى
+     بقيّةُ `all` عاملةً و`visibility` وحدها فورية. وهي ثابتةٌ على **كل** سليلٍ في
+     الحوارين لا على أوّل مخالف: ‏`all` تضمّ visibility **الموروثة**، فيُلحق السليلُ
+     تغيُّرَها بمدّته فوق تأخير أرضية الحوار — نافذةٌ يبقى فيها قابلاً للتركيز بعد
+     إخفاء الحوار على متصفّحٍ دون أرضية inert. و#shReset سليلُ #sheet. */
+  transition:all var(--dur), visibility 0s;
 }
 .cmd-btn:hover{border-color:var(--border2); color:var(--text)}
 .cmd-btn.set{color:var(--accent); border-color:rgba(56,189,248,0.35)}
@@ -400,7 +406,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
   width:44px; height:44px; min-width:44px; min-height:44px; border-radius:8px;
   touch-action:manipulation; -webkit-tap-highlight-color:transparent; display:flex; align-items:center; justify-content:center;
   color:var(--text3); border:1px solid var(--border); flex-shrink:0; font-size:15px;
-  transition:all var(--dur);
+  transition:all var(--dur), visibility 0s;   /* الثابتة — انظر .cmd-btn. و.dr-x هو #drX و#shX معاً */
 }
 .dr-x:hover{color:var(--text); border-color:var(--border2)}
 .dr-bd{flex:1; overflow-y:auto; overscroll-behavior:contain; padding:18px 20px 40px; -webkit-overflow-scrolling:touch}
@@ -422,11 +428,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .chart-tabs button{
   font-size:11.5px; padding:4px 11px; border-radius:6px; color:var(--text3);
   border:1px solid transparent; font-variant-numeric:tabular-nums;
-  /* الخصائصُ مسمّاةٌ لا `all`: ‏`all` تضمّ visibility الموروثة فيُلحق كلُّ زرٍّ تغيُّرَها
-     بـ180ms فوق تأخير أرضية الدرج — نافذةٌ عابرة يبقى فيها ستةُ أزرارٍ قابلةً للتركيز
-     بعد إخفاء الدرج، على متصفّحٍ دون أرضية inert (مقيس بختم المراجعة). والتسميةُ
-     تُسقط الثابتةَ غير المكتوبة «لا سليلَ بتأخيرٍ يفوق تأخيرَ الأرضية». */
-  transition:color var(--dur), background-color var(--dur), border-color var(--dur);
+  transition:all var(--dur), visibility 0s;   /* الثابتة — انظر .cmd-btn */
 }
 .chart-tabs button:hover{color:var(--text2)}
 .chart-tabs button.on{color:var(--text); background:var(--surface3); border-color:var(--border)}
@@ -504,7 +506,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .sheet .opts{display:flex; gap:7px; flex-wrap:wrap}
 .sheet .opt{
   padding:7px 13px; border-radius:999px; font-size:12.5px; color:var(--text2);
-  border:1px solid var(--border); transition:all var(--dur);
+  border:1px solid var(--border); transition:all var(--dur), visibility 0s;   /* الثابتة — انظر .cmd-btn */
 }
 .sheet .opt.on{color:var(--accent); border-color:rgba(56,189,248,0.4); background:var(--accent-dim)}
 .sheet select{width:100%; height:40px; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:0 10px; font-family:inherit; font-size:13.5px}
@@ -1810,11 +1812,13 @@ function restoreFocus(target){
   if(!target || target===document.body) return;
   if(tryFocus(target)) return;
   /* الهدف كان حقيقياً وصار لا يقع (حوارٌ سُدّ تحته · ضابطٌ صار display:none بتغيّر
-     العرض) — فأولُ ضابطٍ يقع: مكانٌ معلومٌ دون body. ومقيسٌ أنه قد يقع خارج الشاشة
-     والصفحةُ ممرَّرة (سلفٌ بـoverflow يستهلك الإزاحة) فحلقةُ تركيزٍ لا تُرى —
-     فيُجَرّ إلى المدى بأقلّ حركة. */
+     العرض) — فأولُ ضابطٍ يقع: مكانٌ معلومٌ دون body، لا مكانٌ مثاليّ.
+     ولا جَرَّ إلى المدى هنا: ‏focus() بلا preventScroll يُمرّر أصلاً، ومقيسٌ على ثلاثة
+     مواضعِ تمرير (0 · 1200 · 2400) أن المرتَدّ يقع داخل المدى بـscrollIntoView وبدونه
+     سواءً بسواء — فكان سطراً بلا أثرٍ قابلٍ للقياس، ومحروسٌ أثرُه بتأكيدٍ على
+     **الموضع** لا على الوسيلة. */
   for(const el of document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])'))
-    if(tryFocus(el)){ try{ el.scrollIntoView({block:"nearest"}); }catch(e){} return; }
+    if(tryFocus(el)) return;
 }
 function trapFocus(container,ev){
   if(ev.key!=="Tab") return;
