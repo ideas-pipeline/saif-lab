@@ -1767,9 +1767,18 @@ function unlockBodyScroll(){
      العنصرُ المركَّز خارج الشاشة والصفحةُ تزحف من تحته (مقيس: top=74 عند اللحظة صفر،
      ثم ‎-871 عند 300ms، ثم ‎-2186 عند 900ms). وهي علّةُ ما قُرئ خطأً عيباً في مرتَدّ
      التركيز: إطارُ القياس كان يتحرّك لا موضعُ العنصر. والفوريةُ هي نيّةُ القفل أصلاً
-     (ومعها scrollRestoration='manual'). */
-  try{ window.scrollTo({top:bodyScrollY, left:0, behavior:"instant"}); }
-  catch(e){ try{ window.scrollTo(0,bodyScrollY); }catch(e2){} }
+     (ومعها scrollRestoration='manual').
+     والفورية بإلغاء `smooth` لحظةَ النداء، لا بـbehavior:"instant": قيمةُ behavior غير
+     المعروفة **لا تُرمى إلى JS** بل تُبلَّغ خطأً غيرَ مُلتقَط ولا يحدث تمريرٌ أصلاً
+     (مقيس) — فمرتَدُّ try/catch كان ميّتاً، ومحرّكٌ لا يعرف "instant" كان يفقد
+     الإزاحةَ المحفوظة بالكلّية: أسوأُ من الانزلاق لا أهون. و`auto` من الخاصّة نفسها
+     التي جاءت بـ`smooth`، فحيث عملت الأولى تعمل الثانية، وحيث لم تعملا فالتمريرُ
+     فوريٌّ أصلاً. */
+  const de=document.documentElement, prev=de.style.scrollBehavior;
+  de.style.scrollBehavior="auto";
+  try{ window.scrollTo(0,bodyScrollY); }
+  catch(e){}
+  finally{ de.style.scrollBehavior=prev; }
 }
 /* الدفع مؤجل 60ms: pushState المتزامن مع اللمس يعطل تمرير الحاويات في سفاري iOS */
 function commitDrawerHistory(){
@@ -1832,6 +1841,10 @@ function restoreFocus(target){
   const all=[...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"])')];
   const inView=el=>{ const r=el.getBoundingClientRect();
     return r.bottom>0 && r.top<innerHeight && r.right>0 && r.left<innerWidth; };
+  /* وغيرُ حقول الإدخال أولاً: تركيزُ حقلٍ قد يستدعي لوحةَ المفاتيح على الجوال،
+     ومرتَدُّ إغلاقٍ لا ينبغي أن يفتح لوحةً لم يطلبها أحد. */
+  const typing=el=>/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+  for(const el of all) if(inView(el)&&!typing(el)&&tryFocus(el)) return;
   for(const el of all) if(inView(el)&&tryFocus(el)) return;
   for(const el of all) if(tryFocus(el)) return;
 }

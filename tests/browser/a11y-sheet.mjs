@@ -391,10 +391,6 @@ ok(noInvent && noInvent.body,
 /* التداخل المُجبَر — شبكةُ الأمان تُقاس تامّةً لا نصفَ شبكة: lastFocus يصير داخل
    ورقةٍ سَتُسَد، فنداءُ تركيزه كان يفشل صامتاً فيهبط إلى body في الخطوة التالية. */
 await ensureClosed();
-/* والصفحةُ ممرَّرة: عند scrollY=0 يقع المرتَدُّ في المدى بلا علاجٍ، فالقياسُ عندها
-   زائف — ومقيسُ الختم كان top=-970 على صفحةٍ ممرَّرة. */
-await page.evaluate(()=>window.scrollTo(0,1200));
-await page.waitForTimeout(60);
 await page.click("#fabFilters"); await page.waitForSelector("#sheet.open");
 await page.evaluate(s=>openDrawer(s), rowSym);
 await page.waitForSelector("#drawer.open");
@@ -462,6 +458,11 @@ ok(at0.inView===true && at700.inView===true,
    "٩ز٢ المرتَدُّ في المدى المرئي لحظةَ الإغلاق وبعد الاستقرار", {at0, at700});
 ok(at0.scrollY===at700.scrollY,
    "٩ز٢هـ والإزاحةُ لا تنزلق بعد الإغلاق (لا قفزةَ صفحةٍ تحت المستخدم)", {at0, at700});
+/* والثابتةُ التي من أجلها وُجد القفلُ كلُّه (موجة 13-08): الإزاحةُ **عادت إلى
+   المحفوظ**. كانت وحدَها بلا حارسٍ وحولها أربعةُ حرّاسٍ على شرطِ القياس — ومقيسٌ أن
+   حذفَ الإعادة أو إعادتَها إلى موضعٍ خاطئ كان يمرّ 64/0 صامتاً. */
+ok(at0.scrollY === -lockedAt,
+   "٩ز٢و والإزاحةُ عادت إلى المحفوظ لا إلى موضعٍ آخر", {restored:at0.scrollY, saved:-lockedAt});
 await page.setViewportSize({width:390,height:844});
 await page.waitForTimeout(120);
 await ensureClosed();
