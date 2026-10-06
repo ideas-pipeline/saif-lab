@@ -681,10 +681,8 @@ def apply_computed_ratios(st, today, provider_keys=None):
         prov = fin.get(dst)
         # ‏قيمة المزوّد تُحفظ فيبقى التباعد مقيساً — **بإسناد لا setdefault** (ختم 06-10):
         # ‏setdefault يجمّدها على أول تشغيلة، فيصير حارس المتطابقة في L1 مسمَّراً على
-        # لقطة ولا يرى إصلاح المزوّد لو أصلح. وprovider_fresh تمنع التلفيق: من يستدعي
-        # الدالة بلا جلب طازج (التمريرة لمرة واحدة) تكون fin[dst] عندها **قيمتنا
-        # المحسوبة** لا قيمة المزوّد — فكتابتها في *Src تنسب حسابنا إليهم.
-        # ‏الإشارة الصحيحة: **هل أسند المزوّد هذا الحقل في هذه التشغيلة؟** لا «من
+        # لقطة ولا يرى إصلاح المزوّد لو أصلح.
+        # ‏والإشارة الصحيحة: **هل أسند المزوّد هذا الحقل في هذه التشغيلة؟** لا «من
         # نادى الدالة» (تصحيح ختم 06-10/ب). فراية «نُوديتُ من الجالب» كانت تكذب متى
         # فشل نداء النسب لسهمٍ ونجحت قوائمه: الحقل يبقى **قيمتَنا** من الأسبوع
         # الماضي فتُكتب في *Src، فتُسكت الشاهد الذي أُحيي، وتُعمي حارس المتطابقة
@@ -1271,9 +1269,9 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         st["financials"] = merged_now
         apply_computed_ratios(st, today, provider_keys=prov_keys)
         fin = st["financials"]
-        if fin.get("returnOnEquity") is not None and fin.get("equity") is not None and fin["equity"] <= 0:
-            fin["returnOnEquity"] = reject(st, "returnOnEquity", fin["returnOnEquity"],
-                                           "ملكية سالبة — غير معرف", today)
+        # ‏(حارس «ملكية سالبة» كان هنا، وانتقل إلى داخل apply_computed_ratios في ختم
+        #  06-10/ب كي يحمله مسار التمريرة كذلك. فبقاؤه هنا كان فرعاً خاملاً: أُطلق
+        #  صفر مرة من اثني عشر سيناريو — وقاعدة المستودع ألّا يُترك فرعٌ ميت بلا وسم.)
         if dec and de_raw.get(sym) is not None:
             de_v = round(de_raw[sym] * 100, 2) if as_ratio else round(de_raw[sym], 2)
             if fin.get("equity") is not None and fin["equity"] <= 0:
