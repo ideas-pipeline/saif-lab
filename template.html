@@ -1762,7 +1762,8 @@ function setBgInert(on){
 /* ═══ المودال المغلق خارج شجرتَي التنقّل والإتاحة (ختم 06-10) ═══
    الإغلاق كان يترك العنصر **منزاحاً بـtransform وحده**: `visibility:visible` و
    `display:block` و`pointer-events:auto` بلا inert ولا aria-hidden. فمقيس على
-   390×844: الورقة المغلقة تمتلك **23 من 25** وقفة تركيز في مسحة Tab كاملة،
+   390×844 بمسحة تنقّل تتابعي من **رأس المستند**: الورقة المغلقة تمتلك **23** وقفة
+   تركيز من **621** وقفة فريدة (صارت **0 من 598**)،
    و`#shApply` فيها `tabIndex=0` وهو خارج الشاشة — فتنشيطه بالمفتاح يرمي
    `Cannot read properties of null (reading 'minScoreTouched')` لأن closeSheet
    تضع `draft=null`. والدرج المغلق يحمل **20** عنصراً قابلاً للتركيز (innerHTML
@@ -1960,8 +1961,10 @@ function openSheet(){
   setModalHidden(sh,false);                      /* قبل focus: inert لا يقبل التركيز */
   sh.classList.add("open"); $("ovl").classList.add("open"); lockBodyScroll();
   /* `aria-modal="true"` كانت **ادعاءً كاذباً** على الورقة: بخلاف الدرج لم تكن
-     تُخرج الخلفية ولا تحصر التنقّل، فمقيس 22 من 30 ضغطة Tab تهرب من الورقة
-     المفتوحة إلى الصفحة خلفها. وsetBgInert وtrapFocus قائمتان أصلاً للدرج. */
+     تُخرج الخلفية ولا تحصر التنقّل. ومقيس على الورقة المفتوحة قبل العلاج:
+     ‏Tab أماميّ **8 من 30** ضغطة تهرب إلى الصفحة خلفها، و‏Shift+Tab خلفيّ
+     **30 من 30** — أي أن الاتجاه الخلفي كان يخرج من **أول** ضغطة. وصارا
+     ‏30/30 داخل الورقة في الاتجاهين. وsetBgInert وtrapFocus قائمتان أصلاً للدرج. */
   setBgInert(true);
   sh.onkeydown=ev=>trapFocus(sh,ev);
   $("shX").focus();
