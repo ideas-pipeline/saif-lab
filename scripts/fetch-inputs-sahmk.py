@@ -641,6 +641,85 @@ def note_fail(counters, key, label, sym, err, limit=3):
         print("  ✗ %s: ... (أول %d أسباب فقط)" % (label, limit))
 
 
+RATIO_ABS_MAX = 1000          # ‏±1000% — مصيدة الوحدات القائمة (تُطبَّق على المزوّد أصلاً)
+
+
+def apply_computed_ratios(st, today, provider_keys=None):
+    """ROE وROA من قوائم السجل نفسه لا من /analytics/ratios (قرار المالك 06-10).
+
+    العلّة المقيسة: حقول /analytics/ratios مختومة 2026-08-04 وتخالف القوائم
+    (reportDate 2025-12-31، fiscalYear 2025) — وسيط (محسوب ÷ حقل) = 1.93× على
+    201 سهماً لـROE و1.90× على 199 لـROA. والمحسوب هو الذي يطابق الواقع المعروف:
+    الراجحي ROE حقل 9.0% ومحسوب 17.3% · الرياض 6.5% و13.8%.
+    وليس تنصيفاً منتظماً: 76 سهماً حقلُهم يتجاوز المحسوب، و32 سهماً صافي ربحهم
+    سالب وحقل ROE موجب لديهم — فهذا تصحيحُ أساس لا رفعُ أرقام.
+
+    والبسط والمقام من **السنة المالية نفسها** بالبناء: netIncome وequity
+    وtotalAssets كلها من حِمل /financials الواحد (وهو اصطلاح ocfLiabilities
+    القائم أعلاه، فيُتّبع لا يُبتكر).
+
+    وما لا يُحسب (ملكية ≤ 0، أو بسط/مقام غائب، أو راسب حارس الوحدات) يبقى على
+    قيمة المزوّد موسوماً — لا يُحذف ولا يُلفَّق.
+
+    وprofitMargins لا يُمَسّ **اليوم** لأن revenue لم يكن يُخزَّن (كان يُستخرج ثم
+    يُسقط — أُصلح في هذه الموجة نفسها). فهذا قيدُ سجلٍّ مؤقت ينتهي بأول تشغيلة جلب
+    أسبوعية، لا استحالةُ مصدر: المزوّد يرسل total_revenue (الدليل: revenueGrowth
+    المحسوب منه غير فارغ على 229/248). وحتى ذلك الحين يبقى الهامش من مدّة المزوّد
+    بينما ROE/ROA من مدّة القوائم — **عدم تناظر داخل المحور الواحد تُعلَن ولا تُسكت**.
+    """
+    fin = st.get("financials") or {}
+    if not fin:
+        # كتلةٌ فارغة تبقى فارغة: investment_filter في المحرك يردّ «لا توجد بيانات
+        # مالية» على `not fin`، فكتابة ratiosBasis وحدها كانت تجعلها غير فارغة
+        # فيعبر السهم الفلتر زوراً (مقيس: 4 أسهم انقلبت مستبعد ⇐ غير مُقيَّم).
+        return
+    ni = fin.get("netIncome")
+    basis = dict(fin.get("ratiosBasis") or {})
+    basis["profitMargins"] = "provider"
+    for dst, den_k, den_label, dp in (("returnOnEquity", "equity", "ملكية", 1),
+                                      ("returnOnAssets", "totalAssets", "أصول", 2)):
+        prov = fin.get(dst)
+        # ‏قيمة المزوّد تُحفظ فيبقى التباعد مقيساً — **بإسناد لا setdefault** (ختم 06-10):
+        # ‏setdefault يجمّدها على أول تشغيلة، فيصير حارس المتطابقة في L1 مسمَّراً على
+        # لقطة ولا يرى إصلاح المزوّد لو أصلح.
+        # ‏والإشارة الصحيحة: **هل أسند المزوّد هذا الحقل في هذه التشغيلة؟** لا «من
+        # نادى الدالة» (تصحيح ختم 06-10/ب). فراية «نُوديتُ من الجالب» كانت تكذب متى
+        # فشل نداء النسب لسهمٍ ونجحت قوائمه: الحقل يبقى **قيمتَنا** من الأسبوع
+        # الماضي فتُكتب في *Src، فتُسكت الشاهد الذي أُحيي، وتُعمي حارس المتطابقة
+        # (قيمنا تُحققه بالبناء فيطبع «شاذّ 0»)، وتمسح قيمة المزوّد بلا رجعة.
+        # وحيث لا إسناد طازج: تُكتب مرةً واحدة فقط — أول التقاط، والحقل ما زال
+        # للمزوّد — فتبقى التمريرة لمرة واحدة ثابتة ولو انتقل الأساس بينهما.
+        fresh = provider_keys is not None and dst in provider_keys
+        first = (dst + "Src") not in fin and (fin.get("ratiosBasis") or {}).get(dst) != "statements"
+        if prov is not None and (fresh or first):
+            fin[dst + "Src"] = prov
+        den = fin.get(den_k)
+        if ni is None or den is None or den <= 0:
+            basis[dst] = "provider"
+            continue
+        v = round(ni / den * 100, dp)
+        if abs(v) > RATIO_ABS_MAX:
+            # مصيدة مقام ضئيل (مقيس: 1820 ‎−7230.9%‎ · 4270 ‎−2176.4%‎ · 8190 ‎−1042.4%‎)
+            reject(st, dst, v, "محسوب خارج ±%d%% — مقام ضئيل، أُبقي حقل المزوّد" % RATIO_ABS_MAX, today)
+            basis[dst] = "provider"
+            continue
+        fin[dst] = v
+        basis[dst] = "statements"
+    # ‏ملكية ≤ 0 ⇒ ROE غير معرَّف. الجالب يحمل هذا الحارس بعد النداء، والتمريرة لم
+    # تكن تحمله — فكان يبقى ROE موجبٌ لشركةٍ ملكيتها سالبة (خ-٦ من ختم 06-10/ب).
+    # فصار في الدالة ليحمله المساران معاً.
+    if fin.get("returnOnEquity") is not None and (fin.get("equity") is not None and fin["equity"] <= 0):
+        reject(st, "returnOnEquity", fin["returnOnEquity"], "ملكية سالبة — غير معرف", today)
+        fin["returnOnEquity"] = None
+    # وسمٌ ثابت: حقلٌ فارغ أساسُه "none" دائماً — وإلا انقلب الوسم none⇄provider بين
+    # تمريرتين على بياناتٍ لم تتغيّر، فيُقرأ تبدّلاً حيث لا تبدّل.
+    for k in ("returnOnEquity", "returnOnAssets"):
+        if fin.get(k) is None:
+            basis[k] = "none"
+    fin["ratiosBasis"] = basis
+    st["financials"] = fin
+
+
 def reject(st, field, value, reason, today):
     """حارس معقولية راسب → null موسوم (§8)"""
     st.setdefault("guardRejected", []).append(
@@ -978,6 +1057,12 @@ def parse_financials(f):
         r1 = _fs_val(fy_inc[1], "total_revenue", *NI)
         if y0 is not None and y1 is not None and y0 - y1 == 1 and r0 is not None and r1:
             out["revenueGrowthRaw"] = round((r0 - r1) / abs(r1) * 100, 1)
+        # السنة الكاملة السابقة تُحفظ (حكم المحلل 06-10): تفتح نمو صافي الربح
+        # كبديل مقيس حيث يغيب الإيراد، وتسمح بمراجعة أساس النمو بدل افتراضه.
+        if y0 is not None and y1 is not None and y0 - y1 == 1:
+            out["totalRevenuePrev"] = r1
+            out["netIncomePrev"] = _fs_val(fy_inc[1], "net_income", *NI)
+            out["fiscalYearPrev"] = y1
     return out
 
 
@@ -1145,8 +1230,14 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
                 a = reject(st, "totalAssets", a, "أصول ≤ 0", today)
             if e is not None and a and abs(e) > a * 2:
                 e = reject(st, "equity", e, "|ملكية| > أصول×2 — مصيدة وحدات", today)
+            # ‏totalRevenue كان يُستخرج في parse_financials ثم **يُسقط هنا** فلا يصل
+            # السجل إطلاقاً (حكم المحلل 06-10). فـ«الإيراد لا يصلنا من المزوّد» كانت
+            # دعوى عن أنبوبنا لا عن مصدرهم — وهي تحجب المرجع المستقل الوحيد الممكن
+            # لـprofitMargins، ونموَّ صافي الربح كبديل حيث يغيب الإيراد.
             fin.update({"totalAssets": a, "totalLiabilities": l, "equity": e,
                         "ocf": p.get("ocf"), "fcf": p.get("fcf"), "netIncome": p.get("netIncome"),
+                        "revenue": p.get("totalRevenue"), "revenuePrev": p.get("totalRevenuePrev"),
+                        "netIncomePrev": p.get("netIncomePrev"), "fiscalYearPrev": p.get("fiscalYearPrev"),
                         "fiscalYear": p.get("fiscalYear"), "reportDate": p.get("reportDate"),
                         "cfReportDate": p.get("cfReportDate")})
             rg = p.get("revenueGrowthRaw")
@@ -1164,16 +1255,23 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             else:
                 if e is not None and a and a > 0:
                     fin["equityAssets"] = round(e / a * 100, 2)        # رفع البنوك الرأسمالي
+        prov_keys = set()      # ما أسنده المزوّد فعلاً في هذه التشغيلة — لا ما نُودي
         for src_k, dst_k, dp in (("net_margin", "profitMargins", 1), ("roe", "returnOnEquity", 1),
                                  ("roa", "returnOnAssets", 2), ("operating_margin", "operatingMargin", 1)):
             v = rat.get(src_k)
             if v is not None:
+                prov_keys.add(dst_k)
                 if dst_k in ("profitMargins", "returnOnEquity") and abs(v) > 1000:
                     v = reject(st, dst_k, v, "خارج ±1000% — مصيدة وحدات", today)
                 fin[dst_k] = round(v, dp) if v is not None else None
-        if fin.get("returnOnEquity") is not None and fin.get("equity") is not None and fin["equity"] <= 0:
-            fin["returnOnEquity"] = reject(st, "returnOnEquity", fin["returnOnEquity"],
-                                           "ملكية سالبة — غير معرف", today)
+        # أساس النسب من القوائم (قرار المالك 06-10) — بعد إسناد المزوّد كي تُحفظ قيمته
+        merged_now = dict(st.get("financials") or {}); merged_now.update(fin)
+        st["financials"] = merged_now
+        apply_computed_ratios(st, today, provider_keys=prov_keys)
+        fin = st["financials"]
+        # ‏(حارس «ملكية سالبة» كان هنا، وانتقل إلى داخل apply_computed_ratios في ختم
+        #  06-10/ب كي يحمله مسار التمريرة كذلك. فبقاؤه هنا كان فرعاً خاملاً: أُطلق
+        #  صفر مرة من اثني عشر سيناريو — وقاعدة المستودع ألّا يُترك فرعٌ ميت بلا وسم.)
         if dec and de_raw.get(sym) is not None:
             de_v = round(de_raw[sym] * 100, 2) if as_ratio else round(de_raw[sym], 2)
             if fin.get("equity") is not None and fin["equity"] <= 0:

@@ -152,7 +152,16 @@ def axis_quality(s, medians):
             d.append("ROA غير متوفر → 0/10")
         roe = fin.get("returnOnEquity")
         if roe is not None:
-            p = 8 if roe > 18 else 6 if roe > 14 else 4 if roe > 10 else 2 if roe > 5 else 0
+            # ‏سلم أعيدت معايرته بحكم المحلل (06-10) بعد تصحيح أساس النسب. علّتان
+            # بنيويتان لا تفضيل: الشريحة >18 صارت **خاملة** (أعلى ROE بنكي 17.3)
+            # فنقطتان من ثمانٍ ميتتان، و**سبعة بنوك من عشرة تتكدّس على 4/8**.
+            # والرقم 16 لا 18 لأن البنوك السعودية مرسملة عند 12.35–17.60% ملكية/أصول
+            # (رفع 5.68–8.10× مقابل عُرف عالمي 12–14×) فنفس ROA يُنتج ROE أدنى بنيوياً.
+            # محايد وزنياً بالقياس (المجموع 42 = 42) وصفر تغيّر تصنيف على 248.
+            # وحدّ ثقة مُعلَن: معاير على عشر مشاهدات، فقيمته تمييزٌ للدورات القادمة
+            # لا توصيةٌ اليوم — ولا يُفترض نفعه قبل قياسه في صفحة الدقة.
+            p = (8 if roe > 16 else 6 if roe > 14 else 5 if roe > 12
+                 else 3 if roe > 10 else 1 if roe > 5 else 0)
             sc += p; d.append("ROE %s%% → %d/8" % (roe, p))
         else:
             d.append("ROE غير متوفر → 0/8")
@@ -512,7 +521,20 @@ def build_top_drivers(s, medians):
     wt = s.get("weeklyTechnical") or {}
     price = (s.get("dailyExtra") or {}).get("lastClose") or s.get("currentPrice")
     roe = fin.get("returnOnEquity")
-    if roe is not None and roe >= 18:
+    # ‏عتبتا الإيجابيات عامّتان، والبنوك لا تبلغهما بنيوياً (حكم المحلل 06-10):
+    # بعد تصحيح أساس النسب لا بنك يبلغ ROE 18 (الأعلى 17.3)، وتسعة من عشرة بلا
+    # قيمة نمو. فكان **الراجحي** يُعرض بأعلى جودة بنكية في السوق و**بلا محرّك
+    # إيجابي واحد** — صمتٌ يُقرأ ضعفاً. فلهم عتبات من عالمهم: ROA وكفاية رأس المال.
+    if is_bank(s):
+        roa = fin.get("returnOnAssets")
+        if roa is not None and roa >= 2.0:
+            pos.append("ROA قوي %s%% (مقياس بنكي)" % roa)
+        if roe is not None and roe >= 14:
+            pos.append("ROE قوي %s%%" % roe)
+        ea = fin.get("equityAssets")
+        if ea is not None and ea >= 15:
+            pos.append("رسملة مرتفعة %s%%" % ea)
+    elif roe is not None and roe >= 18:
         pos.append("ROE قوي %s%%" % roe)
     rg = fin.get("revenueGrowth")
     if rg is not None and rg >= 15:

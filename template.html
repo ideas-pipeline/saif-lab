@@ -310,6 +310,14 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .b-neutral{color:var(--band-neutral); background:rgba(147,164,188,0.12)}
 .b-weak{color:var(--band-weak); background:var(--red-dim)}
 .b-na{color:var(--text3); background:rgba(125,170,225,0.08)}
+/* سبب الاستبعاد مع الشارة (قرار المالك 06-10): سطر خفيف لا شارة ثانية، كي لا يُقرأ
+   حكماً ثانياً. ويُغلَّف مع الشارة في عنصر واحد لأن ‎.r2‎ في بطاقة الجوال حاوية flex
+   تُحوّل أبناءها إلى كتل (blockification) — فلو تُرك شقيقاً للشارة لانفصل عنها عنصراً
+   مستقلاً في الصف. وحارس التفاف لأن العمود ضيّق على 1024–1279 (درس 04-10). */
+.band{display:inline-flex; flex-direction:column; align-items:flex-start; gap:3px}
+.mcard .band{flex-direction:row; align-items:center; gap:5px}
+.ex-why{font-size:10.5px; color:var(--text3); line-height:1.35; overflow-wrap:anywhere}
+.mcard .ex-why{font-size:10px}
 .tchip{
   display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
   padding:3px 9px; border-radius:6px; white-space:nowrap; cursor:help; position:relative;
@@ -552,8 +560,8 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
 
 <div class="adv" id="advPanel">
   <div class="grp">
-    <span class="grp-t">فئة الجودة (مشتقة من الدرجة)</span>
-    <select id="fQuality" aria-label="فئة الجودة" style="height:32px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:7px;padding:0 8px;font-family:inherit;font-size:12.5px">
+    <span class="grp-t">فئة التقييم (مشتقة من الدرجة)</span>
+    <select id="fQuality" aria-label="فئة التقييم" style="height:32px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:7px;padding:0 8px;font-family:inherit;font-size:12.5px">
       <option value="">الكل</option><option value="strong">قوي (80+)</option><option value="good">جيد (65-79)</option><option value="neutral">محايد (50-64)</option><option value="weak">ضعيف (&lt;50)</option><option value="excluded">مستبعد / غير مقيّم</option>
     </select>
   </div>
@@ -624,6 +632,26 @@ const normalizeAr=s=>String(s||"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه")
 const isc=s=>s.investmentScore||{};
 const rated=s=>{const i=isc(s); return !i.filtered && !i.unrated && i.total!=null;};
 const scoreOf=s=>rated(s)?isc(s).total:null;
+/* سبب الاستبعاد مختصراً للعمود (قرار المالك 06-10): سأل المالك لماذا تظهر البنوك
+   «مستبعدة» وقرأها حكماً على ماليتها — وهي خروجٌ قبل التقييم بفلتر سعري. فيُعرض
+   السبب في موضع السؤال لا في الدرج وحده. filterReason حاضر في البيانات (159 «تحت
+   SMA200W بدون إشارات انعكاس» · 6 انعكاس · 4 بلا بيانات مالية) فلا حساب جديد،
+   والنص الكامل يبقى في الدرج لأن العمود ضيّق. */
+function excludeWhy(s){
+  const i=isc(s);
+  if(rated(s)) return "";
+  if(i.unrated) return "بلا قاعدة 200 أسبوع";
+  const r=i.filterReason||"";
+  if(r.includes("لكن إشارات انعكاس")) return "انعكاس مبكر";
+  if(r.includes("SMA200W")) return "تحت متوسط 200 أسبوع";
+  if(r.includes("بيانات مالية")) return "بلا بيانات مالية";
+  return r?"لم يعبر فلتر الاتجاه":"";
+}
+const bandHtml=s=>{const b=qualityBand(s), w=excludeWhy(s);
+  const badge=`<span class="badge ${b.cls}">${b.label}</span>`;
+  /* مسافة صريحة بين الشارة والسبب: الفجوة البصرية من flex-gap لا من النص، فكان
+     textContent يقرأ «مستبعدتحت متوسط 200 أسبوع» ملتحمةً في النسخ وقارئ الشاشة. */
+  return w?`<span class="band">${badge} <span class="ex-why">${esc(w)}</span></span>`:badge;};
 function qualityBand(s){
   if(!rated(s)) return {code:"excluded", label:isc(s).unrated?"غير مقيّم":"مستبعد", cls:"b-na"};
   const t=isc(s).total;
@@ -889,7 +917,7 @@ function renderChips(){
   if(state.sector) chips.push({k:"sector",l:SECTOR_AR[state.sector]||state.sector});
   if(state.minScore>0) chips.push({k:"minScore",l:`‎${state.minScore}+‎`});
   if(state.timing) chips.push({k:"timing",l:TIMING_AR[state.timing]});
-  if(state.quality) chips.push({k:"quality",l:`الجودة: ${QUAL_LABELS[state.quality]||state.quality}`});
+  if(state.quality) chips.push({k:"quality",l:`التقييم: ${QUAL_LABELS[state.quality]||state.quality}`});
   Object.keys(state.adv).forEach(k=>{ if(state.adv[k]) chips.push({k:"adv:"+k,l:ADV_LABELS[k]}); });
   const box=$("fchips");
   box.classList.toggle("on",chips.length>0);
@@ -934,7 +962,10 @@ function scoreRing(total, color, size=52){
 }
 function scoreHtml(s){
   const t=scoreOf(s);
-  if(t==null) return `<span class="badge b-na">${isc(s).unrated?"غير مقيّم":"مستبعد"}</span>`;
+  /* عمود الدرجة لا يعيد كلمة العمود المجاور (ختم 06-10): كانت «مستبعد» تُطبع
+     مرتين في الصف الواحد على **212 من 248 صفاً**، وموجةٌ كاملةٌ قامت لأن المالك
+     قرأ الكلمة حكماً — فالتكرار بجوار السبب ضجيج. شُرطةٌ هنا، والحكم في عموده. */
+  if(t==null) return `<span class="num" style="color:var(--text3)" aria-label="${isc(s).unrated?"غير مقيّم":"مستبعد من التقييم"}">—</span>`;
   return `<span class="score-cell"><span class="n num" style="color:${scoreColor(t)}">${t}</span><span class="sbar"><i style="width:${t}%;background:${scoreColor(t)}"></i></span></span>`;
 }
 /* شريط الصف (اتجاه «أزرق ليلي» 04-10): يحمل لون الدرجة نفسه فيُقرأ المستوى
@@ -952,7 +983,7 @@ function timingChip(s,withTip=true){
 const COLS=[
   {key:"name",   label:"الشركة", sortable:true},
   {key:"score",  label:"درجة سيف", sortable:true},
-  {key:"quality",label:"الجودة"},
+  {key:"quality",label:"التقييم"},
   {key:"timing", label:"توقيت الدخول"},
   {key:"price",  label:"السعر", sortable:true},
   {key:"chg",    label:"التغير", sortable:true},
@@ -1042,9 +1073,17 @@ function dyFlags(s){
      من مزوّد آخر (S&P Global الموروث)، و«netIncome» بلا ختم في financialsParts.
      فالأسرتان غير متقايستين منهجياً — وهذا يقوّي الحجة على عدم القطع لا يضعفها.
      فيُنسب الوقت لا المكان، والختم يُقرأ من البيانات لا يُكتب صلباً. */
+  /* الشاهد المعارِض يجب أن يكون **مستقلاً** عن صافي الربح (تصحيح ختم 06-10):
+     منذ 06-10 يُحسب ROE وROA عندنا من netIncome نفسه، فاتفاقهما معه صار متطابقةً
+     رياضية — أي شاهدان ميتان بالبناء، وقد قِيس: من 32 سهماً إلى صفر. والدليل لم
+     يزل بل انتقل إلى returnOnEquitySrc/returnOnAssetsSrc (قيمة المزوّد المحفوظة،
+     موجبة على 32 سهماً صافي ربحها سالب). فتُقرأ هي: يعود الشاهد حياً، ويصير الحقل
+     المحفوظ أداءً لغرضه المعلن لا مخزَّناً بلا قارئ. والمبدأ يُصان: ننسب كل رقم
+     لمصدره ولا ندّعي أيَّهما صحيح — وإسكاتُ الشاهد كان نقضاً له لا تطبيقاً. */
+  const srcOf=(k)=>{const v=finA[k+"Src"]; return typeof v==="number"?v:finA[k];};
   const oppoP=[["الهامش الصافي","profitMargins",finA.profitMargins],
-               ["العائد على حقوق الملكية","returnOnEquity",finA.returnOnEquity],
-               ["العائد على الأصول","returnOnAssets",finA.returnOnAssets]]
+               ["العائد على حقوق الملكية","returnOnEquity",srcOf("returnOnEquity")],
+               ["العائد على الأصول","returnOnAssets",srcOf("returnOnAssets")]]
               .filter(x=>typeof x[2]==="number"&&x[2]>0);
   const oppo=oppoP.map(x=>x[0]);
   const fparts=s.financialsParts||{};
@@ -1185,7 +1224,7 @@ function dyNoteHtml(){
     <div><b>العائد المرتفع غالباً سعر هابط</b> لا كرم شركة: العائد يرتفع حسابياً كلما نزل السعر.</div>
     <div>ما مرّت أحقيته <b>لا يستحقه من يشتري اليوم</b> — هذا سجل ماضٍ لا وعد بالمستقبل.</div>
     <div>ويوم الأحقية ينخفض سعر السهم عادة بقيمة التوزيع تقريباً.</div>
-    <div class="dy-note-tail">العائد وحده ليس توصية — انظر الدرجة والجودة والتوقيت في الجدول نفسه.</div>
+    <div class="dy-note-tail">العائد وحده ليس توصية — انظر الدرجة والتقييم والتوقيت في الجدول نفسه.</div>
   </div>`;
 }
 function renderBody(){
@@ -1228,7 +1267,7 @@ function renderBody(){
     <tr data-sym="${s.symbol}" tabindex="0">
       <td class="co"><span class="co-bar" style="background:${rowBarColor(s)}" aria-hidden="true"></span><span class="co-t"><span class="nm">${esc(s.name)}</span><span class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}</span></span></td>
       <td>${scoreHtml(s)}</td>
-      <td><span class="badge ${qualityBand(s).cls}">${qualityBand(s).label}</span></td>
+      <td>${bandHtml(s)}</td>
       <td>${timingChip(s)}</td>
       <td class="num">${fmt(priceOf(s))}</td>
       <td>${chgHtml(s)}</td>
@@ -1247,7 +1286,7 @@ function renderBody(){
       </div>
       <div class="r2">
         ${scoreOf(s)!=null?`<span class="sc-line"><span class="n num" style="color:${scoreColor(scoreOf(s))}">${scoreOf(s)}</span><span class="sbar"><i style="width:${scoreOf(s)}%;background:${scoreColor(scoreOf(s))}"></i></span></span>`:""}
-        <span class="badge ${qualityBand(s).cls}">${qualityBand(s).label}</span>
+        ${bandHtml(s)}
         ${timingChip(s,false)}
         ${state.view==="dividends"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:dyBadgeHtml(s)}
       </div>
@@ -1453,7 +1492,7 @@ function drawerHtml(s){
           ?`<div class="big num" style="color:${scoreColor(i.total)}">${i.total}<small> /100</small></div>`
           :`<div class="big" style="font-size:22px;color:var(--text3)">${i.unrated?"غير مقيّم":"مستبعد"}</div>`}
         <div class="side">
-          <span class="badge ${band.cls}">الجودة: ${band.label}</span>
+          <span class="badge ${band.cls}">التقييم: ${band.label}</span>
           ${timingChip(s,false)}
           ${i.classification?`<span style="font-size:11.5px;color:var(--text3)">تصنيف النظام: ${esc(i.classification)}</span>`:""}
         </div>
@@ -1695,7 +1734,7 @@ function buildReading(s){
   const ax=axesOf(s);
   const strongest=Object.keys(AXES_MAX).sort((a,b)=>(ax[b]/AXES_MAX[b])-(ax[a]/AXES_MAX[a]))[0];
   const weakest=Object.keys(AXES_MAX).sort((a,b)=>(ax[a]/AXES_MAX[a])-(ax[b]/AXES_MAX[b]))[0];
-  return `جودة السهم <b>${band}</b> بدرجة <b class="num">${i.total}/100</b> — أقوى محاوره ${AXES_AR[strongest]} (<span class="num">${ax[strongest]}/${AXES_MAX[strongest]}</span>) وأضعفها ${AXES_AR[weakest]} (<span class="num">${ax[weakest]}/${AXES_MAX[weakest]}</span>). أما التوقيت فمنفصل عن الجودة: ${esc(e.phrase||"")}`;
+  return `تقييم السهم <b>${band}</b> بدرجة <b class="num">${i.total}/100</b> — أقوى محاوره ${AXES_AR[strongest]} (<span class="num">${ax[strongest]}/${AXES_MAX[strongest]}</span>) وأضعفها ${AXES_AR[weakest]} (<span class="num">${ax[weakest]}/${AXES_MAX[weakest]}</span>). أما التوقيت فمنفصل عن التقييم: ${esc(e.phrase||"")}`;
 }
 function buildWhatChanges(s){
   /* مشتق حصراً من إشارات المحرك الحالية — لا مستويات مخترعة */
@@ -1864,7 +1903,7 @@ function renderSheet(){
     <div class="fgroup"><div class="gt">توقيت الدخول</div><div class="opts" data-g="timing">
       ${[["","الكل"],["green","مناسب"],["yellow","تدريجي"],["red","انتظار"]].map(([v,l])=>`<button class="opt ${draft.timing===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
     </div></div>
-    <div class="fgroup"><div class="gt">فئة الجودة (مشتقة من الدرجة)</div><div class="opts" data-g="quality">
+    <div class="fgroup"><div class="gt">فئة التقييم (مشتقة من الدرجة)</div><div class="opts" data-g="quality">
       ${[["","الكل"],["strong","قوي"],["good","جيد"],["neutral","محايد"],["weak","ضعيف"],["excluded","مستبعد/غير مقيّم"]].map(([v,l])=>`<button class="opt ${draft.quality===v?"on":""}" data-v="${v}">${l}</button>`).join("")}
     </div></div>
     <div class="fgroup"><div class="gt">القطاع</div>

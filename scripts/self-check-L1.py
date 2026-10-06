@@ -319,9 +319,14 @@ for s in S:
         elif ni_a <= 0:
             # تفريق الواجهة نفسه: القطع حيث يوافق السجل، والنسب حيث يعارض
             fin_a = s.get("financials") or {}
+            # الشاهد المعارِض يُقرأ من حقل المزوّد المحفوظ لا من المحسوب — مطابقةً
+            # لما تقرؤه الواجهة (ختم 06-10): المحسوب مشتقٌّ من netIncome فاتفاقه معه
+            # متطابقة رياضية لا شهادة. وأي انحراف هنا يكسر عقد المطابقة مع dyFlags.
+            _src = lambda k: (fin_a.get(k + "Src") if isinstance(fin_a.get(k + "Src"), (int, float))
+                              else fin_a.get(k))
             opp = [n for n, v in (("هامش", fin_a.get("profitMargins")),
-                                  ("ROE", fin_a.get("returnOnEquity")),
-                                  ("ROA", fin_a.get("returnOnAssets")))
+                                  ("ROE", _src("returnOnEquity")),
+                                  ("ROA", _src("returnOnAssets")))
                    if isinstance(v, (int, float)) and v > 0]
             if opp:
                 loss_contested.append((s["symbol"], "+".join(opp)))
@@ -375,6 +380,42 @@ if len(eps_blind) > EPS_BLIND_WARN_AT:
          % (len(eps_blind), eps_cand, EPS_BLIND_WARN_AT, eps_blind[:6]))
 print("    موزِّعون يتعذّر الحكم على خسارتهم (بلا netIncome): %d %s"
       % (len(loss_blind), loss_blind[:8]))
+
+# ‏أساس النسب + متطابقة البنوك (قرار المالك 06-10 وحكم المحلل): ROE وROA يُحسبان
+# عندنا من القوائم، وقيمة المزوّد محفوظة في *Src. وللبنوك تصحّ المتطابقة
+# ‏ROE/ROA ≡ أصول/ملكية — فهي حارس **بلا شبكة** على اتساق حقول المزوّد داخلياً:
+# اتساقها يعني أن انحرافها عن القوائم «انزياح أساس» لا فساد قيم، وشذوذها يسمّي
+# السهم الذي يستحق سؤالاً. (مقيس عند الإدخال: 9 من 10 داخل ±5.5% و1030 شاذ.)
+basis_c = {"statements": 0, "provider": 0, "none": 0}
+for s_ in S:
+    f_ = s_.get("financials") or {}
+    b_ = (f_.get("ratiosBasis") or {}).get("returnOnEquity")
+    basis_c[b_ if b_ in basis_c else "none"] += 1
+print("    أساس ROE: من القوائم %d · من المزوّد %d · بلا أساس %d"
+      % (basis_c["statements"], basis_c["provider"], basis_c["none"]))
+ident = []
+for s_ in S:
+    f_ = s_.get("financials") or {}
+    # التعريف الموحد §3.1ب لا تعريفٌ محلي (ختم 06-10): تعريفٌ بـ"bank" وحده يغطّي
+    # صفر بنك لو عرّب المزوّد التصنيف — فيمرّ الحارس بألّا يحرس شيئاً ويطبع «شاذّ 0».
+    _sec = (s_.get("sector") or "").lower(); _ind = (s_.get("industry") or "").lower()
+    _fin = ("financ" in _sec) or ("مالية" in _sec) or ("مصارف" in _sec) or ("بنوك" in _sec)
+    _bk = ("bank" in _ind) or ("بنك" in _ind) or ("مصرف" in _ind)
+    if not ((_fin and _bk) if _sec else _bk):
+        continue
+    re_, ra_ = f_.get("returnOnEquitySrc"), f_.get("returnOnAssetsSrc")
+    eq_, ta_ = f_.get("equity"), f_.get("totalAssets")
+    if not (re_ and ra_ and eq_ and ta_ and ra_ != 0 and eq_ != 0):
+        continue
+    dev = (re_ / ra_) / (ta_ / eq_) - 1
+    if abs(dev) > 0.15:
+        ident.append((s_["symbol"], round(dev * 100, 1)))
+print("    متطابقة البنوك (ROE/ROA ≡ أصول/ملكية) على حقول المزوّد: شاذّ %d %s"
+      % (len(ident), ident[:6]))
+if ident:
+    warn("حقول نسب المزوّد تكسر متطابقتها الحسابية على %d بنكاً (انحراف >15%%) — "
+         "اتساقها الداخلي هو ما يرجّح أن فارقها عن القوائم انزياحُ أساس؛ وكسرُها "
+         "يسمّي سهماً يستحق سؤال المزوّد: %s" % (len(ident), ident[:6]))
 if len(loss_blind) > LOSS_BLIND_WARN_AT:
     warn("🚨 صارخ: %d موزِّعاً بلا netIncome (الأساس 0) — وسم خسارة السنة الكاملة "
          "يصمت عنهم بلا ضجيج؛ راجع §8-ش: %s" % (len(loss_blind), loss_blind[:6]))
