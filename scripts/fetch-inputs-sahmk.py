@@ -644,7 +644,7 @@ def note_fail(counters, key, label, sym, err, limit=3):
 RATIO_ABS_MAX = 1000          # ‏±1000% — مصيدة الوحدات القائمة (تُطبَّق على المزوّد أصلاً)
 
 
-def apply_computed_ratios(st, today, provider_fresh=True):
+def apply_computed_ratios(st, today, provider_keys=None):
     """ROE وROA من قوائم السجل نفسه لا من /analytics/ratios (قرار المالك 06-10).
 
     العلّة المقيسة: حقول /analytics/ratios مختومة 2026-08-04 وتخالف القوائم
@@ -684,10 +684,16 @@ def apply_computed_ratios(st, today, provider_fresh=True):
         # لقطة ولا يرى إصلاح المزوّد لو أصلح. وprovider_fresh تمنع التلفيق: من يستدعي
         # الدالة بلا جلب طازج (التمريرة لمرة واحدة) تكون fin[dst] عندها **قيمتنا
         # المحسوبة** لا قيمة المزوّد — فكتابتها في *Src تنسب حسابنا إليهم.
-        # ‏provider_fresh=False (التمريرة لمرة واحدة، بلا جلب): تُكتب *Src في أول
-        # تطبيق فقط — حيث الحقل ما زال قيمة المزوّد — ولا تُكتب بعده لأن الحقل عندها
-        # صار **قيمتنا**، فنسبتُها إليهم تلفيق. وبهذا تبقى التمريرة ثابتة على التكرار.
-        if prov is not None and (provider_fresh or (fin.get("ratiosBasis") or {}).get(dst) != "statements"):
+        # ‏الإشارة الصحيحة: **هل أسند المزوّد هذا الحقل في هذه التشغيلة؟** لا «من
+        # نادى الدالة» (تصحيح ختم 06-10/ب). فراية «نُوديتُ من الجالب» كانت تكذب متى
+        # فشل نداء النسب لسهمٍ ونجحت قوائمه: الحقل يبقى **قيمتَنا** من الأسبوع
+        # الماضي فتُكتب في *Src، فتُسكت الشاهد الذي أُحيي، وتُعمي حارس المتطابقة
+        # (قيمنا تُحققه بالبناء فيطبع «شاذّ 0»)، وتمسح قيمة المزوّد بلا رجعة.
+        # وحيث لا إسناد طازج: تُكتب مرةً واحدة فقط — أول التقاط، والحقل ما زال
+        # للمزوّد — فتبقى التمريرة لمرة واحدة ثابتة ولو انتقل الأساس بينهما.
+        fresh = provider_keys is not None and dst in provider_keys
+        first = (dst + "Src") not in fin and (fin.get("ratiosBasis") or {}).get(dst) != "statements"
+        if prov is not None and (fresh or first):
             fin[dst + "Src"] = prov
         den = fin.get(den_k)
         if ni is None or den is None or den <= 0:
@@ -701,6 +707,17 @@ def apply_computed_ratios(st, today, provider_fresh=True):
             continue
         fin[dst] = v
         basis[dst] = "statements"
+    # ‏ملكية ≤ 0 ⇒ ROE غير معرَّف. الجالب يحمل هذا الحارس بعد النداء، والتمريرة لم
+    # تكن تحمله — فكان يبقى ROE موجبٌ لشركةٍ ملكيتها سالبة (خ-٦ من ختم 06-10/ب).
+    # فصار في الدالة ليحمله المساران معاً.
+    if fin.get("returnOnEquity") is not None and (fin.get("equity") is not None and fin["equity"] <= 0):
+        reject(st, "returnOnEquity", fin["returnOnEquity"], "ملكية سالبة — غير معرف", today)
+        fin["returnOnEquity"] = None
+    # وسمٌ ثابت: حقلٌ فارغ أساسُه "none" دائماً — وإلا انقلب الوسم none⇄provider بين
+    # تمريرتين على بياناتٍ لم تتغيّر، فيُقرأ تبدّلاً حيث لا تبدّل.
+    for k in ("returnOnEquity", "returnOnAssets"):
+        if fin.get(k) is None:
+            basis[k] = "none"
     fin["ratiosBasis"] = basis
     st["financials"] = fin
 
@@ -1240,17 +1257,19 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             else:
                 if e is not None and a and a > 0:
                     fin["equityAssets"] = round(e / a * 100, 2)        # رفع البنوك الرأسمالي
+        prov_keys = set()      # ما أسنده المزوّد فعلاً في هذه التشغيلة — لا ما نُودي
         for src_k, dst_k, dp in (("net_margin", "profitMargins", 1), ("roe", "returnOnEquity", 1),
                                  ("roa", "returnOnAssets", 2), ("operating_margin", "operatingMargin", 1)):
             v = rat.get(src_k)
             if v is not None:
+                prov_keys.add(dst_k)
                 if dst_k in ("profitMargins", "returnOnEquity") and abs(v) > 1000:
                     v = reject(st, dst_k, v, "خارج ±1000% — مصيدة وحدات", today)
                 fin[dst_k] = round(v, dp) if v is not None else None
         # أساس النسب من القوائم (قرار المالك 06-10) — بعد إسناد المزوّد كي تُحفظ قيمته
         merged_now = dict(st.get("financials") or {}); merged_now.update(fin)
         st["financials"] = merged_now
-        apply_computed_ratios(st, today)
+        apply_computed_ratios(st, today, provider_keys=prov_keys)
         fin = st["financials"]
         if fin.get("returnOnEquity") is not None and fin.get("equity") is not None and fin["equity"] <= 0:
             fin["returnOnEquity"] = reject(st, "returnOnEquity", fin["returnOnEquity"],
