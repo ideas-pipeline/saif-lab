@@ -141,7 +141,40 @@ function tools(page){
     }
     await page.waitForTimeout(260);
   }
-  return { where, attrs, reachableInside, tabSweep, ensureClosed };
+  /* نقرةٌ على صفٍّ أو بطاقةٍ في موضعٍ **ليس** داخل [data-tip]: معالجُ فتح الدرج
+     يتجاهل نقرَ التلميحات بقصد (`if(e.target.closest("[data-tip]"))return`)، ومركزُ
+     العنصر — وهو ما ينقره page.click — يقع على شريحةٍ أو خارجَها بحسب تخطيطِ
+     الأعمدة. فكان الحزامُ يمرّ بالمصادفة: مقيسٌ أن مركزَ الصفّ على 1280 كان خليةً
+     خاليةً قبل موجة «أساس النسب» وصار شريحةَ توقيتٍ بعدها، فسقط الحزام بلا عيبٍ في
+     المنتَج. فيُختار الموضعُ **بعنصرٍ خالٍ من التلميحات** لا بنسبةٍ هندسية — فالنسبةُ
+     تقع خارج الشاشة على بطاقةٍ مقطوعةٍ بحدّ المدى، و`elementFromPoint` خارجَه null. */
+  async function clickOpener(sel){
+    /* و`page.click` يجرّ هدفَه إلى المدى قبل النقر، و`mouse.click` لا يفعل —
+       فيُجَرّ هنا صريحاً، وإلا لم يوجد في بطاقةٍ خارج الشاشة موضعٌ أصلاً. */
+    await page.evaluate(s=>{ const el=document.querySelector(s);
+      if(el) el.scrollIntoView({block:"center", behavior:"instant"}); }, sel);
+    await page.waitForTimeout(80);
+    const pt = await page.evaluate(s=>{
+      const host=document.querySelector(s); if(!host) return null;
+      const vw=innerWidth, vh=innerHeight;
+      const cands=[...host.querySelectorAll("*"), host]
+        .filter(el=>!el.closest("[data-tip]") && !el.querySelector("[data-tip]"));
+      for(const el of cands){
+        const r=el.getBoundingClientRect();
+        if(r.width<4||r.height<4) continue;
+        const x=Math.round(Math.min(Math.max(r.left+r.width/2,1),vw-2));
+        const y=Math.round(Math.min(Math.max(r.top+r.height/2,1),vh-2));
+        if(y<=0||y>=vh||x<=0||x>=vw) continue;
+        const at=document.elementFromPoint(x,y);
+        if(at && host.contains(at) && !at.closest("[data-tip]")) return {x,y};
+      }
+      return null;
+    }, sel);
+    if(!pt) throw new Error("لا موضعَ في "+sel+" خارج [data-tip] — تخطيطٌ تغيّر");
+    await page.mouse.click(pt.x, pt.y);
+    return pt;
+  }
+  return { where, attrs, reachableInside, tabSweep, ensureClosed, clickOpener };
 }
 
 async function openPage(width,height){
@@ -170,7 +203,7 @@ async function openPage(width,height){
 /* ════════════════════════ ١) الجوال 390×844 ════════════════════════ */
 console.log("── إتاحة الحوارات على 390×844 ──");
 {
-const { ctx, page, errs, ext, where, attrs, reachableInside, tabSweep, ensureClosed } = await openPage(390,844);
+const { ctx, page, errs, ext, where, attrs, reachableInside, tabSweep, ensureClosed, clickOpener } = await openPage(390,844);
 
 /* حالة المولد: قبل أي تفاعل */
 for(const [sel,lbl] of [["#sheet","#sheet"],["#drawer","#drawer"]]){
@@ -207,7 +240,7 @@ ok(afterReset && afterReset.inSheet, "٢د «إعادة تعيين» لا تُس
 await page.click("#shX");
 await page.waitForFunction(()=>!document.querySelector("#sheet").classList.contains("open"));
 const rowSym = await page.evaluate(()=>document.querySelector(".mcard[data-sym]").dataset.sym);
-await page.click(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
+await clickOpener(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
 await page.click("#drX");
 await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
 await page.waitForTimeout(300);
@@ -321,7 +354,7 @@ for(const [fn,label] of [
 ]){
   await ensureClosed();
   await page.focus(`.mcard[data-sym="${rowSym}"]`);
-  await page.click(`.mcard[data-sym="${rowSym}"]`);
+  await clickOpener(`.mcard[data-sym="${rowSym}"]`);
   await page.waitForSelector("#drawer.open");
   await fn();
   await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
@@ -341,7 +374,7 @@ const cardInert=await page.evaluate(s=>({ inert:!!document.querySelector(s).clos
   drawerOpen:document.querySelector("#drawer").classList.contains("open") }), `.mcard[data-sym="${rowSym}"]`);
 ok(cardInert.inert && !cardInert.drawerOpen, "٩أ الورقة مفتوحة ⇒ الصفوف inert فلا درج يُفتح فوقها", cardInert);
 await ensureClosed();
-await page.click(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
+await clickOpener(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
 const fabInert=await page.evaluate(()=>({ inert:!!document.querySelector("#fabFilters").closest("[inert]"),
   sheetOpen:document.querySelector("#sheet").classList.contains("open") }));
 ok(fabInert.inert && !fabInert.sheetOpen, "٩ب الدرج مفتوح ⇒ #fabFilters inert فلا ورقة تُفتح فوقه", fabInert);
@@ -371,7 +404,7 @@ ok(visTrans.bad.length===0,
    visTrans.bad.slice(0,6));
 
 await ensureClosed();
-await page.click(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
+await clickOpener(`.mcard[data-sym="${rowSym}"]`); await page.waitForSelector("#drawer.open");
 await page.click("#drX");
 await page.waitForFunction(()=>!document.querySelector("#drawer").classList.contains("open"));
 ok(await page.evaluate(()=>lastFocus)===null,
@@ -429,7 +462,7 @@ const farSym = await page.evaluate(()=>{
   return v ? v.dataset.sym : null;
 });
 ok(!!farSym, "٩ز٢ب بطاقةٌ مرئيةٌ على الإزاحة الحالية (وإلا فالقياس زائف)", farSym);
-await page.click(`.mcard[data-sym="${farSym}"]`);
+await clickOpener(`.mcard[data-sym="${farSym}"]`);
 await page.waitForSelector("#drawer.open");
 const lockedAt = await page.evaluate(()=>parseInt(document.body.style.top,10)||0);
 ok(lockedAt<-200, "٩ز٢ج القفلُ حفظ إزاحةً غيرَ صفرية (شرطُ القياس)", lockedAt);
@@ -525,11 +558,11 @@ await ctx.close();
 /* ════════════ ٢) سطح المكتب 1280×900 — قناة طبقة الدرج ════════════ */
 console.log("── قناة طبقة الدرج على 1280×900 ──");
 {
-const { ctx, page, errs, ext, where, ensureClosed } = await openPage(1280,900);
+const { ctx, page, errs, ext, where, ensureClosed, clickOpener } = await openPage(1280,900);
 const rowSym = await page.evaluate(()=>document.querySelector("tr[data-sym]").dataset.sym);
 await ensureClosed();
 await page.focus(`tr[data-sym="${rowSym}"]`);
-await page.click(`tr[data-sym="${rowSym}"]`);
+await clickOpener(`tr[data-sym="${rowSym}"]`);
 await page.waitForSelector("#drawer.open");
 const hit=await page.evaluate(()=>document.elementFromPoint(window.innerWidth-40,40).id);
 ok(hit==="ovl", "١٢أ الطبقة مكشوفةٌ خارج الدرج على 1280px", hit);
