@@ -1796,6 +1796,11 @@ def main():
     ap = argparse.ArgumentParser(description="جالب المنصة القائمة بذاتها (sahmk-direct-v3)")
     ap.add_argument("--data", default="", help="مسار stocks-data.json (إلزامي للجلب)")
     ap.add_argument("--weekly", action="store_true")
+    ap.add_argument("--expect-shift", default="",
+                    metavar="السبب",
+                    help="انزياحٌ جماعي مُفسَّر سلفاً (إصلاح معلن من المزوّد مثلاً): "
+                         "يُحوّل حارس §8 من حاكمٍ إلى إنذار موسوم، ويسجّل shiftOverrideEvent "
+                         "بالبلاغات المتجاوَزة. لا يمسّ بوابة التغطية.")
     ap.add_argument("--maintain-universe", action="store_true")
     ap.add_argument("--universe-dry-run", action="store_true",
                     help="يطبع ما ستفعله صيانة الكون بلا أي كتابة (تحقق آمن — حادثة 01-09)")
@@ -1940,8 +1945,20 @@ def main():
               % (ses_depths[len(ses_depths)//2], ses_depths[0],
                  sum(1 for x in ses_depths if x >= 300), len(ses_depths)))
     if drift:
-        print("⛔ حارس الانزياح الجماعي (§8): %s" % drift)
-        fail_types.append("انزياح جماعي")
+        if args.expect_shift:
+            # استثناء صريح مسجَّل، على نسق --activation في المحرك — لا توسيعَ حارسٍ
+            # صامتاً. موضعه: انزياحٌ **مُفسَّر سلفاً** كإصلاحٍ معلن من المزوّد. ويُكتب
+            # أثرُه في الملف فيبقى مُدقَّقاً، ويُطبع كل بلاغ تُجووِز كي لا يمرّ شيء
+            # دون أن يُرى. ولا يمسّ بوابة التغطية ولا بقية الفشل الحاكم.
+            print("⚠️ حارس الانزياح الجماعي (§8) — متجاوَز بـ--expect-shift: %s" % args.expect_shift)
+            for d_ in drift:
+                print("   ⤷ تُجووِز: %s" % d_)
+            data["shiftOverrideEvent"] = {"date": today, "reason": args.expect_shift,
+                                          "bypassed": list(drift)}
+        else:
+            print("⛔ حارس الانزياح الجماعي (§8): %s" % drift)
+            print("   (انزياحٌ مُفسَّر سلفاً؟ أعد التشغيل بـ--expect-shift \"<السبب>\" فيُسجَّل أثره)")
+            fail_types.append("انزياح جماعي")
     if cov_fail:
         print("⛔ بوابة انهيار التغطية (§7): %s" % cov_fail)
         fail_types.append("تغطية")

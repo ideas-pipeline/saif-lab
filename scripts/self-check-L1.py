@@ -381,11 +381,15 @@ if len(eps_blind) > EPS_BLIND_WARN_AT:
 print("    موزِّعون يتعذّر الحكم على خسارتهم (بلا netIncome): %d %s"
       % (len(loss_blind), loss_blind[:8]))
 
-# ‏أساس النسب + متطابقة البنوك (قرار المالك 06-10 وحكم المحلل): ROE وROA يُحسبان
-# عندنا من القوائم، وقيمة المزوّد محفوظة في *Src. وللبنوك تصحّ المتطابقة
-# ‏ROE/ROA ≡ أصول/ملكية — فهي حارس **بلا شبكة** على اتساق حقول المزوّد داخلياً:
-# اتساقها يعني أن انحرافها عن القوائم «انزياح أساس» لا فساد قيم، وشذوذها يسمّي
-# السهم الذي يستحق سؤالاً. (مقيس عند الإدخال: 9 من 10 داخل ±5.5% و1030 شاذ.)
+# ‏أساس النسب + **فحص الاتفاق** مع المزوّد (محدَّث 08-10 بعد استجابته).
+# كان هنا حارس متطابقةٍ على حقول المزوّد (ROE/ROA ≡ أصول/ملكية) يكشف أن انحرافها عن
+# القوائم «انزياح أساس» لا فساد قيم. وقد أدّى غرضه: سمّى 1030 فأصلحه المزوّد، ثم
+# أصلح الأساس كلَّه فصارت قيمه تطابق حسابنا — **وعندها تتحقق المتطابقة بالبناء**
+# (البسط واحد والمقامان نفسهما) فيطبع «شاذّ 0» أبداً: حارسٌ يمرّ بألّا يحرس شيئاً.
+# فاستُبدل بالسؤال الذي صار ذا معنى: **هل ما زال المزوّد متفقاً معنا؟** — فيكشف
+# انزياحاً مستقبلياً عنده بدل أن يوثّق انزياحاً ماضياً.
+# والدرس: حارسٌ يُبنى على «المصدران مختلفان» يموت يوم يتفقان، فيُكتب على السؤال لا
+# على الجواب الحالي.
 basis_c = {"statements": 0, "provider": 0, "none": 0}
 for s_ in S:
     f_ = s_.get("financials") or {}
@@ -393,29 +397,29 @@ for s_ in S:
     basis_c[b_ if b_ in basis_c else "none"] += 1
 print("    أساس ROE: من القوائم %d · من المزوّد %d · بلا أساس %d"
       % (basis_c["statements"], basis_c["provider"], basis_c["none"]))
-ident = []
+
+# عتبة التدوير مقيسة من أرقام المزوّد المعلنة 08-10: أكبر فرق 0.05 (17.35 مقابل 17.3).
+AGREE_ABS, AGREE_REL = 0.1, 0.01
+agree, disagree, nocmp = 0, [], 0
 for s_ in S:
     f_ = s_.get("financials") or {}
-    # التعريف الموحد §3.1ب لا تعريفٌ محلي (ختم 06-10): تعريفٌ بـ"bank" وحده يغطّي
-    # صفر بنك لو عرّب المزوّد التصنيف — فيمرّ الحارس بألّا يحرس شيئاً ويطبع «شاذّ 0».
-    _sec = (s_.get("sector") or "").lower(); _ind = (s_.get("industry") or "").lower()
-    _fin = ("financ" in _sec) or ("مالية" in _sec) or ("مصارف" in _sec) or ("بنوك" in _sec)
-    _bk = ("bank" in _ind) or ("بنك" in _ind) or ("مصرف" in _ind)
-    if not ((_fin and _bk) if _sec else _bk):
-        continue
-    re_, ra_ = f_.get("returnOnEquitySrc"), f_.get("returnOnAssetsSrc")
-    eq_, ta_ = f_.get("equity"), f_.get("totalAssets")
-    if not (re_ and ra_ and eq_ and ta_ and ra_ != 0 and eq_ != 0):
-        continue
-    dev = (re_ / ra_) / (ta_ / eq_) - 1
-    if abs(dev) > 0.15:
-        ident.append((s_["symbol"], round(dev * 100, 1)))
-print("    متطابقة البنوك (ROE/ROA ≡ أصول/ملكية) على حقول المزوّد: شاذّ %d %s"
-      % (len(ident), ident[:6]))
-if ident:
-    warn("حقول نسب المزوّد تكسر متطابقتها الحسابية على %d بنكاً (انحراف >15%%) — "
-         "اتساقها الداخلي هو ما يرجّح أن فارقها عن القوائم انزياحُ أساس؛ وكسرُها "
-         "يسمّي سهماً يستحق سؤال المزوّد: %s" % (len(ident), ident[:6]))
+    for k, lbl in (("returnOnEquity", "ROE"), ("returnOnAssets", "ROA")):
+        ours, theirs = f_.get(k), f_.get(k + "Src")
+        if not isinstance(ours, (int, float)) or not isinstance(theirs, (int, float)):
+            nocmp += 1
+            continue
+        if abs(theirs - ours) <= max(AGREE_ABS, AGREE_REL * abs(ours)):
+            agree += 1
+        else:
+            disagree.append((s_["symbol"], lbl, theirs, ours))
+print("    اتفاق المزوّد مع حسابنا (ROE وROA): متفق %d · مختلف %d · لا مقارنة %d"
+      % (agree, len(disagree), nocmp))
+if disagree:
+    worst = sorted(disagree, key=lambda x: -abs(x[2] - x[3]))[:6]
+    print("       أكبر الفروق: %s" % [(a, b, c, d) for a, b, c, d in worst])
+    warn("حقول نسب المزوّد تخالف حسابنا من القوائم على %d قيمة (فوق عتبة التدوير) — "
+         "أساسهم المعلن 08-10 هو أساسنا نفسه، فالاختلاف يعني انزياحاً جديداً عندهم "
+         "أو تغيّر اصطلاح: %s" % (len(disagree), worst[:4]))
 if len(loss_blind) > LOSS_BLIND_WARN_AT:
     warn("🚨 صارخ: %d موزِّعاً بلا netIncome (الأساس 0) — وسم خسارة السنة الكاملة "
          "يصمت عنهم بلا ضجيج؛ راجع §8-ش: %s" % (len(loss_blind), loss_blind[:6]))
