@@ -693,6 +693,13 @@ def apply_computed_ratios(st, today, provider_keys=None):
         first = (dst + "Src") not in fin and (fin.get("ratiosBasis") or {}).get(dst) != "statements"
         if prov is not None and (fresh or first):
             fin[dst + "Src"] = prov
+        # ‏ختمُ **الإسناد الطازج وحده** (شرط ختم 08-10/ب): حضورُ *Src لا يكشف عطب
+        # 06-10 لأن ذلك العطب **يكتب حسابنا داخلها** فتبقى حاضرة — قيس: الحضور
+        # 241/243 كما هو وL1 أخضر. والسؤال الذي يكشفه: **كم قيمةً أسندها المزوّد
+        # طازجةً في آخر تشغيلة؟** — وهو لا يموت باتفاقه معنا، ويموت فقط حين يقع
+        # ما نخشاه. والمعلومة في اليد أصلاً: prov_keys.
+        if fresh:
+            fin[dst + "SrcAt"] = today
         den = fin.get(den_k)
         if ni is None or den is None or den <= 0:
             basis[dst] = "provider"
@@ -1826,9 +1833,22 @@ def main():
         ev = _d.pop("shiftOverrideEvent", None)
         if not ev:
             print("⛔ --reset-shift: لا يوجد shiftOverrideEvent في الملف — لا شيء يُبطل")
-            return
-        with open(args.data, "w", encoding="utf-8") as f:
-            json.dump(_d, f, ensure_ascii=False, separators=(",", ":"))
+            sys.exit(1)
+        # كتابة ذرية كنسق كل كتابةٍ أخرى لهذا الملف في المستودع (وكنسق
+        # reset_activation المستشهد بها): ملفٌ 3MB، وانقطاعٌ بين التقطيع والإنهاء
+        # يتركه مقطوعاً فيبني عليه build.py أو يموت. والنداء يدويٌّ بلا flock.
+        _dir = os.path.dirname(os.path.abspath(args.data)) or "."
+        _fd, _tmp = tempfile.mkstemp(dir=_dir, suffix=".tmp")
+        try:
+            with os.fdopen(_fd, "w", encoding="utf-8") as f:
+                json.dump(_d, f, ensure_ascii=False, separators=(",", ":"))
+            os.replace(_tmp, args.data)
+        except BaseException:
+            try:
+                os.unlink(_tmp)
+            except OSError:
+                pass
+            raise
         print("✅ أُبطل أثر التجاوز: %s (%s)" % (ev.get("date"), ev.get("reason", "")))
         return
 
