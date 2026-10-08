@@ -398,28 +398,55 @@ for s_ in S:
 print("    أساس ROE: من القوائم %d · من المزوّد %d · بلا أساس %d"
       % (basis_c["statements"], basis_c["provider"], basis_c["none"]))
 
-# عتبة التدوير مقيسة من أرقام المزوّد المعلنة 08-10: أكبر فرق 0.05 (17.35 مقابل 17.3).
-AGREE_ABS, AGREE_REL = 0.1, 0.01
-agree, disagree, nocmp = 0, [], 0
+# عتبة بمنزلة الحقل (تصحيح ختم 08-10): ROE يُخزَّن بمنزلة واحدة والمزوّد بمنزلتين
+# فأقصى فرق تدوير 0.05؛ وROA يُخزَّن بمنزلتين فأقصاه 0.005. فعتبةٌ مطلقة واحدة (0.1)
+# كانت فضفاضة 20× على ROA — ‏174 من 244 قيمة ROA مطلقها <10 فتحكمها المطلقة لا النسبية،
+# فانزياحٌ حقيقي 2.00 ⇒ 2.09 كان يمرّ صامتاً.
+AGREE_ABS = {"returnOnEquity": 0.1, "returnOnAssets": 0.01}
+AGREE_REL = 0.01
+SRC_FLOOR = 200          # أرضية حياة المراقِب (اليوم 241 لـROE و243 لـROA)
+agree, disagree, nocmp, selfcmp, src_n = 0, [], 0, 0, {"returnOnEquity": 0, "returnOnAssets": 0}
 for s_ in S:
     f_ = s_.get("financials") or {}
     for k, lbl in (("returnOnEquity", "ROE"), ("returnOnAssets", "ROA")):
         ours, theirs = f_.get(k), f_.get(k + "Src")
+        if isinstance(theirs, (int, float)):
+            src_n[k] += 1
         if not isinstance(ours, (int, float)) or not isinstance(theirs, (int, float)):
             nocmp += 1
             continue
-        if abs(theirs - ours) <= max(AGREE_ABS, AGREE_REL * abs(ours)):
+        # قيمةٌ أساسها ليس القوائم هي **قيمة المزوّد نفسها** — فمقارنتها به مقارنةُ
+        # الشيء بذاته، وعدُّها «اتفاقاً» يرفع العدّاد كلما ساءت البيانات (ختم 08-10).
+        if (f_.get("ratiosBasis") or {}).get(k) != "statements":
+            selfcmp += 1
+            continue
+        if abs(theirs - ours) <= max(AGREE_ABS[k], AGREE_REL * abs(ours)):
             agree += 1
         else:
             disagree.append((s_["symbol"], lbl, theirs, ours))
-print("    اتفاق المزوّد مع حسابنا (ROE وROA): متفق %d · مختلف %d · لا مقارنة %d"
-      % (agree, len(disagree), nocmp))
+print("    اتفاق المزوّد مع حسابنا: متفق %d · مختلف %d · بلا تحقّق ممكن %d · لا مقارنة %d"
+      " (عتبة ROE %.2f · ROA %.3f أو %d%%)"
+      % (agree, len(disagree), selfcmp, nocmp, AGREE_ABS["returnOnEquity"],
+         AGREE_ABS["returnOnAssets"], AGREE_REL * 100))
 if disagree:
     worst = sorted(disagree, key=lambda x: -abs(x[2] - x[3]))[:6]
     print("       أكبر الفروق: %s" % [(a, b, c, d) for a, b, c, d in worst])
     warn("حقول نسب المزوّد تخالف حسابنا من القوائم على %d قيمة (فوق عتبة التدوير) — "
          "أساسهم المعلن 08-10 هو أساسنا نفسه، فالاختلاف يعني انزياحاً جديداً عندهم "
          "أو تغيّر اصطلاح: %s" % (len(disagree), worst[:4]))
+
+# ‏**أرضية حياة المراقِب** (شرط ختم 08-10): فحصُ الاتفاق يصمت صمتاً تامّاً لو اختفت
+# ‏*Src — قيس: حذفها كلها يُخرج «متفق 0 · مختلف 0» و**صفر إنذار**. وهو عين ما يقع لو
+# عاد عطب 06-10 (أنبوبنا يكتب حسابنا مكان قيمة المزوّد) أو توقف المزوّد عن إرسالها.
+# والسؤال الذي لا يموت باتفاقهم: **هل المراقِب حاضر؟** — لا «هل يخالفنا؟».
+print("    حضور قيمة المزوّد (المراقِب): ROE %d · ROA %d من %d (أرضية %d)"
+      % (src_n["returnOnEquity"], src_n["returnOnAssets"], len(S), SRC_FLOOR))
+for k, lbl in (("returnOnEquity", "ROE"), ("returnOnAssets", "ROA")):
+    if src_n[k] < SRC_FLOOR:
+        warn("🚨 صارخ: قيمة المزوّد لـ%s حاضرة على %d سهماً فقط (دون أرضية %d) — "
+             "المراقِب الذي يقوم عليه فحص الاتفاق يتبخّر، إما لتوقف المزوّد عن إرساله "
+             "أو لأن أنبوبنا طمسه بحسابنا (عطب 06-10). افحص قبل الاعتماد على «متفق»."
+             % (lbl, src_n[k], SRC_FLOOR))
 if len(loss_blind) > LOSS_BLIND_WARN_AT:
     warn("🚨 صارخ: %d موزِّعاً بلا netIncome (الأساس 0) — وسم خسارة السنة الكاملة "
          "يصمت عنهم بلا ضجيج؛ راجع §8-ش: %s" % (len(loss_blind), loss_blind[:6]))

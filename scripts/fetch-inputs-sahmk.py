@@ -1796,6 +1796,8 @@ def main():
     ap = argparse.ArgumentParser(description="جالب المنصة القائمة بذاتها (sahmk-direct-v3)")
     ap.add_argument("--data", default="", help="مسار stocks-data.json (إلزامي للجلب)")
     ap.add_argument("--weekly", action="store_true")
+    ap.add_argument("--reset-shift", action="store_true",
+                    help="يمسح shiftOverrideEvent من الملف (إبطال أثر تجاوزٍ مستهلَك) ويخرج.")
     ap.add_argument("--expect-shift", default="",
                     metavar="السبب",
                     help="انزياحٌ جماعي مُفسَّر سلفاً (إصلاح معلن من المزوّد مثلاً): "
@@ -1813,6 +1815,22 @@ def main():
     ap.add_argument("--tasi-history", default="")
     ap.add_argument("--watchlist-config", default="", help="لإغلاق delisted (افتراضي بجوار --data)")
     args = ap.parse_args()
+
+    if args.reset_shift:
+        # إبطال أثر تجاوزٍ مستهلَك — عملية ملفٍّ محلية، فلا تحتاج مفتاحاً ولا شبكة
+        # (نسق --reset-activation في المحرك).
+        if not args.data:
+            sys.exit("⛔ --reset-shift يحتاج --data")
+        with open(args.data, encoding="utf-8") as f:
+            _d = json.load(f)
+        ev = _d.pop("shiftOverrideEvent", None)
+        if not ev:
+            print("⛔ --reset-shift: لا يوجد shiftOverrideEvent في الملف — لا شيء يُبطل")
+            return
+        with open(args.data, "w", encoding="utf-8") as f:
+            json.dump(_d, f, ensure_ascii=False, separators=(",", ":"))
+        print("✅ أُبطل أثر التجاوز: %s (%s)" % (ev.get("date"), ev.get("reason", "")))
+        return
 
     key = os.environ.get("SAHMK_KEY", "")
     if not key and args.key_file:
@@ -1950,11 +1968,22 @@ def main():
             # صامتاً. موضعه: انزياحٌ **مُفسَّر سلفاً** كإصلاحٍ معلن من المزوّد. ويُكتب
             # أثرُه في الملف فيبقى مُدقَّقاً، ويُطبع كل بلاغ تُجووِز كي لا يمرّ شيء
             # دون أن يُرى. ولا يمسّ بوابة التغطية ولا بقية الفشل الحاكم.
+            prev_ov = data.get("shiftOverrideEvent") or {}
+            print("█" * 58)
             print("⚠️ حارس الانزياح الجماعي (§8) — متجاوَز بـ--expect-shift: %s" % args.expect_shift)
             for d_ in drift:
                 print("   ⤷ تُجووِز: %s" % d_)
+            if prev_ov.get("date"):
+                # سقفٌ على نسق --activation التي تُرفض إن وُجد أثرها: هنا لا تُرفض
+                # (قد يكون إصلاحاً متعدد المراحل) لكن التكرار **يُعلَن صارخاً** فلا
+                # يصير ثقباً دائماً يُمرَّر كل أسبوع بلا أن يراه أحد.
+                print("🚨 تكرار: أثر تجاوزٍ سابق قائم بتاريخ %s (%s). الاستثناء يتكرر — "
+                      "راجع سببه أو امسحه بـ--reset-shift." % (prev_ov["date"], prev_ov.get("reason", "")))
+            print("ℹ️ نصّ السبب يُحقن في index.html المنشور — فليكن صالحاً للنشر.")
+            print("█" * 58)
             data["shiftOverrideEvent"] = {"date": today, "reason": args.expect_shift,
-                                          "bypassed": list(drift)}
+                                          "bypassed": list(drift),
+                                          "prevDate": prev_ov.get("date")}
         else:
             print("⛔ حارس الانزياح الجماعي (§8): %s" % drift)
             print("   (انزياحٌ مُفسَّر سلفاً؟ أعد التشغيل بـ--expect-shift \"<السبب>\" فيُسجَّل أثره)")
