@@ -693,6 +693,13 @@ def apply_computed_ratios(st, today, provider_keys=None):
         first = (dst + "Src") not in fin and (fin.get("ratiosBasis") or {}).get(dst) != "statements"
         if prov is not None and (fresh or first):
             fin[dst + "Src"] = prov
+        # ‏ختمُ **الإسناد الطازج وحده** (شرط ختم 08-10/ب): حضورُ *Src لا يكشف عطب
+        # 06-10 لأن ذلك العطب **يكتب حسابنا داخلها** فتبقى حاضرة — قيس: الحضور
+        # 241/243 كما هو وL1 أخضر. والسؤال الذي يكشفه: **كم قيمةً أسندها المزوّد
+        # طازجةً في آخر تشغيلة؟** — وهو لا يموت باتفاقه معنا، ويموت فقط حين يقع
+        # ما نخشاه. والمعلومة في اليد أصلاً: prov_keys.
+        if fresh:
+            fin[dst + "SrcAt"] = today
         den = fin.get(den_k)
         if ni is None or den is None or den <= 0:
             basis[dst] = "provider"
@@ -1796,6 +1803,13 @@ def main():
     ap = argparse.ArgumentParser(description="جالب المنصة القائمة بذاتها (sahmk-direct-v3)")
     ap.add_argument("--data", default="", help="مسار stocks-data.json (إلزامي للجلب)")
     ap.add_argument("--weekly", action="store_true")
+    ap.add_argument("--reset-shift", action="store_true",
+                    help="يمسح shiftOverrideEvent من الملف (إبطال أثر تجاوزٍ مستهلَك) ويخرج.")
+    ap.add_argument("--expect-shift", default="",
+                    metavar="السبب",
+                    help="انزياحٌ جماعي مُفسَّر سلفاً (إصلاح معلن من المزوّد مثلاً): "
+                         "يُحوّل حارس §8 من حاكمٍ إلى إنذار موسوم، ويسجّل shiftOverrideEvent "
+                         "بالبلاغات المتجاوَزة. لا يمسّ بوابة التغطية.")
     ap.add_argument("--maintain-universe", action="store_true")
     ap.add_argument("--universe-dry-run", action="store_true",
                     help="يطبع ما ستفعله صيانة الكون بلا أي كتابة (تحقق آمن — حادثة 01-09)")
@@ -1808,6 +1822,39 @@ def main():
     ap.add_argument("--tasi-history", default="")
     ap.add_argument("--watchlist-config", default="", help="لإغلاق delisted (افتراضي بجوار --data)")
     args = ap.parse_args()
+
+    if args.reset_shift:
+        # إبطال أثر تجاوزٍ مستهلَك — عملية ملفٍّ محلية، فلا تحتاج مفتاحاً ولا شبكة
+        # (نسق --reset-activation في المحرك).
+        if not args.data:
+            sys.exit("⛔ --reset-shift يحتاج --data")
+        with open(args.data, encoding="utf-8") as f:
+            _d = json.load(f)
+        ev = _d.pop("shiftOverrideEvent", None)
+        if not ev:
+            print("⛔ --reset-shift: لا يوجد shiftOverrideEvent في الملف — لا شيء يُبطل")
+            sys.exit(1)
+        # كتابة ذرية كنسق كل كتابةٍ أخرى لهذا الملف في المستودع (وكنسق
+        # reset_activation المستشهد بها): ملفٌ 3MB، وانقطاعٌ بين التقطيع والإنهاء
+        # يتركه مقطوعاً فيبني عليه build.py أو يموت. والنداء يدويٌّ بلا flock.
+        _dir = os.path.dirname(os.path.abspath(args.data)) or "."
+        _fd, _tmp = tempfile.mkstemp(dir=_dir, suffix=".tmp")
+        try:
+            with os.fdopen(_fd, "w", encoding="utf-8") as f:
+                json.dump(_d, f, ensure_ascii=False, separators=(",", ":"))
+            os.replace(_tmp, args.data)
+            # ‏mkstemp يُنشئ بـ0600 وos.replace يُبقي صلاحيات المؤقت — فبلا هذا السطر
+            # يهبط الملف 664 ⇒ 600 (مقيس)، فتفشل تشغيلة الكرون بمستخدمٍ آخر وتقتل
+            # الخط تحت set -e قبل الجالب والنشر. نسقُ الكتابتين الذريتين الأخريين.
+            os.chmod(args.data, 0o664)
+        except BaseException:
+            try:
+                os.unlink(_tmp)
+            except OSError:
+                pass
+            raise
+        print("✅ أُبطل أثر التجاوز: %s (%s)" % (ev.get("date"), ev.get("reason", "")))
+        return
 
     key = os.environ.get("SAHMK_KEY", "")
     if not key and args.key_file:
@@ -1940,8 +1987,31 @@ def main():
               % (ses_depths[len(ses_depths)//2], ses_depths[0],
                  sum(1 for x in ses_depths if x >= 300), len(ses_depths)))
     if drift:
-        print("⛔ حارس الانزياح الجماعي (§8): %s" % drift)
-        fail_types.append("انزياح جماعي")
+        if args.expect_shift:
+            # استثناء صريح مسجَّل، على نسق --activation في المحرك — لا توسيعَ حارسٍ
+            # صامتاً. موضعه: انزياحٌ **مُفسَّر سلفاً** كإصلاحٍ معلن من المزوّد. ويُكتب
+            # أثرُه في الملف فيبقى مُدقَّقاً، ويُطبع كل بلاغ تُجووِز كي لا يمرّ شيء
+            # دون أن يُرى. ولا يمسّ بوابة التغطية ولا بقية الفشل الحاكم.
+            prev_ov = data.get("shiftOverrideEvent") or {}
+            print("█" * 58)
+            print("⚠️ حارس الانزياح الجماعي (§8) — متجاوَز بـ--expect-shift: %s" % args.expect_shift)
+            for d_ in drift:
+                print("   ⤷ تُجووِز: %s" % d_)
+            if prev_ov.get("date"):
+                # سقفٌ على نسق --activation التي تُرفض إن وُجد أثرها: هنا لا تُرفض
+                # (قد يكون إصلاحاً متعدد المراحل) لكن التكرار **يُعلَن صارخاً** فلا
+                # يصير ثقباً دائماً يُمرَّر كل أسبوع بلا أن يراه أحد.
+                print("🚨 تكرار: أثر تجاوزٍ سابق قائم بتاريخ %s (%s). الاستثناء يتكرر — "
+                      "راجع سببه أو امسحه بـ--reset-shift." % (prev_ov["date"], prev_ov.get("reason", "")))
+            print("ℹ️ نصّ السبب يُحقن في index.html المنشور — فليكن صالحاً للنشر.")
+            print("█" * 58)
+            data["shiftOverrideEvent"] = {"date": today, "reason": args.expect_shift,
+                                          "bypassed": list(drift),
+                                          "prevDate": prev_ov.get("date")}
+        else:
+            print("⛔ حارس الانزياح الجماعي (§8): %s" % drift)
+            print("   (انزياحٌ مُفسَّر سلفاً؟ أعد التشغيل بـ--expect-shift \"<السبب>\" فيُسجَّل أثره)")
+            fail_types.append("انزياح جماعي")
     if cov_fail:
         print("⛔ بوابة انهيار التغطية (§7): %s" % cov_fail)
         fail_types.append("تغطية")

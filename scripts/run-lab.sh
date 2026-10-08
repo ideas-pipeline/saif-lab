@@ -42,8 +42,17 @@ DATA="$LAB/stocks-data.json"
 
 # ‏--watchlist-config صريح (نمط المسارات الصريحة): يغذي portfolioSymbols وإغلاقات delisted
 WLCFG="$LAB/watchlist-config.json"
+
+# ‏انزياحٌ جماعي مُفسَّر سلفاً (إصلاح معلن من المزوّد مثلاً): يُمرَّر بمتغير بيئة كي
+# يبقى الاستعمال **داخل القفل وترتيب الخط** — فالنداء اليدوي للجالب يخرج عن
+# ‏flock وعن ترتيب جالب⇐محرك⇐مغذٍ⇐L1 (§05-08ب). مثال:
+#   EXPECT_SHIFT="إصلاح أساس النسب المعلن من ساهمك 08-10" scripts/run-lab.sh weekly
+# والنصّ يُحقن في index.html المنشور — فليكن صالحاً للنشر.
+SHIFT_ARG=()
+[ -n "${EXPECT_SHIFT:-}" ] && SHIFT_ARG=(--expect-shift "$EXPECT_SHIFT")
+
 case "$MODE" in
-  weekly)   python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --weekly --watchlist-config "$WLCFG" ;;
+  weekly)   python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --weekly --watchlist-config "$WLCFG" "${SHIFT_ARG[@]}" ;;
   universe) python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --maintain-universe --watchlist-config "$WLCFG"
             python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" ;;
   divcal)   # مفكرة الويكند الخفيفة (طلب المالك 21-08): كتلتا المفكرة حصراً ثم البناء والنشر.

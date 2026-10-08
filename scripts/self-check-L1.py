@@ -381,11 +381,15 @@ if len(eps_blind) > EPS_BLIND_WARN_AT:
 print("    موزِّعون يتعذّر الحكم على خسارتهم (بلا netIncome): %d %s"
       % (len(loss_blind), loss_blind[:8]))
 
-# ‏أساس النسب + متطابقة البنوك (قرار المالك 06-10 وحكم المحلل): ROE وROA يُحسبان
-# عندنا من القوائم، وقيمة المزوّد محفوظة في *Src. وللبنوك تصحّ المتطابقة
-# ‏ROE/ROA ≡ أصول/ملكية — فهي حارس **بلا شبكة** على اتساق حقول المزوّد داخلياً:
-# اتساقها يعني أن انحرافها عن القوائم «انزياح أساس» لا فساد قيم، وشذوذها يسمّي
-# السهم الذي يستحق سؤالاً. (مقيس عند الإدخال: 9 من 10 داخل ±5.5% و1030 شاذ.)
+# ‏أساس النسب + **فحص الاتفاق** مع المزوّد (محدَّث 08-10 بعد استجابته).
+# كان هنا حارس متطابقةٍ على حقول المزوّد (ROE/ROA ≡ أصول/ملكية) يكشف أن انحرافها عن
+# القوائم «انزياح أساس» لا فساد قيم. وقد أدّى غرضه: سمّى 1030 فأصلحه المزوّد، ثم
+# أصلح الأساس كلَّه فصارت قيمه تطابق حسابنا — **وعندها تتحقق المتطابقة بالبناء**
+# (البسط واحد والمقامان نفسهما) فيطبع «شاذّ 0» أبداً: حارسٌ يمرّ بألّا يحرس شيئاً.
+# فاستُبدل بالسؤال الذي صار ذا معنى: **هل ما زال المزوّد متفقاً معنا؟** — فيكشف
+# انزياحاً مستقبلياً عنده بدل أن يوثّق انزياحاً ماضياً.
+# والدرس: حارسٌ يُبنى على «المصدران مختلفان» يموت يوم يتفقان، فيُكتب على السؤال لا
+# على الجواب الحالي.
 basis_c = {"statements": 0, "provider": 0, "none": 0}
 for s_ in S:
     f_ = s_.get("financials") or {}
@@ -393,29 +397,76 @@ for s_ in S:
     basis_c[b_ if b_ in basis_c else "none"] += 1
 print("    أساس ROE: من القوائم %d · من المزوّد %d · بلا أساس %d"
       % (basis_c["statements"], basis_c["provider"], basis_c["none"]))
-ident = []
+
+# عتبة بمنزلة الحقل (تصحيح ختم 08-10): ROE يُخزَّن بمنزلة واحدة والمزوّد بمنزلتين
+# فأقصى فرق تدوير 0.05؛ وROA يُخزَّن بمنزلتين فأقصاه 0.005. فعتبةٌ مطلقة واحدة (0.1)
+# كانت فضفاضة 20× على ROA — ‏174 من 244 قيمة ROA مطلقها <10 فتحكمها المطلقة لا النسبية،
+# فانزياحٌ حقيقي 2.00 ⇒ 2.09 كان يمرّ صامتاً.
+AGREE_ABS = {"returnOnEquity": 0.1, "returnOnAssets": 0.01}
+AGREE_REL = 0.01
+SRC_FLOOR = 200          # أرضية حياة المراقِب (اليوم 241 لـROE و243 لـROA)
+agree, disagree, nocmp, selfcmp, src_n = 0, [], 0, 0, {"returnOnEquity": 0, "returnOnAssets": 0}
 for s_ in S:
     f_ = s_.get("financials") or {}
-    # التعريف الموحد §3.1ب لا تعريفٌ محلي (ختم 06-10): تعريفٌ بـ"bank" وحده يغطّي
-    # صفر بنك لو عرّب المزوّد التصنيف — فيمرّ الحارس بألّا يحرس شيئاً ويطبع «شاذّ 0».
-    _sec = (s_.get("sector") or "").lower(); _ind = (s_.get("industry") or "").lower()
-    _fin = ("financ" in _sec) or ("مالية" in _sec) or ("مصارف" in _sec) or ("بنوك" in _sec)
-    _bk = ("bank" in _ind) or ("بنك" in _ind) or ("مصرف" in _ind)
-    if not ((_fin and _bk) if _sec else _bk):
-        continue
-    re_, ra_ = f_.get("returnOnEquitySrc"), f_.get("returnOnAssetsSrc")
-    eq_, ta_ = f_.get("equity"), f_.get("totalAssets")
-    if not (re_ and ra_ and eq_ and ta_ and ra_ != 0 and eq_ != 0):
-        continue
-    dev = (re_ / ra_) / (ta_ / eq_) - 1
-    if abs(dev) > 0.15:
-        ident.append((s_["symbol"], round(dev * 100, 1)))
-print("    متطابقة البنوك (ROE/ROA ≡ أصول/ملكية) على حقول المزوّد: شاذّ %d %s"
-      % (len(ident), ident[:6]))
-if ident:
-    warn("حقول نسب المزوّد تكسر متطابقتها الحسابية على %d بنكاً (انحراف >15%%) — "
-         "اتساقها الداخلي هو ما يرجّح أن فارقها عن القوائم انزياحُ أساس؛ وكسرُها "
-         "يسمّي سهماً يستحق سؤال المزوّد: %s" % (len(ident), ident[:6]))
+    for k, lbl in (("returnOnEquity", "ROE"), ("returnOnAssets", "ROA")):
+        ours, theirs = f_.get(k), f_.get(k + "Src")
+        if isinstance(theirs, (int, float)):
+            src_n[k] += 1
+        if not isinstance(ours, (int, float)) or not isinstance(theirs, (int, float)):
+            nocmp += 1
+            continue
+        # قيمةٌ أساسها ليس القوائم هي **قيمة المزوّد نفسها** — فمقارنتها به مقارنةُ
+        # الشيء بذاته، وعدُّها «اتفاقاً» يرفع العدّاد كلما ساءت البيانات (ختم 08-10).
+        if (f_.get("ratiosBasis") or {}).get(k) != "statements":
+            selfcmp += 1
+            continue
+        if abs(theirs - ours) <= max(AGREE_ABS[k], AGREE_REL * abs(ours)):
+            agree += 1
+        else:
+            disagree.append((s_["symbol"], lbl, theirs, ours))
+print("    اتفاق المزوّد مع حسابنا: متفق %d · مختلف %d · بلا تحقّق ممكن %d · لا مقارنة %d"
+      " (عتبة ROE %.2f · ROA %.3f أو %d%%)"
+      % (agree, len(disagree), selfcmp, nocmp, AGREE_ABS["returnOnEquity"],
+         AGREE_ABS["returnOnAssets"], AGREE_REL * 100))
+if disagree:
+    worst = sorted(disagree, key=lambda x: -abs(x[2] - x[3]))[:6]
+    print("       أكبر الفروق: %s" % [(a, b, c, d) for a, b, c, d in worst])
+    warn("حقول نسب المزوّد تخالف حسابنا من القوائم على %d قيمة (فوق عتبة التدوير) — "
+         "أساسهم المعلن 08-10 هو أساسنا نفسه، فالاختلاف يعني انزياحاً جديداً عندهم "
+         "أو تغيّر اصطلاح: %s" % (len(disagree), worst[:4]))
+
+# ‏**حياة المراقِب — سؤالان لا سؤال واحد** (شرطا ختم 08-10 وتصحيحه في 08-10/ب):
+#
+# ‏(١) **الحضور** يكشف **اختفاء** *Src — توقّفَ المزوّد عن إرسالها، أو إسقاطَها من
+#     أنبوبنا. قيس: حذفها كلها كان يُخرج «متفق 0 · مختلف 0» و**صفر إنذار**.
+# ‏(٢) و**الحضور لا يكشف الطمس**: عطب 06-10 (أنبوبنا يكتب حسابَنا **داخل** *Src حين
+#     يفشل نداء النسب لسهم وتنجح قوائمه) يُبقي الحقل **حاضراً** — قيس: الحضور
+#     241/243 كما هو، وL1 أخضر بإنذارين، و«متفق 481 · مختلف 0» يُقرأ إصلاحاً
+#     ناجحاً. وادّعاءُ أن الأرضية تكشفه كان **خطأً قياسياً** صُحّح هنا.
+#     فالذي يكشفه ختمُ **الإسناد الطازج** `*SrcAt`: يكتبه الجالب على ما أسنده
+#     المزوّد فعلاً في تلك التشغيلة (من prov_keys) — فالطمس لا يحمل ختماً جديداً.
+#     وهو سؤالٌ لا يموت باتفاقهم معنا، ويموت فقط حين يقع ما نخشاه.
+SRC_FLOOR = 200
+src_at = [(s_.get("financials") or {}).get("returnOnEquitySrcAt") for s_ in S]
+src_at = [d for d in src_at if d]
+last_at = max(src_at) if src_at else None
+fresh_n = sum(1 for d in src_at if d == last_at)
+print("    حضور قيمة المزوّد (المراقِب): ROE %d · ROA %d من %d (أرضية %d)"
+      % (src_n["returnOnEquity"], src_n["returnOnAssets"], len(S), SRC_FLOOR))
+if last_at:
+    print("    وطازج من آخر إسناد (%s): %d — والطمس لا يحمل ختماً جديداً" % (last_at, fresh_n))
+    if fresh_n < SRC_FLOOR:
+        warn("🚨 صارخ: قيم المزوّد المختومة بآخر إسناد (%s) %d فقط (دون أرضية %d) — "
+             "أي أن أكثرها لم يُسنده المزوّد في تلك التشغيلة. وهذا هو وجه عطب 06-10 "
+             "الذي لا يكشفه الحضور: الحقل حاضر بقيمةٍ ليست منهم." % (last_at, fresh_n, SRC_FLOOR))
+else:
+    print("    وطازج من آخر إسناد: — (ختم *SrcAt يبدأ بأول تشغيلة جلب أسبوعية بعد 08-10)")
+for k, lbl in (("returnOnEquity", "ROE"), ("returnOnAssets", "ROA")):
+    if src_n[k] < SRC_FLOOR:
+        warn("🚨 صارخ: قيمة المزوّد لـ%s حاضرة على %d سهماً فقط (دون أرضية %d) — "
+             "المراقِب الذي يقوم عليه فحص الاتفاق **اختفى**. (والطمسُ بقيمتنا لا "
+             "يظهر هنا — يظهر في سطر «طازج من آخر إسناد».)"
+             % (lbl, src_n[k], SRC_FLOOR))
 if len(loss_blind) > LOSS_BLIND_WARN_AT:
     warn("🚨 صارخ: %d موزِّعاً بلا netIncome (الأساس 0) — وسم خسارة السنة الكاملة "
          "يصمت عنهم بلا ضجيج؛ راجع §8-ش: %s" % (len(loss_blind), loss_blind[:6]))
