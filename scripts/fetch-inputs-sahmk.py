@@ -1843,6 +1843,10 @@ def main():
             with os.fdopen(_fd, "w", encoding="utf-8") as f:
                 json.dump(_d, f, ensure_ascii=False, separators=(",", ":"))
             os.replace(_tmp, args.data)
+            # ‏mkstemp يُنشئ بـ0600 وos.replace يُبقي صلاحيات المؤقت — فبلا هذا السطر
+            # يهبط الملف 664 ⇒ 600 (مقيس)، فتفشل تشغيلة الكرون بمستخدمٍ آخر وتقتل
+            # الخط تحت set -e قبل الجالب والنشر. نسقُ الكتابتين الذريتين الأخريين.
+            os.chmod(args.data, 0o664)
         except BaseException:
             try:
                 os.unlink(_tmp)
