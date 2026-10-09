@@ -22,7 +22,9 @@ set -eE
 # السجل يسمّي القاتل (09-10): تحت set -e كان الخط يموت عند أيٍّ من ~8 نقاط بلا سطرٍ يقول
 # أيّها — فبقي سبب 20–40% من الأيام الضائعة مجهولاً. و-E كي يصل الفخّ إلى الدوال والـsubshell.
 # (النصّ بعلامات مفردة كي يُقرأ $LINENO و$BASH_COMMAND لحظة الوقوع لا لحظة التعريف.)
-ERRTRAP='echo "❌ FAILED [$MODE] سطر $LINENO: $BASH_COMMAND"'
+# وإلى stderr (ختم 09-10): داخل X="$(…)" يُلتقط stdout الفخّ في المتغيّر نفسه — فكان المفتاح
+# يصير نصّ «FAILED» العربي ويكمل الخط ليفشل الجالب باسمٍ خاطئ. والسجل يجمع 2>&1 أصلاً.
+ERRTRAP='echo "❌ FAILED [$MODE] سطر $LINENO: $BASH_COMMAND" >&2'
 trap "$ERRTRAP" ERR
 LAB="${LAB:-/srv/ideas/lab-mirror}"          # قابل للتوجيه للاختبار بلا خادم؛ الافتراضي كما كان
 KEYFILE="${KEYFILE:-/srv/ideas/.sahmk.key}"
@@ -49,6 +51,9 @@ echo "════ run-lab [$MODE] $(date '+%Y-%m-%d %H:%M') ════"
 git checkout -- index.html classic.html 2>/dev/null || true
 git pull -q origin main
 
+# حارس صريح قبل التصدير: export يُخفي حالة الاستبدال، فملفٌ غائب كان يُمرَّر مفتاحاً فارغاً
+# (أو نصَّ الفخّ) ويموت الخط لاحقاً باسم الجالب لا باسم المفتاح.
+[ -s "$KEYFILE" ] || { echo "⛔ ملف المفتاح غائب أو فارغ: $KEYFILE" >&2; exit 1; }
 export SAHMK_KEY="$(cat "$KEYFILE")"
 DATA="$LAB/stocks-data.json"
 
