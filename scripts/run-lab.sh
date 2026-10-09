@@ -6,14 +6,29 @@
 #   2) يُجدول بعد الإقفال (>15:10 الرياض) — وإلا runType=intraday فيتعطل المغذي بالتصميم
 #   3) ترتيب الخط: جالب ← محرك ← مغذٍ/إغلاقات ← L1 على الملف ذاته
 #
-# الاستخدام:  run-lab.sh [daily|weekly|universe]
+# الاستخدام:  run-lab.sh [daily|weekly|universe|divcal]
 # الجدولة المقترحة (crontab — توقيت السيرفر الرياض):
 #   50 16 * * 0-3  /srv/ideas/lab-mirror/scripts/run-lab.sh daily    >> /srv/ideas/lab-runs.log 2>&1
 #   50 16 * * 4    /srv/ideas/lab-mirror/scripts/run-lab.sh weekly   >> /srv/ideas/lab-runs.log 2>&1
 #   30 17 1 * *    /srv/ideas/lab-mirror/scripts/run-lab.sh universe >> /srv/ideas/lab-runs.log 2>&1
-set -e
-LAB="/srv/ideas/lab-mirror"
-KEYFILE="/srv/ideas/.sahmk.key"
+#   (ملاحظة 09-10: الإيداعات تنزل فعلياً ~16:35 الرياض، فالكرون الفعلي على الخادم أبكر
+#    من المكتوب أعلاه ولم يُقرأ من المستودع — يُصحَّح هنا متى قرأه المالك.)
+#
+# الخميس على مرحلتين (قرار المالك 09-10 — 5 من 10 خميسات ضاعت منذ أغسطس):
+#   كان الخميس يراهن على التشغيلة الثقيلة وحدها، وحين تتعثّر يضيع اليوم حتى الأسعار.
+#   الآن: المرحلة 1 = مسار daily حرفاً وتُنشر؛ ثم المرحلة 2 = الإضافات الأسبوعية في
+#   subshell بـset -e خاصّ، فشلُها يُنبّه ولا يمسّ ما نُشر قبله.
+set -eE
+# السجل يسمّي القاتل (09-10): تحت set -e كان الخط يموت عند أيٍّ من ~8 نقاط بلا سطرٍ يقول
+# أيّها — فبقي سبب يومين ضائعين (16-09 · 20-09) وفشلِ مسار --weekly أربعة خميسات مجهولاً.
+# و-E كي يصل الفخّ إلى الدوال والـsubshell.
+# (النصّ بعلامات مفردة كي يُقرأ $LINENO و$BASH_COMMAND لحظة الوقوع لا لحظة التعريف.)
+# وإلى stderr (ختم 09-10): داخل X="$(…)" يُلتقط stdout الفخّ في المتغيّر نفسه — فكان المفتاح
+# يصير نصّ «FAILED» العربي ويكمل الخط ليفشل الجالب باسمٍ خاطئ. والسجل يجمع 2>&1 أصلاً.
+ERRTRAP='echo "❌ FAILED [$MODE] سطر $LINENO: $BASH_COMMAND" >&2'
+trap "$ERRTRAP" ERR
+LAB="${LAB:-/srv/ideas/lab-mirror}"          # قابل للتوجيه للاختبار بلا خادم؛ الافتراضي كما كان
+KEYFILE="${KEYFILE:-/srv/ideas/.sahmk.key}"
 MODE="${1:-daily}"
 
 # تحصين ضد التحديث الذاتي (06-08): git pull الداخلي قد يحدّث هذا الملف أثناء تنفيذه،
@@ -37,6 +52,9 @@ echo "════ run-lab [$MODE] $(date '+%Y-%m-%d %H:%M') ════"
 git checkout -- index.html classic.html 2>/dev/null || true
 git pull -q origin main
 
+# حارس صريح قبل التصدير: export يُخفي حالة الاستبدال، فملفٌ غائب كان يُمرَّر مفتاحاً فارغاً
+# (أو نصَّ الفخّ) ويموت الخط لاحقاً باسم الجالب لا باسم المفتاح.
+[ -s "$KEYFILE" ] || { echo "⛔ ملف المفتاح غائب أو فارغ: $KEYFILE" >&2; exit 1; }
 export SAHMK_KEY="$(cat "$KEYFILE")"
 DATA="$LAB/stocks-data.json"
 
@@ -51,57 +69,43 @@ WLCFG="$LAB/watchlist-config.json"
 SHIFT_ARG=()
 [ -n "${EXPECT_SHIFT:-}" ] && SHIFT_ARG=(--expect-shift "$EXPECT_SHIFT")
 
-case "$MODE" in
-  weekly)   python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --weekly --watchlist-config "$WLCFG" "${SHIFT_ARG[@]}" ;;
-  universe) python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --maintain-universe --watchlist-config "$WLCFG"
-            python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" ;;
-  divcal)   # مفكرة الويكند الخفيفة (طلب المالك 21-08): كتلتا المفكرة حصراً ثم البناء والنشر.
-            # كرونا المالك المقترحان (توقيت السيرفر الرياض):
-            #   20 12 * * 5  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # الجمعة 12:20
-            #   20 12 * * 6  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # السبت 12:20
-            python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --divcal-only --watchlist-config "$WLCFG" ;;
-  *)        python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" ;;
-esac
+# ─── الجالب بمساراته الصريحة؛ ما بعده من وسائط يحدد الوضع ───
+fetch() {
+  python3 scripts/fetch-inputs-sahmk.py --data "$DATA" --watchlist-config "$WLCFG" "$@"
+}
 
-if [ "$MODE" = "divcal" ]; then
-  # الوضع الخفيف: لا محرك ولا مغذٍ ولا إغلاقات ولا L1/digest — بناء ونشر فقط
+# ─── ما بعد الجلب: محرك ← مغذٍ ← إغلاقات ← دقة ← [أخبار] ← بناء ← L1 (التسلسل كما كان) ───
+# $1 = 1 لجلب الأخبار (المرحلة الأساسية)، 0 لتخطيها (إضافات الخميس: 8–12 دقيقة لا تمسّ القوائم)
+post_fetch() {
+  python3 scripts/scoring-engine.py "$DATA"
+
+  # المغذي والإغلاقات — مسارات صريحة، ويرفضان ذاتياً أي ملف intraday/بلا ختم.
+  # وآمنان على التكرار في اليوم نفسه (المغذي يتخطى المفتوح، والإغلاق لا يمسّ إلا المفتوح)
+  STOCKS_JSON="$DATA" CONFIG_JSON="$LAB/watchlist-config.json" ARCHIVE_DIR="$LAB/archive" \
+    bash scripts/feed-watchlist.sh
+  STOCKS_JSON="$DATA" CONFIG_JSON="$LAB/watchlist-config.json" ARCHIVE_DIR="$LAB/archive" \
+    python3 scripts/close_sma200w.py
+
+  # صفحة قياس الدقة — خط المختبر هو الحاكم الوحيد لها (قرار المالك ج، موجة 07-08ب)
+  # تمرير خماسي صريح (درس «الملف الآخر») — فشلها يُنبه ولا يُسقط السلسلة
+  CONFIG_JSON="$LAB/watchlist-config.json" STOCKS_JSON="$DATA" \
+    HTML_FILE="$LAB/watchlist-accuracy.html" CACHE_FILE="$LAB/.entry-adjclose-cache.json" \
+    TASI_HISTORY="$LAB/tasi-history.json" \
+    bash scripts/update-watchlist-accuracy.sh \
+    || echo "⚠️ ALERT: update-watchlist-accuracy فشل — التشغيلة تكمل"
+
+  if [ "$1" = 1 ]; then
+    # الأخبار اليومية (طلب المالك 22-08 «أبغاها تتحدث دائماً») — كانت متجمدة منذ 29-07
+    # لأن كاتبها القديم fetch-stock-analysis.sh غير مجدول هنا. حارس داخلي يعزل الكتابة
+    # في news[] حصراً، وفشله يُنبه ولا يُسقط السلسلة. v2 (04-09): استعلامان لكل سهم
+    # (وثالث تكيّفي عند الشح) مع بوابة تخصيص وحارس خلط وترتيب زمني — ~8-12 دقيقة
+    python3 scripts/fetch-news.py --data "$DATA" \
+      || echo "⚠️ ALERT: fetch-news فشل — التشغيلة تكمل بالأخبار القديمة"
+  fi
+
   python3 build.py
-else
-
-python3 scripts/scoring-engine.py "$DATA"
-
-# المغذي والإغلاقات — مسارات صريحة، ويرفضان ذاتياً أي ملف intraday/بلا ختم
-STOCKS_JSON="$DATA" CONFIG_JSON="$LAB/watchlist-config.json" ARCHIVE_DIR="$LAB/archive" \
-  bash scripts/feed-watchlist.sh
-STOCKS_JSON="$DATA" CONFIG_JSON="$LAB/watchlist-config.json" ARCHIVE_DIR="$LAB/archive" \
-  python3 scripts/close_sma200w.py
-
-# صفحة قياس الدقة — خط المختبر هو الحاكم الوحيد لها (قرار المالك ج، موجة 07-08ب)
-# تمرير خماسي صريح (درس «الملف الآخر») — فشلها يُنبه ولا يُسقط السلسلة
-CONFIG_JSON="$LAB/watchlist-config.json" STOCKS_JSON="$DATA" \
-  HTML_FILE="$LAB/watchlist-accuracy.html" CACHE_FILE="$LAB/.entry-adjclose-cache.json" \
-  TASI_HISTORY="$LAB/tasi-history.json" \
-  bash scripts/update-watchlist-accuracy.sh \
-  || echo "⚠️ ALERT: update-watchlist-accuracy فشل — التشغيلة تكمل"
-
-# الأخبار اليومية (طلب المالك 22-08 «أبغاها تتحدث دائماً») — كانت متجمدة منذ 29-07
-# لأن كاتبها القديم fetch-stock-analysis.sh غير مجدول هنا. حارس داخلي يعزل الكتابة
-# في news[] حصراً، وفشله يُنبه ولا يُسقط السلسلة. v2 (04-09): استعلامان لكل سهم
-# (وثالث تكيّفي عند الشح) مع بوابة تخصيص وحارس خلط وترتيب زمني — ~8-12 دقيقة
-python3 scripts/fetch-news.py --data "$DATA" \
-  || echo "⚠️ ALERT: fetch-news فشل — التشغيلة تكمل بالأخبار القديمة"
-
-python3 build.py
-python3 scripts/self-check-L1.py "$DATA"
-fi   # نهاية فرع الوضع الكامل — كتلة النشر مشتركة لكل الأوضاع
-
-# الطبقة 2 (أسبوعي): التقرير الوصفي — فشله يُنبه ولا يُسقط السلسلة (قرار مقر 05-08ب)،
-# ويسبق النشر كي يُدفع docs/weekly-digest.md مع التشغيلة
-if [ "$MODE" = "weekly" ]; then
-  python3 scripts/lab-digest.py --data "$DATA" \
-    --config "$LAB/watchlist-config.json" --out "$LAB/docs/weekly-digest.md" \
-    || echo "⚠️ ALERT: lab-digest فشل — التشغيلة تكمل"
-fi
+  python3 scripts/self-check-L1.py "$DATA"
+}
 
 # تحقق نشر Pages (مقتبس من نمط stocks-push.sh المجرب — حادثة فشل Pages الصامت 06-08)
 verify_pages() {
@@ -135,28 +139,86 @@ push_with_retry() {
   return 1
 }
 
-# النشر: إيداع ودفع نتائج التشغيلة (يغذي GitHub Pages) + تأكيد النشر
-git add -A
-if ! git diff --cached --quiet; then
-  git -c user.email="server@saif" -c user.name="server" commit -qm "lab: تشغيلة $MODE آلية"
-  if ! push_with_retry; then
-    echo "════ اكتمل [$MODE] بلا نشر $(date '+%H:%M') ════"
-    exit 1
-  fi
-  RESULT=$(verify_pages)
-  if [ "$RESULT" = "success" ]; then
-    echo "✅ نُشر ونشر Pages مؤكد"
-  elif [ "$RESULT" = "failure" ]; then
-    echo "⚠️ نشر Pages فشل — إعادة إطلاق تلقائية (إيداع فارغ)"
-    git -c user.email="server@saif" -c user.name="server" commit -q --allow-empty -m "retrigger pages deploy"
-    push_with_retry || true
-    RESULT2=$(verify_pages)
-    if [ "$RESULT2" = "success" ]; then echo "✅ نشر Pages نجح بعد إعادة الإطلاق"
-    else echo "❌ ALERT: نشر Pages فشل نهائياً ($RESULT2) — تدخل يدوي"; fi
+# النشر: إيداع ودفع نتائج التشغيلة (يغذي GitHub Pages) + تأكيد النشر. $1 = وسم الإيداع
+publish() {
+  local label="$1" RESULT RESULT2
+  git add -A
+  if ! git diff --cached --quiet; then
+    git -c user.email="server@saif" -c user.name="server" commit -qm "lab: تشغيلة $label آلية"
+    if ! push_with_retry; then
+      echo "════ اكتمل [$label] بلا نشر $(date '+%H:%M') ════"
+      return 1
+    fi
+    RESULT=$(verify_pages)
+    if [ "$RESULT" = "success" ]; then
+      echo "✅ نُشر ونشر Pages مؤكد"
+    elif [ "$RESULT" = "failure" ]; then
+      echo "⚠️ نشر Pages فشل — إعادة إطلاق تلقائية (إيداع فارغ)"
+      git -c user.email="server@saif" -c user.name="server" commit -q --allow-empty -m "retrigger pages deploy"
+      push_with_retry || true
+      RESULT2=$(verify_pages)
+      if [ "$RESULT2" = "success" ]; then echo "✅ نشر Pages نجح بعد إعادة الإطلاق"
+      else echo "❌ ALERT: نشر Pages فشل نهائياً ($RESULT2) — تدخل يدوي"; fi
+    else
+      echo "⚠️ لم يُحسم فحص Pages ($RESULT) — راجع يدوياً"
+    fi
   else
-    echo "⚠️ لم يُحسم فحص Pages ($RESULT) — راجع يدوياً"
+    echo "ℹ️ لا تغييرات للنشر"
   fi
-else
-  echo "ℹ️ لا تغييرات للنشر"
-fi
+}
+
+case "$MODE" in
+  weekly)
+    # المرحلة 1 — الأساسي: مسار daily حرفاً، ويُنشر قبل أن تُلمس القوائم
+    echo "── الخميس/المرحلة 1: الأساسي ──"
+    fetch
+    post_fetch 1
+    publish daily
+
+    # المرحلة 2 — الإضافات الأسبوعية: set -e خاصّ بالـsubshell كي يحتفظ فشلُها بدلالته
+    # داخلها ولا يمسّ ما نُشر. وتُعاد المحرك والمغذي والإغلاقات على القوائم الطازجة كما
+    # كان الخميس يفعل (آمنة على التكرار)، وتُتخطى الأخبار (لا تمسّ القوائم).
+    echo "── الخميس/المرحلة 2: الإضافات الأسبوعية ──"
+    # ليس «( … ) || echo»: bash يُهمل set -e داخل أي subshell واقعة في سياق || أو &&،
+    # حتى لو أُعيد تفعيله داخلها — فكانت الإضافات تفشل وتُنشر مع ذلك بلا إنذار (أمسكه
+    # الحزام قبل الشحن). الصيغة الصحيحة: تعطيل -e في الأب، subshell بـ-e خاصّ، ثم $?.
+    # والفخّ يُرفع في الأب حول الـsubshell ويُعاد داخلها: وإلا أطلق مرتين — مرة على الأمر
+    # الفعلي (المفيدة) ومرة على الـsubshell كلها فيُلقي جسدها في السجل ويُضلّل من يقرؤه.
+    set +e; trap - ERR
+    (
+      set -eE; trap "$ERRTRAP" ERR
+      fetch --weekly "${SHIFT_ARG[@]}"
+      post_fetch 0
+      # الطبقة 2 (أسبوعي): التقرير الوصفي — فشله يُنبه ولا يُسقط السلسلة (قرار مقر 05-08ب)،
+      # ويسبق النشر كي يُدفع docs/weekly-digest.md مع التشغيلة
+      python3 scripts/lab-digest.py --data "$DATA" \
+        --config "$LAB/watchlist-config.json" --out "$LAB/docs/weekly-digest.md" \
+        || echo "⚠️ ALERT: lab-digest فشل — التشغيلة تكمل"
+      publish weekly
+    )
+    PH2=$?
+    trap "$ERRTRAP" ERR; set -e
+    [ "$PH2" -eq 0 ] || echo "❌ ALERT: الإضافات الأسبوعية فشلت (خروج $PH2) — الأساسي نُشر في المرحلة 1"
+    ;;
+  universe)
+    fetch --maintain-universe
+    fetch
+    post_fetch 1
+    publish universe
+    ;;
+  divcal)   # مفكرة الويكند الخفيفة (طلب المالك 21-08): كتلتا المفكرة حصراً ثم البناء والنشر.
+            # كرونا المالك المقترحان (توقيت السيرفر الرياض):
+            #   20 12 * * 5  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # الجمعة 12:20
+            #   20 12 * * 6  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # السبت 12:20
+    fetch --divcal-only
+    # الوضع الخفيف: لا محرك ولا مغذٍ ولا إغلاقات ولا L1/digest — بناء ونشر فقط
+    python3 build.py
+    publish divcal
+    ;;
+  *)
+    fetch
+    post_fetch 1
+    publish "$MODE"
+    ;;
+esac
 echo "════ اكتمل [$MODE] $(date '+%H:%M') ════"
