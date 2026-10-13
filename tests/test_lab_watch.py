@@ -78,6 +78,11 @@ lu, fu = stamps_of({"lastUpdated": "2026-10-13T16:39:21+03:00",
                                {"financialsUpdated": None}]})
 check("ختم صحيح يُقرأ كما هو، وسهمٌ شاذ لا يُسكت الأسبوعي ولا يُسقطه",
       (lu, fu) == ("2026-10-13", "2026-10-08") and run(TUE, lu, fu)[2] == (False, False))
+# أرقام عربية هندية: \d في بايثون يقبلها، و«٢» يُرتَّب بعد «2» فيُقرأ البائت «حيّاً» (رفض الناقد 13-10)
+lu, fu = stamps_of({"lastUpdated": "٢٠٢٦-١٠-١٢ ١٦:٢٠",
+                    "stocks": [{"financialsUpdated": "٢٠٢٧-٠١-٠١"}, {"financialsUpdated": "2026-09-10"}]})
+check("أرقام عربية هندية ⇒ اليومي يُنذر، والأسبوعي لا يُسكته سهمٌ شاذ",
+      (lu, fu) == (None, "2026-09-10") and run(TUE, lu, fu)[2] == (True, True))
 
 # قرار البطاقة: الحالات الأربع
 for stale, has, exp in [(True, False, "create"), (True, True, "comment"),

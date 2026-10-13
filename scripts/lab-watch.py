@@ -38,7 +38,7 @@ TITLE = "⛔ المختبر: تحديث متأخر"
 TRADING_DAYS = {6, 0, 1, 2, 3}          # الأحد–الخميس (weekday: الاثنين=0)
 THURSDAY = 3
 CUTOFF_HOUR = 17                        # قبلها يُحسب الفحص على اليوم السابق
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")   # لا \d: يطابق «٢٠٢٦» فيُرتَّب بعد «2026»
 
 
 def read_stamps(data_path):
