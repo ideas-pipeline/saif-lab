@@ -3,7 +3,7 @@
 """اختبار مراقِب الصمت (scripts/lab-watch.py) بلا شبكة.
 يحمل الحادثتين الحقيقيتين (GitHub أخّر الجدولة إلى 23:29 و02:08) وحالة الناقد 13-10
 (فحصٌ بين نزول المختبر و17:00). الاستعمال: python3 tests/test_lab_watch.py"""
-import importlib.util, os, sys
+import importlib.util, json, os, sys, tempfile
 from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -58,6 +58,31 @@ for label, now in [("الأحد 09:00 يدوي", datetime(2026, 10, 11, 9, 0, tz
                    ("الجمعة 19:30", datetime(2026, 10, 16, 19, 30, tzinfo=R))]:
     t = m.judged_day(now)
     check("%s ⇒ %s ليس يوم تداول" % (label, t), t.weekday() not in m.TRADING_DAYS)
+
+# صيغة الختم (ملاحظة ختم 13-10): ما ليس تاريخاً ⇒ None ⇒ إنذار، لا «حيّ» بترتيبٍ نصّي
+def stamps_of(doc):
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(doc, f)
+    try:
+        return m.read_stamps(f.name)
+    finally:
+        os.unlink(f.name)
+
+
+TUE = datetime(2026, 10, 13, 19, 30, tzinfo=R)
+lu, fu = stamps_of({"lastUpdated": "N/A", "stocks": [{"financialsUpdated": "غير معروف"}]})
+check("ختمان ليسا تاريخاً ⇒ (None, None) ⇒ إنذار على الاثنين",
+      (lu, fu) == (None, None) and run(TUE, lu, fu)[2] == (True, True))
+lu, fu = stamps_of({"lastUpdated": "2026-10-13T16:39:21+03:00",
+                    "stocks": [{"financialsUpdated": "2026-10-08"}, {"financialsUpdated": "N/A"},
+                               {"financialsUpdated": None}]})
+check("ختم صحيح يُقرأ كما هو، وسهمٌ شاذ لا يُسكت الأسبوعي ولا يُسقطه",
+      (lu, fu) == ("2026-10-13", "2026-10-08") and run(TUE, lu, fu)[2] == (False, False))
+# أرقام عربية هندية: \d في بايثون يقبلها، و«٢» يُرتَّب بعد «2» فيُقرأ البائت «حيّاً» (رفض الناقد 13-10)
+lu, fu = stamps_of({"lastUpdated": "٢٠٢٦-١٠-١٢ ١٦:٢٠",
+                    "stocks": [{"financialsUpdated": "٢٠٢٧-٠١-٠١"}, {"financialsUpdated": "2026-09-10"}]})
+check("أرقام عربية هندية ⇒ اليومي يُنذر، والأسبوعي لا يُسكته سهمٌ شاذ",
+      (lu, fu) == (None, "2026-09-10") and run(TUE, lu, fu)[2] == (True, True))
 
 # قرار البطاقة: الحالات الأربع
 for stale, has, exp in [(True, False, "create"), (True, True, "comment"),

@@ -29,7 +29,7 @@
 تتحرك فيها الأسعار، فالإنذار الكاذب لا يقع إلا إن **فشلت** تشغيلةُ عطلة — وهو ما نريد
 معرفته أصلاً. ولا معالجة للعطل في الخط كله (مقيس 09-10)، فلا نخترعها هنا.
 """
-import json, os, sys, urllib.request, urllib.error
+import json, os, re, sys, urllib.request, urllib.error
 from datetime import datetime, timezone, timedelta
 
 RIYADH = timezone(timedelta(hours=3))
@@ -38,6 +38,7 @@ TITLE = "⛔ المختبر: تحديث متأخر"
 TRADING_DAYS = {6, 0, 1, 2, 3}          # الأحد–الخميس (weekday: الاثنين=0)
 THURSDAY = 3
 CUTOFF_HOUR = 17                        # قبلها يُحسب الفحص على اليوم السابق
+DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")   # لا \d: يطابق «٢٠٢٦» فيُرتَّب بعد «2026»
 
 
 def read_stamps(data_path):
@@ -49,8 +50,13 @@ def read_stamps(data_path):
     except Exception as e:                       # noqa: BLE001 — أي عطب في الملف = صامت
         print("⚠️ تعذّرت قراءة البيانات: %s" % e)
         return None, None
-    lu = str(d.get("lastUpdated") or "")[:10] or None
-    fu = [str(s.get("financialsUpdated") or "")[:10] for s in d.get("stocks", [])]
+    # الختم يُقبل تاريخاً فقط: المقارنة نصّية، فـ«N/A» يُرتَّب بعد «2026» ويُقرأ «حيّاً»
+    # فيسكت المراقِب (ملاحظة ختم 13-10). وما ليس تاريخاً ⇒ None ⇒ إنذار.
+    def date_or_none(v):
+        v = str(v or "")[:10]
+        return v if DATE_RE.match(v) else None
+    lu = date_or_none(d.get("lastUpdated"))
+    fu = [date_or_none(s.get("financialsUpdated")) for s in d.get("stocks", [])]
     fu = [x for x in fu if x]
     return lu, (max(fu) if fu else None)
 
