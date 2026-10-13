@@ -71,7 +71,9 @@ def last_thursday(today):
 
 def judge(today, daily_stamp, weekly_stamp):
     """يعيد (daily_stale, weekly_stale) — نقيٌّ ومعزول للاختبار."""
-    daily_stale = daily_stamp != today.isoformat()
+    # «أقدم من» لا «يخالف»: فحصٌ قبل 17:00 يُحكم به على الأمس، فإن كان المختبر قد نزل
+    # اليوم (~16:35) فختمه أحدث من المحكوم — دليل حياة لا تأخّر (شرط ختم 13-10).
+    daily_stale = (daily_stamp is None) or (daily_stamp < today.isoformat())
     weekly_stale = (weekly_stamp is None) or (weekly_stamp < last_thursday(today).isoformat())
     return daily_stale, weekly_stale
 
