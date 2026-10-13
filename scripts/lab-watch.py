@@ -37,6 +37,7 @@ LABEL = "lab-silent"
 TITLE = "⛔ المختبر: تحديث متأخر"
 TRADING_DAYS = {6, 0, 1, 2, 3}          # الأحد–الخميس (weekday: الاثنين=0)
 THURSDAY = 3
+CUTOFF_HOUR = 17                        # قبلها يُحسب الفحص على اليوم السابق
 
 
 def read_stamps(data_path):
@@ -54,6 +55,15 @@ def read_stamps(data_path):
     return lu, (max(fu) if fu else None)
 
 
+def judged_day(now):
+    """اليوم الذي يُحكم عليه، لا يوم الساعة الجدارية.
+    GitHub يؤخّر الجدولة ساعات (مقيس: موعد 19:30 نزل 23:29 الأحد و02:08 فجر الثلاثاء)،
+    ففحصٌ يقع بعد منتصف الليل كان يطالب بتحديث يومٍ لم يحن موعده — إنذار كاذب 12-10.
+    فما قبل 17:00 الرياض يُنسب إلى اليوم السابق: تحديث اليوم نفسه (~16:35) لم يُنتظر بعد."""
+    d = now.date()
+    return d - timedelta(days=1) if now.hour < CUTOFF_HOUR else d
+
+
 def last_thursday(today):
     """آخر خميس ≤ اليوم (اليوم نفسه إن كان خميساً)."""
     return today - timedelta(days=(today.weekday() - THURSDAY) % 7)
@@ -61,7 +71,9 @@ def last_thursday(today):
 
 def judge(today, daily_stamp, weekly_stamp):
     """يعيد (daily_stale, weekly_stale) — نقيٌّ ومعزول للاختبار."""
-    daily_stale = daily_stamp != today.isoformat()
+    # «أقدم من» لا «يخالف»: فحصٌ قبل 17:00 يُحكم به على الأمس، فإن كان المختبر قد نزل
+    # اليوم (~16:35) فختمه أحدث من المحكوم — دليل حياة لا تأخّر (شرط ختم 13-10).
+    daily_stale = (daily_stamp is None) or (daily_stamp < today.isoformat())
     weekly_stale = (weekly_stamp is None) or (weekly_stamp < last_thursday(today).isoformat())
     return daily_stale, weekly_stale
 
@@ -120,20 +132,21 @@ def main():
     if "--data" in sys.argv:
         data_path = sys.argv[sys.argv.index("--data") + 1]
     now = datetime.now(RIYADH)
-    today = now.date()
+    today = judged_day(now)
     daily_stamp, weekly_stamp = read_stamps(data_path)
     daily_stale, weekly_stale = judge(today, daily_stamp, weekly_stamp)
     stale = daily_stale or weekly_stale
     a, b = status_lines(today, daily_stamp, weekly_stamp, daily_stale, weekly_stale)
-    print("اليوم (الرياض): %s" % today)
+    print("الساعة (الرياض): %s ⇒ يُحكم على يوم %s" % (now.strftime("%Y-%m-%d %H:%M"), today))
     print("  " + a.replace("**", ""))
     print("  " + b.replace("**", ""))
 
     if "--check-only" in sys.argv:          # محلياً: الحكم يُطبع أياً كان اليوم
         print("حكم: %s" % ("⛔ صامت" if stale else "✅ حيّ"))
         return 0
-    if now.weekday() not in TRADING_DAYS:
-        # الجمعة والسبت: ختم الخميس هو المتوقَّع (divcal لا يحرّك lastUpdated) — فلا إنذار كاذب
+    if today.weekday() not in TRADING_DAYS:
+        # الجمعة والسبت: ختم الخميس هو المتوقَّع (divcal لا يحرّك lastUpdated) — فلا إنذار كاذب.
+        # ويُقرأ اليوم المحكوم لا الجداري: فحص الخميس المتأخر إلى فجر الجمعة يبقى فحصَ خميس.
         print("ليس يوم تداول — لا حكم")
         return 0
 
@@ -142,7 +155,7 @@ def main():
     action = decide(stale, cur is not None)
     print("القرار: %s" % action)
     if action == "create":
-        body = ("%s\n%s\n\n(توقيت الرياض، اليوم %s.)\n\n"
+        body = ("%s\n%s\n\n(توقيت الرياض، يوم %s.)\n\n"
                 "**افحص على الخادم:**\n```\ntail -60 /srv/ideas/lab-runs.log\n```\n"
                 "السجل يسمّي الأمر الذي قتل الخط (`❌ FAILED … سطر N:`)، أو يقول `⛔` إن حجبته "
                 "بوابة، أو `❌ ALERT: الإضافات الأسبوعية فشلت` إن نُشر الأساسي وحده يوم الخميس.\n\n"
