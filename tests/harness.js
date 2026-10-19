@@ -58,23 +58,37 @@ function loadBaseline(repoDir, ref, data, testHtml) {
   const baseHash = h(path), testHash = h(testHtml);
   return { fn: loadDyFlags(path, data), ref, sha, path, baseHash, testHash, identical: baseHash === testHash };
 }
-/* ── بيانات مثبتة (طلب المالك 19-10) ───────────────────────────────────────────
+/* ── بيانات مثبتة (طلب المالك 19-10، وشروط ختمه) ────────────────────────────────
    الحزامان يتحققان من **منطق** dyFlags بأسماء أسهم بعينها («الخمسة»…)، وكانا يقرآن
-   stocks-data.json **الحيّ** — فكسرهما أول جلب أسبوعي ناجح (19-10) بلا سطر كود واحد:
-   الكسر كان حركة سوق لا انحدار كود. فالبيانات تُثبَّت على لقطة من تاريخ main نفسه
-   (لا ملف ضخم مكرر في المستودع): 8368b07 = تشغيلة 19-10 اليومية، آخر لقطة قيست عليها
-   هذه التأكيدات (تحقق الناقد: 30/0 و7/0). ويبقى الأساس (loadBaseline) كوداً من
-   origin/main على **البيانات المثبتة نفسها**، فدلتا الكود تُقاس بلا ضجيج سوق.
-   DATA_REF يتجاوز المرجع لتجربة لقطة أخرى عمداً. */
+   stocks-data.json **الحيّ**، فكسرهما أول جلب أسبوعي ناجح (19-10) بلا سطر كود: 24/6
+   و1/6. والكسر **انتقالُ بيانات** — القوائم المالية وأساس المزوّد لا الأسعار — أعلنه
+   §8-ظ سلفاً لكنه جاء بغير ما تنبّأ به (قطع 8 · تعارض 0 لا 4 · 4؛ بند مفتوح للمحلل).
+   فالبيانات تُثبَّت على لقطة من تاريخ main نفسه (لا ملف ضخم مكرر): 8368b07 = تشغيلة
+   19-10 اليومية، آخر لقطة قيست عليها هذه التأكيدات. ويبقى الأساس (loadBaseline) كوداً
+   من origin/main على **البيانات المثبتة نفسها**، فدلتا الكود تُقاس منفصلة عن البيانات.
+   وما كان يراقب **البيانات** (حضور قيم المزوّد، والجمهور الحقيقي للشاهد) يقرأ الحيّ
+   عبر liveDataPath — وحارسه الحاكم في self-check-L1.py على كل تشغيلة.
+   DATA_REF يتجاوز المرجع عمداً. */
 const PINNED_DATA_REF = "8368b0709e17f6421577860c5697276a0073f372";
 function pinnedDataPath(repoDir) {
-  const { execSync } = require("child_process");
+  const { execFileSync } = require("child_process");
   const ref = process.env.DATA_REF || PINNED_DATA_REF;
-  const p = (process.env.TMPDIR || "/tmp") + "/_data-" + ref.replace(/[^A-Za-z0-9]/g, "_").slice(0, 24) + "-" + process.pid + ".json";
-  execSync(`cd "${repoDir}" && git show ${ref}:stocks-data.json > "${p}"`, { maxBuffer: 1 << 28 });
-  process.on("exit", () => { try { fs.unlinkSync(p); } catch (e) {} });
-  return { path: p, ref };
+  try {
+    execFileSync("git", ["-C", repoDir, "cat-file", "-e", ref + "^{commit}"], { stdio: "ignore" });
+  } catch (e) {
+    console.error("⛔ لقطة البيانات " + ref + " غائبة عن هذه النسخة (استنساخ سطحي؟). اجلبها:\n" +
+                  "   git -C " + repoDir + " fetch origin " + ref + "   (أو git fetch --deepen=500)");
+    process.exit(2);
+  }
+  const p = (process.env.TMPDIR || "/tmp") + "/_data-" + ref.replace(/[^A-Za-z0-9]/g, "_").slice(0, 24) +
+            "-" + process.pid + ".json";
+  process.on("exit", () => { try { fs.unlinkSync(p); } catch (e) {} });   // يُسجَّل قبل الكتابة
+  const buf = execFileSync("git", ["-C", repoDir, "show", ref + ":stocks-data.json"], { maxBuffer: 1 << 28 });
+  fs.writeFileSync(p, buf);
+  return { path: p, ref, label: process.env.DATA_REF ? "DATA_REF=" + ref : "لقطة مثبتة " + ref.slice(0, 7) };
 }
+function liveDataPath(repoDir) { return repoDir + "/stocks-data.json"; }
+module.exports.liveDataPath = liveDataPath;
 module.exports.pinnedDataPath = pinnedDataPath;
 module.exports.PINNED_DATA_REF = PINNED_DATA_REF;
 module.exports.dySlice = dySlice;

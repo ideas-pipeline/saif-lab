@@ -6,7 +6,7 @@ const src = fs.readFileSync(HTML, "utf8");
 // بيانات مثبتة على لقطة من تاريخ main لا الملف الحيّ (انظر harness.pinnedDataPath، 19-10)
 const PD = require("./harness.js").pinnedDataPath(ROOT);
 const data = JSON.parse(fs.readFileSync(PD.path, "utf8"));
-console.log("البيانات: لقطة مثبتة " + PD.ref.slice(0, 7));
+console.log("البيانات: " + PD.label);
 const stocks = data.stocks;
 const a = src.indexOf("const DY_EXTREME_PCT"), b = src.indexOf("function dyCell");
 const base = src.slice(a, b);
