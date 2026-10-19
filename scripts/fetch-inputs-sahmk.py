@@ -760,6 +760,11 @@ def partial_period_guard(st, prev, eps, shares, pm_fresh, today):
     حتى إن فشل /financials — فلا يعود الرقم الجزئي محسوباً من صافي ربحٍ مخزَّن.
     والهامش وجودة النقد لا يُمسّان: نسبتان بين رقمين من الفترة نفسها."""
     fin = st.get("financials") or {}
+    if not fin:
+        # كتلةٌ فارغة تبقى فارغة (نسق apply_computed_ratios): كتابة ratiosBasis وحدها
+        # تجعلها غير فارغة فيعبر السهم investment_filter زوراً — مقيس في ختم 19-10/ب:
+        # 2315 و4035 و5113 و5114 من «مستبعد» إلى «غير مُقيَّم».
+        return None
     prev = prev or {}
     for k in ("periodSuspect", "periodWatch"):
         fin.pop(k, None)

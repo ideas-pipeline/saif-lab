@@ -129,6 +129,10 @@ check("E بإشارة معاكسة ⇒ لا يُحسب، فـB", g == "B" and "E
 g, st = run("Steel", dict(P1321, netIncome=1.0e6), {}, 0.01, 31500000, False)
 check("E بمقامٍ دون 5م ⇒ لا يُحسب", "E" not in (st["financials"].get("periodSuspect") or {}).get("signals", {}))
 
+# كتلة فارغة تبقى فارغة (ختم 19-10/ب، شرط 1): وإلا عبر السهم investment_filter زوراً
+g, st = run(None, {}, {}, 1.0, 1e6, True)
+check("كتلة ماليات فارغة ⇒ تبقى {} (لا ratiosBasis)", g is None and st["financials"] == {})
+
 # إيراد غائب ⇒ الحارس لا يعمل
 g, st = run(None, {"netIncome": 1.0, "returnOnEquity": 5.0}, {}, None, None, False)
 check("إيراد غائب ⇒ لا حكم ولا مساس", g is None and st["financials"]["returnOnEquity"] == 5.0)

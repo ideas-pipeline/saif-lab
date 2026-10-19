@@ -1561,7 +1561,7 @@ function drawerHtml(s){
       <div class="fin-grid">${finCells(s)}</div>
       ${valUpdOf(s)?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span class="num">${esc(String(valUpdOf(s)).slice(0,16))}</span></div>`:""}
       ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
-      ${((fin.periodSuspect||{}).grade==="A")?`<div class="guard-note">قوائم هذه الشركة تبدو لفترة جزئية مع أن المزوّد يسمها سنة كاملة (الإيراد أقل من نصف سابقه، ويخالفه مصدر مستقل). لذلك لا يُحتسب العائد على حقوق المساهمين والأصول ولا النمو حتى يصحّح المصدر أرقامه.</div>`:""}
+      ${((fin.periodSuspect||{}).grade==="A")?`<div class="guard-note">قوائم هذه الشركة تبدو لفترة جزئية مع أن المزوّد يسمها سنة كاملة (الإيراد نحو نصف سابقه أو أقل، ويخالفه مصدر مستقل). لذلك لا يُحتسب العائد على حقوق المساهمين والأصول ولا النمو حتى يصحّح المصدر أرقامه.</div>`:""}
       ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
     </div>
 
