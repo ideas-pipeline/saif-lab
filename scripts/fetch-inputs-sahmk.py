@@ -727,6 +727,117 @@ def apply_computed_ratios(st, today, provider_keys=None):
     st["financials"] = fin
 
 
+PP_RATIO = 0.55          # إيراد ÷ سابقه دونها = المُطلِق (1321 = 0.505، فعتبة ≤0.5 تفوته)
+PP_E_MAX = 0.35          # صافي ربح السنة ÷ ربح 12 شهراً من /company
+PP_M_MIN = 2.5           # الإيراد الذي يقتضيه هامش المزوّد الطازج ÷ الإيراد المخزَّن
+PP_S_BAND = (0.5, 2.0)   # بصمة «التقلّص المتناسب»: (ربح÷سابقه) ÷ (إيراد÷سابقه)
+PP_HOLD_DAYS = 91        # أقصى إبقاء لآخر قيمة سليمة (13 أسبوعاً) ثم None
+PP_STALE_DAYS = 456      # reportDate أقدم من 15 شهراً = مراقبة (سنةٌ غائبة عند المزوّد)
+PP_FIELDS = ("returnOnEquity", "returnOnAssets", "ocfLiabilities", "revenueGrowth")
+
+
+def partial_period_guard(st, prev, eps, shares, pm_fresh, today):
+    """حارس «الفترة الجزئية» (تصميم المحلل 19-10، قرار المالك).
+
+    العلّة المقيسة: المزوّد يسِم أرقاماً بحجم ربع سنة «سنة كاملة، 4 أرباع، annual»
+    (خام /financials: 1321 إيراد 364م مقابل 722م سابقاً · 4292 ‏141م مقابل 679م)،
+    فالوسم لا يكشفه — والحارس **عددي**. وبسطٌ ناقص على رصيد كامل يُفسد ROE وROA
+    وBeaver، ونموٌّ من ربع مقابل سنة زائف.
+
+      P (المُطلِق): revenue ÷ revenuePrev < 0.55 (كلاهما موجب)
+      مؤكِّدات (يكفي واحد؛ التأمين اثنان — تعريف إيراده يختلف):
+        E: netIncome ÷ (eps_ttm × أسهم) < 0.35، بالإشارة نفسها ومقامٍ ≥ max(5م، 1% ملكية)
+        M: |netIncome ÷ هامش المزوّد الطازج| ÷ revenue ≥ 2.5
+        S: (ni ÷ niPrev) ÷ (rev ÷ revPrev) ∈ [0.5، 2.0] — الفترة الجزئية تقلّص الاثنين معاً،
+           والانهيار الحقيقي رافعةٌ تشغيلية تخرج عن النطاق (6050: S = 2.9)
+      A = P + مؤكِّد ⇒ ROE/ROA/Beaver/النمو: آخر قيمة سليمة موسومة ≤13 أسبوعاً، وإلا None
+      B = P بلا مؤكِّد ⇒ النمو وحده None (محايد للنقاط: النمو السالب صفرٌ أصلاً)
+      W = مراقبة بلا مساس: E وحدها، أو reportDate تغيّر لنفس fiscalYear، أو أقدم من 15 شهراً
+
+    **لماذا الإبقاء لا التفريغ:** الحقل الفارغ يأخذ في المحرك 0/6، فالتفريغ عقوبة لا
+    حياد (1321: 63 بالتفريغ مقابل 74 بالإبقاء). والهامش وجودة النقد لا يُمسّان:
+    نسبتان بين رقمين من الفترة نفسها. والقيمة المرفوضة تُكتب في guardRejected بسببها."""
+    fin = st.get("financials") or {}
+    prev = prev or {}
+    for k in ("periodSuspect", "periodWatch"):
+        fin.pop(k, None)
+    rev, revp = fin.get("revenue"), fin.get("revenuePrev")
+    ni, nip = fin.get("netIncome"), fin.get("netIncomePrev")
+    num = lambda x: isinstance(x, (int, float))
+    R = rev / revp if num(rev) and num(revp) and rev > 0 and revp > 0 else None
+    sig = {}
+    if R is not None:
+        sig["R"] = round(R, 3)
+    eq = fin.get("equity")
+    if num(ni) and num(eps) and num(shares):
+        ttm = eps * shares
+        floor = max(5e6, 0.01 * eq) if num(eq) and eq > 0 else 5e6
+        if ttm != 0 and abs(ttm) >= floor and (ni > 0) == (ttm > 0):
+            sig["E"] = round(ni / ttm, 3)
+    pm = fin.get("profitMargins")
+    if pm_fresh and num(pm) and abs(pm) >= 1 and num(ni) and num(rev) and rev > 0:
+        sig["M"] = round(abs(ni / (pm / 100.0)) / rev, 2)
+    if R and num(ni) and num(nip) and ni != 0 and nip != 0 and (ni > 0) == (nip > 0):
+        sig["S"] = round((ni / nip) / R, 2)
+    conf = []
+    if "E" in sig and sig["E"] < PP_E_MAX:
+        conf.append("E")
+    if "M" in sig and sig["M"] >= PP_M_MIN:
+        conf.append("M")
+    if "S" in sig and PP_S_BAND[0] <= sig["S"] <= PP_S_BAND[1]:
+        conf.append("S")
+    insurance = "insurance" in str(st.get("industry") or "").lower()
+    need = 2 if insurance else 1
+    trig = R is not None and R < PP_RATIO
+    grade = ("A" if len(conf) >= need else "B") if trig else None
+
+    if grade is None:
+        watch = []
+        if "E" in conf:
+            watch.append("ربح السنة ÷ ربح 12 شهراً %.2f" % sig["E"])
+        rd, prd = str(fin.get("reportDate") or "")[:10], str(prev.get("reportDate") or "")[:10]
+        if rd and prd and rd != prd and fin.get("fiscalYear") == prev.get("fiscalYear"):
+            watch.append("reportDate تغيّر لنفس السنة (%s ⇐ %s)" % (prd, rd))
+        try:
+            if rd and (datetime.strptime(today, "%Y-%m-%d") - datetime.strptime(rd, "%Y-%m-%d")).days > PP_STALE_DAYS:
+                watch.append("آخر سنة كاملة %s أقدم من 15 شهراً" % rd)
+        except ValueError:
+            pass
+        if watch:
+            fin["periodWatch"] = {"reasons": watch, "signals": sig, "date": today}
+        st["financials"] = fin
+        return None
+
+    why = "فترة جزئية مشتبهة (%s): %s" % (grade, " ".join("%s=%s" % kv for kv in sorted(sig.items())))
+    basis = dict(fin.get("ratiosBasis") or {})
+    pps = prev.get("periodSuspect") or {}
+    since = pps.get("since") or today
+    try:
+        hold_ok = (datetime.strptime(today, "%Y-%m-%d") - datetime.strptime(since, "%Y-%m-%d")).days <= PP_HOLD_DAYS
+    except ValueError:
+        hold_ok = False
+    pbasis = prev.get("ratiosBasis") or {}
+    fields = PP_FIELDS if grade == "A" else ("revenueGrowth",)
+    for k in fields:
+        v = fin.get(k)
+        if v is not None:
+            reject(st, k, v, why, today)
+        # آخر قيمة سليمة: من عنصرٍ مختلف (صافي ربح مختلف) ولم تكن موسومة — أو إبقاءٌ
+        # سابق ما زال داخل نافذة الـ13 أسبوعاً. وإلا None صراحةً لا قيمة ملفّقة.
+        held = None
+        if hold_ok and prev.get(k) is not None:
+            fresh_prev = not pps and prev.get("netIncome") != ni
+            still_held = bool(pps) and pbasis.get(k) == "suspect-period-held"
+            if fresh_prev or still_held:
+                held = prev[k]
+        fin[k] = held
+        basis[k] = "suspect-period-held" if held is not None else "suspect-period"
+    fin["ratiosBasis"] = basis
+    fin["periodSuspect"] = {"grade": grade, "signals": sig, "confirmers": conf, "since": since}
+    st["financials"] = fin
+    return grade
+
+
 def reject(st, field, value, reason, today):
     """حارس معقولية راسب → null موسوم (§8)"""
     st.setdefault("guardRejected", []).append(
@@ -1287,6 +1398,15 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         merged = dict(st.get("financials") or {})
         merged.update(fin)
         st["financials"] = merged
+        if p and not bank:
+            # حارس الفترة الجزئية — بعد اكتمال الكتلة، وقبل حارس الانزياح الذي يقرأ
+            # _prevFinancials: فالقيمة المُبقاة لا تُرى انزياحاً. وE من /company الطازج
+            # إن نجح، وإلا من آخر قيمة مخزّنة (والأسهم من valuationInputs).
+            vi0 = st.get("valuationInputs") or {}
+            eps0 = (sc.get("company") or {}).get("eps")
+            partial_period_guard(st, st.get("_prevFinancials"),
+                                 eps0 if eps0 is not None else vi0.get("eps"),
+                                 vi0.get("sharesOutstanding"), "profitMargins" in prov_keys, today)
         st["financialsSource"] = "sahmk (ratios+financials)"
         st["financialsUpdated"] = today
         comp = sc.get("company") or {}
