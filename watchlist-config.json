@@ -1927,9 +1927,12 @@
    "peSectorMedianAtEntry": 18.65,
    "tasiAtEntry": 11007.27,
    "maePct": -9.05,
-   "status": "open",
+   "status": "closed",
    "tasiRet": -8.03,
-   "excessNet": 1.0
+   "excessNet": 1.0,
+   "closeDate": "2026-10-19",
+   "closePrice": 38.98,
+   "closeReason": "cheapness_exited"
   },
   {
    "symbol": "4291",
@@ -2039,6 +2042,53 @@
    "volTrendAtEntry": 1.1,
    "status": "open",
    "maePct": -8.17
+  },
+  {
+   "symbol": "2370",
+   "name": "مسك",
+   "sector": "Industrials",
+   "type": "buy",
+   "entryPrice": 32.88,
+   "entryDate": "2026-10-19",
+   "track": "auto",
+   "category": "buy_wait",
+   "engineClass": "hold",
+   "scoreAtEntry": 65,
+   "timingAtEntry": "انتظر",
+   "regimeAtEntry": "هابط",
+   "aboveSmaAtEntry": true,
+   "scoreScaleAtEntry": "criteria-v3",
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 0.73,
+   "status": "open",
+   "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
+   "maePct": 0.0
+  },
+  {
+   "symbol": "2150",
+   "name": "الزجاج الوطنية",
+   "sector": "Consumer Discretionary",
+   "type": "buy",
+   "entryPrice": 36.1,
+   "entryDate": "2026-10-19",
+   "track": "auto",
+   "sampleType": "value-shadow",
+   "category": "value-shadow",
+   "engineClass": "filtered",
+   "scoreAtEntry": 0,
+   "qualityAtEntry": 19,
+   "timingAtEntry": "ممتاز",
+   "regimeAtEntry": "هابط",
+   "scoreScaleAtEntry": "criteria-v3",
+   "aboveSmaAtEntry": false,
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 0.67,
+   "priceVsSmaPct": -10.67,
+   "peAtEntry": 10.65,
+   "peSectorMedianAtEntry": 18.25,
+   "tasiAtEntry": 10123.62,
+   "maePct": 0.0,
+   "status": "open"
   }
  ]
 }

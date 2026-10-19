@@ -464,7 +464,7 @@
    ══════════════════════════════════════════════════════ */
 const CONFIG = {
   entryDate:   "2025-03-13",
-  updatedAt:   "2026-10-19T19:17:00+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
+  updatedAt:   "2026-10-19T19:44:37+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
 };
 
 /*
@@ -2262,6 +2262,10 @@ const WATCHLIST = [
     tasiRet:       -8.03,
     periodDays:    39,
     regimeAtEntry: "حذر",
+    status:        "closed",
+    closeDate:     "2026-10-19",
+    closePrice:    38.98,
+    closeReason:   "cheapness_exited",
     entryDate:     "2026-09-10",
     track:         "auto",
     category:      "value-shadow",
@@ -2370,6 +2374,45 @@ const WATCHLIST = [
     category:      "buy",
     maePct: -8.17,
     currentPrice:  26.06,           // ✅ confirmed 2026-10-19
+  },
+  {
+    symbol:        "2370",
+    name:          "مسك",
+    sector:        "Industrials",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    32.88,      // same-day-close | يدوي أصلي: 32.88
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
+    entryDate:     "2026-10-19",
+    track:         "auto",
+    category:      "buy_wait",
+    maePct: 0.0,
+    currentPrice:  32.88,           // ✅ confirmed 2026-10-19
+  },
+  {
+    symbol:        "2150",
+    name:          "الزجاج الوطنية",
+    sector:        "Consumer Discretionary",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    36.1,      // same-day-close | يدوي أصلي: 36.1
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
+    entryDate:     "2026-10-19",
+    track:         "auto",
+    category:      "value-shadow",
+    sampleType:    "value-shadow",
+    maePct: 0.0,
+    peAtEntry: 10.65,
+    peSectorMedianAtEntry: 18.25,
+    priceVsSmaPct: -10.67,
+    qualityAtEntry: 19,
+    currentPrice:  36.1,           // ✅ confirmed 2026-10-19
   },
 ];
 
