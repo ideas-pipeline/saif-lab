@@ -3,7 +3,10 @@ const path = require("path");
 const ROOT = process.env.REPO || path.resolve(__dirname, "..");
 const HTML = ROOT + "/uat.html";
 const src = fs.readFileSync(HTML, "utf8");
-const data = JSON.parse(fs.readFileSync(ROOT + "/stocks-data.json", "utf8"));
+// بيانات مثبتة على لقطة من تاريخ main لا الملف الحيّ (انظر harness.pinnedDataPath، 19-10)
+const PD = require("./harness.js").pinnedDataPath(ROOT);
+const data = JSON.parse(fs.readFileSync(PD.path, "utf8"));
+console.log("البيانات: " + PD.label);
 const stocks = data.stocks;
 const a = src.indexOf("const DY_EXTREME_PCT"), b = src.indexOf("function dyCell");
 const base = src.slice(a, b);
