@@ -10,7 +10,11 @@ const eq = (a, b, m) => ok(JSON.stringify(a) === JSON.stringify(b), m + "\n     
 /* REPO يسمح بتشغيل الحزام نفسه على مستودع محاكاة — فلا نسخة ثانية من الحزام
    (النسخة الثانية هي التي كانت تطمس ملف الأساس المشترك). */
 const REPO = ROOT;
-const { DATA, stocks } = stocksOf(REPO + "/stocks-data.json");
+/* البيانات مثبتة على لقطة من تاريخ main (harness.pinnedDataPath) — لا الملف الحيّ الذي
+   يتحرك كل أسبوع فيكسر التأكيدات بأسماء الأسهم بلا انحدار كود (19-10). */
+const PD = require("./harness.js").pinnedDataPath(REPO);
+const { DATA, stocks } = stocksOf(PD.path);
+console.log("البيانات: لقطة مثبتة " + PD.ref.slice(0, 7) + (process.env.DATA_REF ? " (DATA_REF)" : ""));
 const dyFlags = loadDyFlags(HTML, DATA);
 /* الأساس يُحسب حيّاً من كود مرجعٍ مختوم على *نفس* بيانات اليوم — لا من لقطة مثبتة
    (اللقطة تُكسَر مع كل تشغيلة مختبر فيختلط انحدار الكود بحركة السوق)، **ولا من

@@ -58,5 +58,24 @@ function loadBaseline(repoDir, ref, data, testHtml) {
   const baseHash = h(path), testHash = h(testHtml);
   return { fn: loadDyFlags(path, data), ref, sha, path, baseHash, testHash, identical: baseHash === testHash };
 }
+/* ── بيانات مثبتة (طلب المالك 19-10) ───────────────────────────────────────────
+   الحزامان يتحققان من **منطق** dyFlags بأسماء أسهم بعينها («الخمسة»…)، وكانا يقرآن
+   stocks-data.json **الحيّ** — فكسرهما أول جلب أسبوعي ناجح (19-10) بلا سطر كود واحد:
+   الكسر كان حركة سوق لا انحدار كود. فالبيانات تُثبَّت على لقطة من تاريخ main نفسه
+   (لا ملف ضخم مكرر في المستودع): 8368b07 = تشغيلة 19-10 اليومية، آخر لقطة قيست عليها
+   هذه التأكيدات (تحقق الناقد: 30/0 و7/0). ويبقى الأساس (loadBaseline) كوداً من
+   origin/main على **البيانات المثبتة نفسها**، فدلتا الكود تُقاس بلا ضجيج سوق.
+   DATA_REF يتجاوز المرجع لتجربة لقطة أخرى عمداً. */
+const PINNED_DATA_REF = "8368b0709e17f6421577860c5697276a0073f372";
+function pinnedDataPath(repoDir) {
+  const { execSync } = require("child_process");
+  const ref = process.env.DATA_REF || PINNED_DATA_REF;
+  const p = (process.env.TMPDIR || "/tmp") + "/_data-" + ref.replace(/[^A-Za-z0-9]/g, "_").slice(0, 24) + "-" + process.pid + ".json";
+  execSync(`cd "${repoDir}" && git show ${ref}:stocks-data.json > "${p}"`, { maxBuffer: 1 << 28 });
+  process.on("exit", () => { try { fs.unlinkSync(p); } catch (e) {} });
+  return { path: p, ref };
+}
+module.exports.pinnedDataPath = pinnedDataPath;
+module.exports.PINNED_DATA_REF = PINNED_DATA_REF;
 module.exports.dySlice = dySlice;
 module.exports.loadBaseline = loadBaseline;
