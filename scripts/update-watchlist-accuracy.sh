@@ -263,6 +263,9 @@ for s in stocks_config:
                 source in ("sahmk-close", "cache"), fetched_at) if entry_date else 1.0)
     if abs(_k - 1) > 1e-9:
         lines.append(f"    entryPriceAdj: {round(entry_price * _k, 4)},   // §8-ق × {round(_k, 6)}")
+    if s.get("closeBasis"):
+        # §8-ل: إغلاقٌ بُني على عمود المزوّد المختلط — وسم أمانة، الحكم كما هو (قرار المالك)
+        lines.append(f'    closeBasis:    {json.dumps(s["closeBasis"].get("label", ""), ensure_ascii=False)},')
     if s.get("dataFault"):
         _df = s["dataFault"]
         _dfj = json.dumps({k: _df.get(k, "") for k in ("kind", "date", "label")}, ensure_ascii=False)

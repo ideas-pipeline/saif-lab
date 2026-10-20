@@ -232,7 +232,8 @@ def build_series(dates, raw, adj_pairs):
     بلا تواريخ لكل نقطة — الواجهة تشتق التواريخ بالفهرس التقريبي (العقد في mapping §3):
       (§8-ق: «الخام» هنا خام معدّل للإجراءات الرأسمالية بعد 2024-03 — لا هبوط وهمي من منحة)
       d30/d90: إغلاقات يومية **خام** (جلسات تداول)
-      w52/w156: أسبوعية مشتقة **معدلة** (أسابيع مكتملة — اصطلاح §6-1 نفسه، تتسق مع SMA200W)
+      w52/w156: أسبوعية مشتقة (أسابيع مكتملة) — منذ §8-ل يمرّرها المستدعي **سعرية** (الخام المعدّل
+        رأسمالياً)، والعائد الكلي للمؤشرات وحدها
       mAll: آخر إغلاق **خام** لكل شهر ميلادي للتاريخ كله (iv: M — وقد تصير Q بميزانية الحجم)
     قواعد الغياب: سهم بلا مخزن كافٍ → المدد المتاحة فقط (d30≥5 جلسات، d90>30،
     ‏w52≥8 أسابيع، w156>52، mAll≥6 أشهر).
@@ -1463,7 +1464,7 @@ def fetch_candles_paged(api, sym, frm, to, counters):
     return (rows_all if rows_all else None), err, partial_total
 
 
-def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
+def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today, upcoming=None):
     """1d تزايدي → الفنية اليومية + الاشتقاق الأسبوعي + Z + القوة النسبية + بوابة السيولة.
     على مرحلتين (§8-ق): الجلب يحدّث candles/ لكل الأسهم أولاً، ثم كاشف الإجراءات
     الرأسمالية يرى السوق كله (وسيطه اليومي ووصلات المزوّد) قبل أي اشتقاق، فتُشتق
@@ -1524,6 +1525,13 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
     ev_by = collections.defaultdict(list)
     for e in events:
         ev_by[e["sym"]].append(e)
+    # أحقيات المفكرة اليومية (upcomingDividends من التشغيلة السابقة) التي حلّت (≤ اليوم): dividendEvents
+    # تُكتب أسبوعياً فقط، فبدونها يبقى كسر الاستبعاد الوهمي في الاتجاه أياماً (ختم §8-ل، شرط 3)
+    up_by = collections.defaultdict(list)
+    for u in upcoming or []:
+        if (isinstance(u, dict) and isinstance(u.get("eligDate"), str) and u["eligDate"] <= today
+                and isinstance(u.get("value"), (int, float)) and u["value"] > 0):
+            up_by[u.get("sym")].append({"date": u["eligDate"], "amount": u["value"]})
     ca_tot = collections.Counter()
     for st in stocks:
         sym = st["symbol"]
@@ -1566,10 +1574,13 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
                 vi["sharesCapFactor"] = round(k, 6)
             else:
                 vi.pop("sharesCapFactor", None)
-        _derive_daily(st, rows, [p_["date"] for p_ in pending if p_["grade"] != "P"], tasi, stamp, counters)
+        _derive_daily(st, rows, [p_["date"] for p_ in pending if p_["grade"] != "P"], tasi, stamp, counters,
+                      up_by.get(sym))
         ca_shares_watch(st, rows, applied)
     print("  🧮 إجراءات رأسمالية: مطبَّقة آلياً %d · يدوياً %d · معلّقة للمراجعة %d · متخطّاة %d · اختفت %d"
           % (ca_tot["applied_auto"], ca_tot["applied_manual"], ca_tot["pending"], ca_tot["skipped"], ca_tot["gone"]))
+    print("  🧾 أساس الاتجاه (عائد كلي محلي): أحداث مرفوضة %d · أحقيات من المفكرة اليومية %d"
+          % (counters["tr_rejected"], sum(len(v) for v in up_by.values())))
 
 
 # ═══════════ أساس الاتجاه: عائد كلي محلي (§8-ل، قرار المالك 20-10 — criteria v3.2) ═══════════
@@ -1640,7 +1651,7 @@ def tr_local_series(rows, div_events, caps, tc=TR_TC):
     return [(dates[i], rows[i][1] * fac[i]) for i in range(n) if rows[i][1] is not None], log
 
 
-def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
+def _derive_daily(st, rows, pending_dates, tasi, stamp, counters, extra_divs=None):
     """الاشتقاق من صفوف السهم (المعدّلة للإجراءات الرأسمالية إن وُجدت)."""
     dates = [r2[0] for r2 in rows]
     raw = [r2[1] for r2 in rows]
@@ -1648,7 +1659,10 @@ def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
     lows = [r2[4] for r2 in rows]
     vols = [r2[5] for r2 in rows]
     # أساس الاتجاه (§8-ل، v3.2): عائد كلي محلي بدل عمود المزوّد المختلط
-    adj_pairs, tr_log = tr_local_series(rows, st.get("dividendEvents"), st.get("capActions"))
+    divs = list(st.get("dividendEvents") or [])
+    known = {x["date"] for x in divs}
+    divs += [x for x in (extra_divs or []) if x["date"] not in known]   # المخزَّن يغلب عند التطابق
+    adj_pairs, tr_log = tr_local_series(rows, divs, st.get("capActions"))
     counters["adj_dropped_rows"] += len(rows) - len(adj_pairs)
     # يُطبع ما يقع داخل نافذة SMA200W وحدها (~1400 يوم): رفضٌ أقدم بلا أثر، وخطوات المزوّد الصاعدة
     # لأسعار دون الريال (1303 في 2020) تقريبُ وحدة سعر لا توزيع — ضجيج لا إنذار
@@ -1708,7 +1722,9 @@ def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
         "derived": True, "updatedAt": stamp,
     }
     # ── سلاسل الرسم (الموجة 1) + مستويات §4-ب — من المخزن وقت الجلب ──
-    st["series"] = build_series(dates, raw, adj_pairs)
+    # سلاسل الرسم سعرية (الخام المعدّل رأسمالياً) لا عائداً كلياً (ختم §8-ل، شرط 1): الكلاسيكية ترسم
+    # series دائماً فوق مستويات خام، فعائدٌ كلي فيها يعرض أسعاراً لم تُتداول (7010 −17% في w156)
+    st["series"] = build_series(dates, raw, list(zip(dates, raw)))
     st["levels"] = build_levels(rows, atr, st.get("levels"), stamp, pending_dates)
     # ── القوة النسبية على الخام مقابل تاسي السعري (§3.3) ──
     r3, r6 = period_return(raw, 63), period_return(raw, 126)
@@ -2674,7 +2690,7 @@ def main():
         sys.exit("⛔ فشل الأسعار كلياً — لا كتابة")
 
     print("📊 شموع 1d (تزايدي) + اشتقاق أسبوعي + Z + سيولة...")
-    fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today)
+    fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today, data.get("upcomingDividends"))
 
     if not args.symbols:
         print("📅 مفكرة التوزيعات (upcoming، نافذة %d يوماً)..." % DIVCAL_WINDOW_DAYS)

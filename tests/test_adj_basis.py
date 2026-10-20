@@ -114,14 +114,95 @@ check("خطوة مزوّد 3% بهبوط مقابل في close ⇒ مقبولة:
       not log11 and abs(p11[0][1] - 9.7) < 1e-9 and abs(p11[25][1] - 9.7) < 1e-9)
 
 
-# 5) المسار الكامل: weeklyTechnical.basis ومصدر SMA200W
-st = {"symbol": "X", "dividendEvents": ev}
-m._derive_daily(st, R2, [], {"3m": 0, "6m": 0, "12_1": 0}, "s", collections.defaultdict(int))
-check("weeklyTechnical.basis = tr-local-v1", st["weeklyTechnical"].get("basis") == "tr-local-v1")
+# 5) المسار الكامل: weeklyTechnical.basis، والاتجاه عائد كلي، وسلاسل الرسم سعرية (ختم §8-ل، شرط 1)
+DL = days("2023-08-24", 300)
+RL = [[d, 10.0, 10.0, 10.1, 9.9, 1000] for d in DL]
+il = 250
+for r in RL[il + 1:]:
+    r[1] = r[2] = 9.5
+evL = [{"date": DL[il], "amount": 0.5}]
+T0 = {"3m": 0, "6m": 0, "12_1": 0}
+st = {"symbol": "X", "dividendEvents": evL}
+m._derive_daily(st, RL, [], T0, "s", collections.defaultdict(int))
 st_raw = {"symbol": "X"}
-m._derive_daily(st_raw, R2, [], {"3m": 0, "6m": 0, "12_1": 0}, "s", collections.defaultdict(int))
-check("الأسبوعي (سلسلة w52) يقرأ العائد الكلي: أول أسبوع 9.5 بالتوزيع و10 بدونه",
-      st["series"]["w52"]["p"][0] == 9.5 and st_raw["series"]["w52"]["p"][0] == 10.0)
+m._derive_daily(st_raw, RL, [], T0, "s", collections.defaultdict(int))
+check("weeklyTechnical.basis = tr-local-v1", st["weeklyTechnical"].get("basis") == "tr-local-v1")
+check("SMA200D من العائد الكلي: 9.5 بالتوزيع (لا هبوط وهمي) مقابل متوسط أعلى بدونه",
+      st["dailyExtra"]["sma200d"] == 9.5 and st_raw["dailyExtra"]["sma200d"] > 9.5)
+check("وسلاسل الرسم w52 سعرية في الحالتين (أول أسبوع 10، لا 9.5)",
+      st["series"]["w52"]["p"][0] == 10.0 and st_raw["series"]["w52"]["p"][0] == 10.0)
+# أحقية حلّت ولم تصل dividendEvents بعد (أسبوعية) ⇒ من المفكرة اليومية (شرط 3)
+st_u = {"symbol": "X"}
+m._derive_daily(st_u, RL, [], T0, "s", collections.defaultdict(int), [{"date": DL[il], "amount": 0.5}])
+check("أحقية من upcomingDividends (≤ اليوم) تدخل الاتجاه قبل الجلب الأسبوعي", st_u["dailyExtra"]["sma200d"] == 9.5)
+st_u2 = {"symbol": "X", "dividendEvents": evL}
+m._derive_daily(st_u2, RL, [], T0, "s", collections.defaultdict(int), [{"date": DL[il], "amount": 0.9}])
+check("والمخزَّن يغلب المفكرة عند تطابق التاريخ (لا ازدواج)", st_u2["dailyExtra"]["sma200d"] == 9.5)
+# التوصيل: _derive_daily يمرّر capActions (eventDate) إلى العائد الكلي
+st_k = {"symbol": "X", "dividendEvents": evL,
+        "capActions": [{"date": "2023-11-27", "eventDate": DL[-5], "factor": 0.5}]}
+m._derive_daily(st_k, RL, [], T0, "s", collections.defaultdict(int))
+check("_derive_daily يمرّر capActions: توزيع قبل منحة 1:1 ⇒ y = 2.5% لا 5%",
+      st_k["dailyExtra"]["sma200d"] > st["dailyExtra"]["sma200d"])
+# المسار اليومي الكامل يمرّر المفكرة (fetch_daily_and_derive ← upcoming)
+import shutil, tempfile
+tmpd = tempfile.mkdtemp()
+try:
+    cdir = os.path.join(tmpd, "candles")
+    os.makedirs(cdir)
+    m.save_candles(cdir, "X", RL)
+    stF = {"symbol": "X"}
+
+    class Api:
+        def get(self, path, **k):
+            return {"data": []}, None
+    with contextlib.redirect_stdout(io.StringIO()) as buf:
+        m.fetch_daily_and_derive(Api(), [stF], collections.defaultdict(int), cdir, T0, "s", DL[-1],
+                                 [{"sym": "X", "eligDate": DL[il], "value": 0.5},
+                                  {"sym": "X", "eligDate": "2099-01-01", "value": 9.0}])
+    check("fetch_daily_and_derive: المفكرة اليومية (≤ اليوم فقط) تصل الاتجاه، وسطر 🧾 يعدّها",
+          stF["dailyExtra"]["sma200d"] == 9.5 and "أحقيات من المفكرة اليومية 1" in buf.getvalue())
+finally:
+    shutil.rmtree(tmpd)
+
+# 5ب) حدود وحراس (طفرات الختم الناجية)
+pb, _ = m.tr_local_series(R2, [{"date": TC, "amount": 0.5}], [])
+check("أحقية على الحد TC نفسه تُحسب محلياً (e < tc لا e ≤ tc)", abs(pb[0][1] - 10.0 * 0.95) < 1e-9)
+Ry = flat()
+for r in Ry[ie + 1:]:
+    r[1] = r[2] = 7.5
+_, logy = m.tr_local_series(Ry, [{"date": D[ie], "amount": 2.5}], [])
+check("عائد 25% بالضبط ⇒ مرفوض (≥ لا >)", len(logy) == 1)
+Rd = flat()
+for r in Rd[ie + 1:]:
+    r[1] = r[2] = 9.4   # هبوط 6% مقابل عائد 15%: أقل من نصفه ⇒ مرفوض؛ و0.2y كانت ستقبله
+    pass
+_, logd = m.tr_local_series(Rd, [{"date": D[ie], "amount": 1.5}], [])
+check("عائد 15% بهبوط 6% (< نصفه، > خُمسه) ⇒ مرفوض", len(logd) == 1)
+# ic = آخر صف قبل TC: صف TC نفسه لا يدخل التطبيع
+Ric = flat()
+Ric[60][2] = 9.0   # صف TC: عامل مزوّد شاذ — لا أثر له لأن التطبيع على الصف 59
+pic, _ = m.tr_local_series(Ric, [], [])
+check("التطبيع على آخر صف قبل TC (صف TC نفسه خارج عامل المزوّد)", all(abs(v - 10.0) < 1e-9 for _, v in pic))
+# الجسر فوق adjusted غائب: الخطوة تُقاس بين صفين صالحين متباعدين
+Rn = flat()
+for r in Rn[:20]:
+    r[2] = 9.7
+for r in Rn[20:]:
+    r[1] = r[2] = 9.7
+Rn[25][2] = None
+pn, _ = m.tr_local_series(Rn, [], [])
+check("adjusted غائب في صف ⇒ يُعبر (nxt يبقى آخر صالح) فتُقاس الخطوة 3% صحيحة",
+      abs(pn[0][1] - 9.7) < 1e-9)
+# انحراف موثّق عن مرجع المحلل: p(ic) غائب ⇒ التطبيع على أول p صالح تحته (لا إلغاء عامل المزوّد كله)
+Rp = flat()
+for r in Rp[:20]:
+    r[2] = 9.7
+for r in Rp[20:]:
+    r[1] = r[2] = 9.7
+Rp[59][2] = None
+pp, _ = m.tr_local_series(Rp, [], [])
+check("p(ic) غائب ⇒ عامل المزوّد قبل الحد يبقى (الخطوة 3% تُقاس)", abs(pp[0][1] - 9.7) < 1e-9)
 
 
 # 6) do_dividends: الحد الأدنى للأحقيات ثابت عند TR_TC (لا قصّ على 1095 يوماً)

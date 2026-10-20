@@ -2529,7 +2529,9 @@ function statusBadge(success, r) {
   if (r && r.dataFault) return `<span class="status-badge status-pending">⚠️ أُغلق بعطب بيانات — خارج الحكم</span>`;
   if (r && r.status === "closed") {
     // «النقاط دون 50» بدل «نقاط<50»: علامة < تنعكس في RTL وتُربك القراءة (موثق باللقطات)
-    const why = r.closeReason === "score_below_50" ? "النقاط دون 50" : (r.closeReason === "sma200w_weekly_break" ? "كسر SMA200W" : r.closeReason);
+    // §8-ل: closeBasis = إغلاقٌ على الأساس القديم (عمود المزوّد المختلط) — يُذكر ولا يغيّر الحكم
+    const why = (r.closeReason === "score_below_50" ? "النقاط دون 50" : (r.closeReason === "sma200w_weekly_break" ? "كسر SMA200W" : r.closeReason))
+              + (r.closeBasis ? "، " + r.closeBasis : "");
     if (r.shadow) return `<span class="status-badge status-pending">👁 ظل — أُغلق (${why})</span>`;
     if (success === true)  return `<span class="status-badge status-success">✅ ناجحة — مغلقة (${why})</span>`;
     if (success === false) return `<span class="status-badge status-fail">❌ فاشلة — مغلقة (${why})</span>`;
