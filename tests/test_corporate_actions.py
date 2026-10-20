@@ -664,6 +664,18 @@ cfg8, _ = run_feed(dict(base_d, stocks=[dict(vs_p, capActionsPending=[{"date": "
 check("ظل القيمة المفتوح بفجوة معلّقة بعد دخوله ⇒ لا MAE (لا −50 وهمي) ولا إغلاق",
       cfg8["stocks"][0]["maePct"] == 0.0 and cfg8["stocks"][0]["status"] == "open")
 
+# وصلة 2023-11-27 (قرار المالك 20-10): بند يدوي على فجوة P قبل 2024-03 يُطبَّق على العمودين ولا يتكرر
+Rsp = [["2023-11-%02d" % d, 30.0, 30.0, 30.3, 29.7, 1000] for d in range(1, 27)]
+Rsp += [["2023-11-27", 20.0, 20.0, 20.2, 19.8, 1000]] + series("SPX", 20.0)
+EVsp = detect_all(universe(SP=Rsp))
+check("وصلة 2023-11-27 ⇒ درجة P لا تُطبَّق آلياً", EVsp["SP"][0]["grade"] == "P" and EVsp["SP"][0]["decision"] == "no")
+man = [{"date": "2023-11-27", "factor": 2 / 3, "kind": "bonus", "source": "اختبار"}]
+(Rsp2, apsp, sksp, pdsp), _ = quiet(m.ca_plan_apply, "SP", EVsp["SP"], man, Rsp)
+check("والبند اليدوي عليها يُطبَّق على close وadjusted (30 → 20)",
+      apsp and apsp[0]["cols"] == ["close", "adjusted"] and abs(Rsp2[0][1] - 20.0) < 1e-9 and abs(Rsp2[0][2] - 20.0) < 1e-9)
+(_, apsp3, sksp3, _), _ = quiet(m.ca_plan_apply, "SP", EVsp["SP"], man, Rsp2)
+check("ولا يتكرر إن وُجد المخزن معدّلاً (صحّح المزوّد لاحقاً)", not apsp3 and sksp3)
+
 # JS: صفحة الدقة (entryPriceAdj وdataFault)، وimpliedEpsAlt، وisV3sc
 js = subprocess.run(["node", os.path.join(HERE, "test_capadj_ui.js")], capture_output=True, text=True)
 print(js.stdout.rstrip())
