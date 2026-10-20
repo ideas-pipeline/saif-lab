@@ -60,5 +60,15 @@ ok(nS.includes("2026-04-21") && nS.includes("عدّل المزوّد أسعار�
 const nP = capNote({ capActions: [{ date: "2026-10-01", factor: 0.833333, kind: "bonus" }] });
 ok(nP.includes("الأسعار قبل") && !nP.includes("عدّل المزوّد"), "وبند عادي بالنص المعتاد");
 
+// ── uat.html: capAdjPts — الشموع الخام تُحمل على أساس الإجراءات المطبَّقة في الرسم (§8-ق) ──
+const a0 = uat.indexOf("function capAdjPts"), a1 = uat.indexOf("function chartPoints");
+if (a0 < 0 || a1 < 0) throw new Error("مرساة capAdjPts مفقودة");
+const capAdjPts = new Function(uat.slice(a0, a1) + "\nreturn capAdjPts;")();
+const raw = [{ t: "2026-09-30", v: 14.54 }, { t: "2026-10-01", v: 12.11 }];
+const adjp = capAdjPts({ capActions: [{ date: "2026-10-01", factor: 0.833333 }] }, raw);
+ok(Math.abs(adjp[0].v - 14.54 * 0.833333) < 1e-9 && adjp[1].v === 12.11 && raw[0].v === 14.54,
+   "capAdjPts: ما قبل الحدث × المعامل، وما بعده كما هو، والأصل لا يُمسّ");
+ok(capAdjPts({}, raw) === raw, "وبلا capActions تعود الشموع كما هي");
+
 console.log("\n" + (fail ? "❌ " : "✅ ") + pass + " نجحت، " + fail + " فشلت");
 process.exit(fail ? 1 : 0);

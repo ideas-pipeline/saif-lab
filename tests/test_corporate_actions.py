@@ -584,7 +584,8 @@ newc2 = dict(newc)
 newc2.pop("capActionsPending")
 cfg5, _ = run_feed({"runType": "close", "stocks": [newc2]}, {"stocks": []})
 check("والسهم نفسه بلا فجوة معلّقة ⇒ يدخل (فالمنع من الفجوة وحدها) ويحمل priceBasisAtEntry",
-      len(cfg5["stocks"]) == 1 and cfg5["stocks"][0].get("priceBasisAtEntry") == "capadj-v1")
+      len(cfg5["stocks"]) == 1 and cfg5["stocks"][0].get("priceBasisAtEntry") == "capadj-v1"
+      and cfg5["stocks"][0].get("trendBasisAtEntry") == "tr-local-v1")
 
 # close_sma200w: تقريب «دخل فوق المتوسط» بسعر الدخول المعدّل
 d = tempfile.mkdtemp()
