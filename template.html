@@ -1181,7 +1181,7 @@ function dyFlags(s){
     const robust=(ieB==null)||(ieB>0&&dv>ieB*COV_FLIP_MARGIN);
     if(robust){
       const yrIn=fyA?`ربح ${fyA} الكامل المعلن`:"آخر ربح سنوي كامل معلن";
-      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ieA).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
+      f.push(`التوزيع داخل ${epsLbl} (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ieA).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
     }
   }
   if(wt.sma200w&&px&&px<wt.sma200w*0.75)

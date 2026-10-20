@@ -149,11 +149,14 @@ if lv_restricted:
 
 # ── [3] الحراس الراسبون (§8) ──
 from collections import Counter
-rej = Counter()
+rej, rej_prov = Counter(), Counter()
 for s in S:
     for g in (s.get("guardRejected") or []):
-        rej[g.get("field")] += 1
+        # رفض حراس المزوّد (§8-م) يُعدّ منفصلاً: ثابتٌ ~33 كل أسبوع حتى يصحّح المصدر، فإدخاله في
+        # العتبة يجعل الإنذار دائماً فيُعميه (ختم §8-م، شرط 4)
+        (rej_prov if g.get("guard") == "provider" else rej)[g.get("field")] += 1
 print("\n[3] حراس المعقولية — الرفض بالحقل: %s" % (dict(rej) or "لا رفض"))
+print("    حراس المزوّد (§8-م، خارج العتبة): %s" % (dict(rej_prov) or "لا شيء"))
 if sum(rej.values()) > 40:
     warn("رفض الحراس مرتفع: %d قيمة — راجع جودة المصدر" % sum(rej.values()))
 
@@ -316,8 +319,10 @@ for s in S:
     if all(isinstance(x, (int, float)) for x in (mc, tp, sh0)) and sh0 > 0 and tp > 0 \
        and abs(mc / (sh0 * tp) - 1) > 0.05:
         sh_odd += 1
-    # [9] يراقب حقل المزوّد نفسه (§8-م): eps المشتق = netIncome ÷ الأسهم ⇒ المقياس متطابقة دائمة
-    eps, dv, imp = vi.get("epsProvider", vi.get("eps")), vi.get("divTtm12m"), _implied_eps(s)
+    # [9] عقد المطابقة مع الواجهة: القلب والمرشَّحون على vi.eps، أي ما يقرؤه dyFlags (ختم §8-م، شرط 2)؛
+    # وعدّ التباعد وحده على حقل المزوّد الخام epsProvider (المشتق = netIncome ÷ الأسهم ⇒ متطابقة دائمة)
+    eps, dv, imp = vi.get("eps"), vi.get("divTtm12m"), _implied_eps(s)
+    eps_p = vi.get("epsProvider", eps)
     # خسارة السنة الكاملة لدى موزِّع — تعريف الواجهة حرفياً: الحقيقة من إشارة
     # netIncome وحدها (لا من imp)، فسابك واللجين بلا eps ويُعرض لهما الوسم،
     # ولا يُسكتهما غياب عدد الأسهم. ومن لا يوزّع لا يُعدّ هنا.
@@ -355,9 +360,9 @@ for s in S:
     eps_pairs += 1
     if imp <= 0:
         pass                                   # عُدّ أعلاه بتعريف الواجهة
-    elif max(eps / imp, imp / eps) >= EPS_DIV_THR:
+    elif isinstance(eps_p, (int, float)) and eps_p > 0 and max(eps_p / imp, imp / eps_p) >= EPS_DIV_THR:
         # النسبة تُطبع باتجاه موحد (الأكبر ÷ الأصغر) كي لا تظهر 0.49 تحت ترويسة ≥2×
-        eps_div.append((s["symbol"], round(max(eps / imp, imp / eps), 2)))
+        eps_div.append((s["symbol"], round(max(eps_p / imp, imp / eps_p), 2)))
     if isinstance(dv, (int, float)) and 0 < dv <= eps and imp > 0 and dv > imp * EPS_FLIP_MARGIN:
         alt = _implied_eps_alt(s)
         if alt is None or (alt > 0 and dv > alt * EPS_FLIP_MARGIN):

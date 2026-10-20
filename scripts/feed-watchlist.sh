@@ -219,7 +219,14 @@ by_sym = {s["symbol"]: s for s in data.get("stocks", []) if s.get("symbol")}
 vs_all = [e for e in stocks_cfg if e.get("sampleType") == "value-shadow"]
 vs_closed_now, vs_added = [], []
 vs_meas_updated = False   # تحديثات MAE/القياس الجارية تستوجب الكتابة ولو بلا دخول/إغلاق
+# يوم الانتقال إلى حراس المزوّد (§8-م، قرار المالك): لا إغلاق ولا دخول في ظل القيمة بسبب الأرقام
+# الجديدة (وسيط P/E القطاعي، eps/P/B مشتقة) — من الغد تعود القواعد كالمعتاد
+vs_frozen = data.get("providerGuardsSince") == today
+if vs_frozen:
+    print("  ⏸️ ظل القيمة مجمّد اليوم: يوم الانتقال إلى حراس المزوّد (§8-م)")
 for e in vs_all:
+    if vs_frozen:
+        break
     if e.get("status", "open") != "open":
         continue
     st = by_sym.get(e["symbol"]) or {}
@@ -255,7 +262,7 @@ for e in vs_all:
         e["status"], e["closeDate"], e["closePrice"], e["closeReason"] = "closed", today, cur, vs_reason
         vs_closed_now.append((e["symbol"], vs_reason, e.get("excessNet")))
 vs_open_syms = {e["symbol"] for e in vs_all if e.get("status", "open") == "open"}
-if len(vs_open_syms) < VS_CAP:
+if len(vs_open_syms) < VS_CAP and not vs_frozen:
     cands = []
     for s in data.get("stocks", []):
         inv = s.get("investmentScore") or {}
