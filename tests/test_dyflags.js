@@ -234,6 +234,17 @@ for (const sym of ["4194", "2290"]) {
   }
 }
 
+/* ١٢ §8-م: eps مشتق من القوائم (حارس المزوّد) ⇒ وسم التغطية يسمّي ربح السنة الكاملة لا 12 شهراً */
+{
+  const x = JSON.parse(JSON.stringify(stocks.find(s => s.symbol === "4194")));
+  x.valuationInputs.eps = 0.01;
+  const tA = dyFlags(x).find(t => t.startsWith("التوزيع أكبر من"));
+  x.valuationInputs.epsBasis = "fy-derived"; x.financials.fiscalYear = 2025;
+  const tB = dyFlags(x).find(t => t.startsWith("التوزيع أكبر من"));
+  ok(tA && tA.includes("ربح 12 شهراً") && tB && tB.includes("ربح 2025 الكامل") && !tB.includes("12 شهراً"),
+     "12) §8-م: eps المشتق ⇒ «ربح 2025 الكامل» — " + tB);
+}
+
 console.log("\n" + (fail ? "❌ " : "✅ ") + pass + " نجحت، " + fail + " فشلت" +
             (vacu ? "، " + vacu + " لاغية" : ""));
 process.exit(fail ? 1 : 0);

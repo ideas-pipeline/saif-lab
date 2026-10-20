@@ -203,7 +203,8 @@ pe_tense = []
 for sym, dpct in pe_div:
     st = next((x for x in S if x["symbol"] == sym), None)
     vi = (st or {}).get("valuationInputs") or {}
-    tp, ps, ep = vi.get("theirPrice"), vi.get("peSource"), vi.get("eps")
+    # حقلا المصدر الخامان (§8-م): eps قد يكون مشتقاً من القوائم، فالتوتّر يُقاس على epsProvider
+    tp, ps, ep = vi.get("theirPrice"), vi.get("peSource"), vi.get("epsProvider", vi.get("eps"))
     if all(isinstance(v, (int, float)) for v in (tp, ps, ep)) and ps > 0 and ep > 0 \
        and abs((tp / ps) / ep - 1) > 0.02:
         pe_tense.append((sym, dpct, round((tp / ps) / ep, 3)))
@@ -315,7 +316,8 @@ for s in S:
     if all(isinstance(x, (int, float)) for x in (mc, tp, sh0)) and sh0 > 0 and tp > 0 \
        and abs(mc / (sh0 * tp) - 1) > 0.05:
         sh_odd += 1
-    eps, dv, imp = vi.get("eps"), vi.get("divTtm12m"), _implied_eps(s)
+    # [9] يراقب حقل المزوّد نفسه (§8-م): eps المشتق = netIncome ÷ الأسهم ⇒ المقياس متطابقة دائمة
+    eps, dv, imp = vi.get("epsProvider", vi.get("eps")), vi.get("divTtm12m"), _implied_eps(s)
     # خسارة السنة الكاملة لدى موزِّع — تعريف الواجهة حرفياً: الحقيقة من إشارة
     # netIncome وحدها (لا من imp)، فسابك واللجين بلا eps ويُعرض لهما الوسم،
     # ولا يُسكتهما غياب عدد الأسهم. ومن لا يوزّع لا يُعدّ هنا.
