@@ -1493,13 +1493,24 @@ def ca_shares_watch(st, rows, applied):
     return dev
 
 
-def div_ttm_capadj(rows, caps, now, today):
+def div_ttm_capadj(rows, caps, now, today, rejected=()):
     """§3.5: العائد = مجموع 12 شهراً حصراً؛ لا توزيع خلال 18 شهراً → «لا يوزع». يعيد (المجموع، الأساس).
     والمجموع على أساس السهم الحالي (§8-ق): ما قبل منحة/تجزئة مطبَّقة × معاملها، وإلا تضخّم
-    العائد بـ1/f (+20% لـ1030، ×2 لـ7202). rows: [(تاريخ الأحقية، المبلغ الاسمي)]."""
+    العائد بـ1/f (+20% لـ1030، ×2 لـ7202). rows: [(تاريخ الأحقية، المبلغ الاسمي)].
+    rejected: أزواج (التاريخ، المبلغ) رفضها حارس التوزيع الوهمي (§8-ن) — تسقط من المجموع ومن «يوزع»
+    فلا يُكتب لها عائد (3008: 43.44 على سعر 1.06)."""
+    # المطابقة على 4 منازل: dividendEvents تخزّن المبلغ مقرَّباً هكذا والمزوّد يعطي هذه الدقة
+    # (ختم المحلل §8-ن، ش2: 0.333333 مقابل 0.3333 كان يعيد المرفوض إلى الحساب)
+    rej = set((d, round(v, 4)) for d, v in rejected)
     d365 = (now - timedelta(days=365)).strftime("%Y-%m-%d")
     d548 = (now - timedelta(days=548)).strftime("%Y-%m-%d")
-    tot = sum(v * ca_factor_after_event(caps, e) for e, v in rows if d365 <= e <= today)
+    ok = [(e, v) for e, v in rows if (e, round(v, 4)) not in rej]
+    rej_in = any(d365 <= e <= today for e, v in rows if (e, round(v, 4)) in rej)
+    tot = sum(v * ca_factor_after_event(caps, e) for e, v in ok if d365 <= e <= today)
+    if tot <= 0 and rej_in:
+        return None, "rejected"    # «غير متوفر» لا «لا يوزع»: المبلغ تالف، لا غياب توزيع مؤكد
+    # المرفوض يسقط من المجموع وحده، ويبقى شاهداً في «وزّع خلال 18 شهراً» (ش3): السجل التالف ليس
+    # دليلاً على الغياب، فلا يصير 3007 «لا يوزع» بعد أن كان «خارج نافذة 12 شهراً»
     basis = ("ttm12m" if tot > 0 else
              "none-recent18m" if any(d548 <= e <= today for e, _ in rows) else "none")
     return round(tot, 4), basis
@@ -1752,11 +1763,24 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today, upco
         # عدد الأسهم المجمّد (08-06) يُحمل على الأساس الحالي: الأسهم ÷ معاملات ما بعد اللقطة.
         # مستهلكوه (dyFlags، self-check، حارس الفترة الجزئية) يقسمون على sharesCapFactor.
         vi = st.get("valuationInputs")
-        if isinstance(vi, dict) and (applied or gone) and isinstance(st.get("dividendEvents"), list):
+        # حارس التوزيع الوهمي (§8-ن): أحقية يرفضها فحص السعر نفسه الذي ترفضها به سلسلة العائد الكلي
+        # تسقط من divTtm12m — وإلا بقي عائدها في التقييم ووسيط القطاع (3008: 4098%)
+        rej_prev = st.pop("dividendRejected", None)
+        _DIV_ROWS[sym] = (rows, applied)
+        rej = div_rejected(rows, st.get("dividendEvents"), applied)
+        if rej:
+            st["dividendRejected"] = rej
+            for x in rej:
+                print("  🚫 %s توزيع %s (%s) خارج العائد: %s" % (sym, x["date"], x["amount"], x["why"]))
+        # و«غير متوفر» القائم يُعاد حسابه دائماً: أسبوعيٌّ صحّح فيه المزوّد المبلغ وفشلت أساسياته يمسح
+        # الرفض ولا يكتب العائد، فيعلق (None، rejected) بلا هذا (ختم الناقد §8-ن، م1)
+        if (isinstance(vi, dict) and (applied or gone or rej or rej_prev or vi.get("divBasis") == "rejected")
+                and isinstance(st.get("dividendEvents"), list)):
             # التوزيع يُحمل على الأساس الحالي يومياً من الأحقيات المخزّنة (ختم 20-10، بند 9):
             # وإلا بقي أياماً على القديم والسعر وعدد الأسهم على الجديد (عائد 7202 ×2)
             vi["divTtm12m"], vi["divBasis"] = div_ttm_capadj(
-                [(x["date"], x["amount"]) for x in st["dividendEvents"]], applied, datetime.now(timezone.utc), today)
+                [(x["date"], x["amount"]) for x in st["dividendEvents"]], applied, datetime.now(timezone.utc), today,
+                [(x["date"], x["amount"]) for x in rej])
         if isinstance(vi, dict):
             k = ca_factor_after_event(applied, vi.get("sharesAsOf") or CA_FROZEN_ASOF)
             if abs(k - 1) > 1e-9:
@@ -1783,6 +1807,43 @@ TR_Y_BIG = 0.08           # عائد > 8% يُقبل فقط إن هبط سعر �
 TR_PROV_UP = 1.02         # خطوة صاعدة في عامل المزوّد > 2% ليست توزيعاً (4322: +36.5% وclose متصل)
 
 
+def div_event_check(rows, dates, e, D, caps):
+    """فحص توزيع واحد على الأسعار (القاعدة الواحدة لسلسلة العائد الكلي ولحارس التوزيع الوهمي §8-ن).
+    المرجع C = إغلاق آخر جلسة ≤ e، وجلسة الاستبعاد أول جلسة > e. y = D × k / C على أساس السهم الحالي.
+    يعيد (j، y، سبب الرفض أو None)؛ وy = None حين لا جلسة ≤ e (لا حكم)."""
+    n = len(rows)
+    j = next((i for i, d in enumerate(dates) if d > e), n)
+    if j <= 0 or not rows[j - 1][1]:
+        return j, None, None
+    c = rows[j - 1][1]
+    y = D * ca_factor_after_event(caps, e) / c
+    if y <= 0 or y >= TR_Y_MAX:
+        return j, y, "مرفوض: عائد %.1f%%" % (y * 100)
+    if j < n:
+        drop = 1 - rows[j][1] / c if rows[j][1] else 0
+        if y > TR_Y_BIG and drop < 0.5 * y:
+            return j, y, "مرفوض: عائد %.1f%% وهبوط الاستبعاد %.1f%% (مبلغ اسمي لا يوافق السعر)" % (y * 100, drop * 100)
+    return j, y, None
+
+
+# صفوف الأسعار المعدّلة والإجراءات المطبَّقة من التمريرة اليومية في التشغيلة نفسها: الأسبوعي
+# (fetch_fundamentals ← do_dividends) يحكم بها على أحقيات /dividends الطازجة قبل أن تدخل العائد
+# (ختم المحلل §8-ن، ش1: توزيعٌ وهمي جديد كان يُنشر حتى اليومي التالي)
+_DIV_ROWS = {}
+
+
+def div_rejected(rows, div_events, caps):
+    """حارس التوزيع الوهمي (§8-ن): أحقيات dividendEvents التي يرفضها div_event_check — قائمة
+    [{date، amount، y، why}]. وأحقية بلا جلسة استبعاد بعدُ تُحكم بعتبة 25% وحدها."""
+    dates = [r[0] for r in rows]
+    out = []
+    for x in sorted(div_events or [], key=lambda x: x["date"]):
+        _, y, why = div_event_check(rows, dates, x["date"], x["amount"], caps)
+        if why:
+            out.append({"date": x["date"], "amount": x["amount"], "y": round(y, 4), "why": why})
+    return out
+
+
 def tr_local_series(rows, div_events, caps, tc=TR_TC):
     """سلسلة العائد الكلي: close (بعد apply_capactions) × عوامل التوزيعات. يعيد (pairs، log).
     - من tc فصاعداً، لكل توزيع في dividendEvents (تاريخ الأحقية e، المبلغ الاسمي D): جلسة الاستبعاد =
@@ -1800,18 +1861,11 @@ def tr_local_series(rows, div_events, caps, tc=TR_TC):
         e, D = x["date"], x["amount"]
         if e < tc:
             continue
-        j = next((i for i, d in enumerate(dates) if d > e), n)
-        if j <= 0 or j >= n or not rows[j - 1][1]:
+        j, y, why = div_event_check(rows, dates, e, D, caps)
+        if y is None or j >= n:
             continue
-        c = rows[j - 1][1]
-        y = D * ca_factor_after_event(caps, e) / c
-        if y <= 0 or y >= TR_Y_MAX:
-            log.append((e, round(y, 4), "مرفوض: عائد %.1f%%" % (y * 100)))
-            continue
-        drop = 1 - rows[j][1] / c if rows[j][1] else 0
-        if y > TR_Y_BIG and drop < 0.5 * y:
-            log.append((e, round(y, 4), "مرفوض: عائد %.1f%% وهبوط الاستبعاد %.1f%% (مبلغ اسمي لا يوافق السعر)"
-                        % (y * 100, drop * 100)))
+        if why:
+            log.append((e, round(y, 4), why))
             continue
         for i in range(j):
             fac[i] *= (1 - y)
@@ -2074,7 +2128,16 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             val = h2.get("value") if h2.get("value") is not None else h2.get("amount")
             if ed and val and val > 0:
                 rows.append((ed, val))
-        scratch.setdefault(sym, {})["div"] = div_ttm_capadj(rows, st.get("capActions"), now, today)
+        # §8-ن: الأحقيات الطازجة تُحكم بأسعار التمريرة اليومية (ش1)؛ وبلاها (سهم لم تُجلب شموعه)
+        # يبقى المرفوض المخزَّن
+        if sym in _DIV_ROWS:
+            r_, caps_ = _DIV_ROWS[sym]
+            rej = div_rejected(r_, [{"date": e, "amount": round(v, 4)} for e, v in rows], caps_)
+        else:
+            rej = st.get("dividendRejected") or []
+        scratch.setdefault(sym, {})["divRej"] = rej
+        scratch[sym]["div"] = div_ttm_capadj(rows, st.get("capActions"), now, today,
+                                             [(x["date"], x["amount"]) for x in rej])
         # سجل الأحقيات (المرحلة 1 من تعديل المنح، قرار المالك 20-10): كاشف الإجراءات
         # الرأسمالية يميّز التوزيع النقدي الاستثنائي عن المنحة بتاريخ الأحقية وقيمتها.
         # الحد الأدنى ثابت عند TR_TC (§8-ل، شرط المحلل 1): سلسلة العائد الكلي تبني ما بعد الحد من
@@ -2166,6 +2229,15 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             sh_changed += int(last0 is not None and st["sharesHistory"][-1]["shares"] != last0)
         if sc.get("divEvents") is not None:
             st["dividendEvents"] = [{"date": e, "amount": v} for e, v in sc["divEvents"]]
+            # سجل المرفوض يتبع الأحقيات الطازجة (§8-ن): ما حُكم عليه في do_dividends
+            keep = {x["date"] for x in st["dividendEvents"]}
+            rj = [x for x in sc.get("divRej") or [] if x["date"] in keep]
+            if rj:
+                st["dividendRejected"] = rj
+                for x in rj:
+                    print("  🚫 %s توزيع %s (%s) خارج العائد: %s" % (sym, x["date"], x["amount"], x["why"]))
+            else:
+                st.pop("dividendRejected", None)
         if not p and not rat:
             continue   # فشل كلا المصدرين — الكتلة القديمة تبقى بختمها (لا ختم زور)
         bank = is_bank(st)
