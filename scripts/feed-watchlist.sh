@@ -78,8 +78,18 @@ def close_frozen(e):
 from datetime import timedelta as _td
 PEND_WIN_START = (datetime.strptime(today, "%Y-%m-%d") - _td(days=1400)).strftime("%Y-%m-%d")
 
+# وصلة المزوّد غير المحسومة (§8-ك): سهمٌ له مدخل موسوم provider-splice ولا بند وصلة مطبَّق له
+# (2050 — معامله غير مؤكَّد) يبقى SMA200W فيه مضخّماً حتى ~2027-10، فلا دخول جديد عليه
+# (إعادة ختم الدفعة الثانية، شرط 1). وسهمٌ حُسمت وصلته ببند (1080) يعود عادياً.
+splice_fault_syms = {e["symbol"] for e in stocks_cfg
+                     if (e.get("dataFault") or {}).get("kind") == "provider-splice"}
+
+def splice_unresolved(sym):
+    return sym in splice_fault_syms and not any(a.get("date") == "2023-11-27" for a in caps_by.get(sym, []))
+
 def entry_blocked(sym):
-    return any(p.get("date", "") >= PEND_WIN_START for p in pend_by.get(sym, []))
+    return (any(p.get("date", "") >= PEND_WIN_START for p in pend_by.get(sym, []))
+            or splice_unresolved(sym))
 
 for s in data.get("stocks", []):
     inv = s.get("investmentScore") or {}
@@ -99,7 +109,8 @@ for s in data.get("stocks", []):
     if not (s.get("liquidityGate") or {}).get("passed", True):
         continue
     if entry_blocked(s["symbol"]):
-        print("  ⏸️ %s: لا دخول — فجوة سعرية معلّقة داخل نافذة المؤشرات (§8-ق)" % s["symbol"])
+        print("  ⏸️ %s: لا دخول — فجوة سعرية معلّقة داخل نافذة المؤشرات أو وصلة مزوّد غير محسومة (§8-ق/ك)"
+              % s["symbol"])
         continue
     if code in ("strong_buy", "buy"):
         sample, category = "applied", code
@@ -144,6 +155,17 @@ for s in data.get("stocks", []):
     stocks_cfg.append(entry)
     open_auto[(s["symbol"], sample)] = entry
     added.append(entry)
+
+# مدخل مفتوح موسوم dataFault (قرار المالك — خارج القياس) يُغلق في أول تشغيلة إقفال بسبب
+# data_fault: لا يشغل مقعداً ولا يُقاس ولا يُحكم، فيصدق وسمه «أُغلق بعطب بيانات» (إعادة ختم
+# الدفعة الثانية، شرط 1 — مدخل ظل القيمة لـ2050). يشمل العينتين وظل القيمة.
+fault_closed = []
+for e in stocks_cfg:
+    if e.get("track") == "auto" and e.get("status", "open") == "open" and e.get("dataFault"):
+        e["status"], e["closeDate"], e["closeReason"] = "closed", today, "data_fault"
+        e["closePrice"] = snapshot.get(e["symbol"], (None, None))[0]
+        fault_closed.append(e["symbol"])
+        print("  ⚠️ %s (%s): أُغلق بعطب بيانات — خارج القياس" % (e["symbol"], e.get("sampleType") or e.get("category")))
 
 # إغلاق مرحلة أ: نقاط < 50 (يشمل الظل لسلامة المقارنة — وليس ظل القيمة: قواعده مستقلة)
 for e in stocks_cfg:
@@ -277,7 +299,7 @@ if len(vs_open_syms) < VS_CAP:
         }
         stocks_cfg.append(e)
         vs_added.append(e)
-if added or closed or vs_added or vs_closed_now or vs_meas_updated or mae_official_updated:
+if added or closed or fault_closed or vs_added or vs_closed_now or vs_meas_updated or mae_official_updated:
     backup = f"{ARCHIVE}/watchlist-config.json.{today}"
     if not os.path.exists(backup):
         shutil.copy2(CONFIG, backup)

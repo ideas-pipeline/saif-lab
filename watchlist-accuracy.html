@@ -2843,7 +2843,7 @@ function renderValueShadow() {
       <td dir="ltr">${r.peAtEntry !== undefined ? fmt(r.peAtEntry) + (r.peSectorMedianAtEntry ? " / " + fmt(r.peSectorMedianAtEntry) : "") : "—"}</td>
       <td>${r.priceVsSmaPct !== undefined ? fmtReturn(r.priceVsSmaPct) : "—"}</td>
       <td>${r.filterCrossDate ? r.filterCrossDate + " @ " + fmt(r.filterCrossPrice) : "—"}</td>
-      <td>${r.status === "closed" ? (r.closeReason || "مغلق") : "مفتوح"}</td>
+      <td>${r.dataFault ? "⚠️ عطب بيانات — خارج القياس" : (r.status === "closed" ? (r.closeReason || "مغلق") : "مفتوح")}</td>
     </tr>`).join("");
   el.innerHTML = `
     <div style="margin-top:28px;border:1px dashed var(--yellow);border-radius:var(--radius-lg);padding:14px">
