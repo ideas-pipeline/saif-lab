@@ -142,7 +142,7 @@ R4321 = series("4321", 15.95, [(BONUS_I, 12 / 13)])
 EV4 = detect_all(universe(**{"4321": R4321}))
 check("منحة 1:12 داخل الحد ⇒ لا يراها الكاشف", not EV4["4321"])
 man = [{"date": BONUS_D, "factor": 12 / 13, "kind": "bonus", "source": "اختبار"}]
-R7, ap7, sk7, _ = m.ca_plan_apply("4321", [], man, R4321)
+(R7, ap7, sk7, _), _o = quiet(m.ca_plan_apply, "4321", [], man, R4321)
 check("والبند اليدوي يُطبَّق داخل الحد (يقرّب الفجوة من 1 بأكثر من نصف معامله)",
       [a["date"] for a in ap7] == [BONUS_D] and abs(R7[BONUS_I][1] / R7[BONUS_I - 1][1] - 1) < 0.015)
 _, ap8, sk8, _ = m.ca_plan_apply("4321", [], man, R7)
@@ -609,6 +609,60 @@ s_l1 = {"financials": {"netIncome": 3e9}, "valuationInputs": {"sharesOutstanding
                                                              "theirPrice": 14.5, "sharesCapFactor": 0.833333}}
 check("self-check: _implied_eps و_implied_eps_alt على العدد الحالي (3 مليار ÷ 1.5 مليار = 2.0)",
       abs(ns["_implied_eps"](s_l1) - 2.0) < 1e-4 and abs(ns["_implied_eps_alt"](s_l1) - 2.0) < 1e-4)
+
+# إعادة ختم 20-10 (A): البند يرتبط بحدث جلسته أو بأقرب فجوة — لا بآخر حدث قريب
+NB = N - 6
+Rsn = series("SN", 14.5, [(NB, 5 / 6), (N - 2, 0.85)])
+EVsn = detect_all(universe(SN=Rsn))
+check("سيناريو الإسناد: منحة A ثم عطب W بعد 4 جلسات",
+      [x["grade"] for x in EVsn["SN"]] == ["A", "W"])
+for off, lbl in ((0, "البند على جلسة المنحة"), (1, "البند بعد المنحة بجلسة (العطب أبعد)")):
+    man = [{"date": DATES[NB + off], "factor": 5 / 6, "kind": "bonus", "source": "اختبار"}]
+    (Rs, aps, sks, pends), outs = quiet(m.ca_plan_apply, "SN", EVsn["SN"], man, Rsn)
+    check("%s ⇒ يُطبَّق على المنحة، والعطب W يبقى معلّقاً" % lbl,
+          [a["date"] for a in aps] == [DATES[NB]] and [p_["grade"] for p_ in pends] == ["W"])
+man = [{"date": DATES[N - 3], "factor": 5 / 6, "kind": "bonus", "source": "اختبار"}]
+(Rs, aps, sks, pends), outs = quiet(m.ca_plan_apply, "SN", EVsn["SN"], man, Rsn)
+check("البند أقرب إلى العطب (بجلسة) ⇒ يرتبط به وحده، والمنحة A تبقى آلية",
+      sorted((a["date"], a["origin"]) for a in aps)[0] == (DATES[NB], "auto"))
+# تواريخ البنود اليدوية في «حدث آخر بين اللقطة والحدث» (ع2) — عبر ca_detect
+st_x = {"sharesHistory": [{"date": DATES[255], "lastSeen": DATES[255], "shares": 1.5e9}],
+        "valuationInputs": {"sharesOutstanding": 1.25e9, "marketCap": 1.25e9 * 14.5, "theirPrice": 14.5}}
+mm0 = m.ca_market_median(universe(**{"1030": R1030}))
+e_x = m.ca_detect("1030", R1030, mm0, st_x, DATES[0])
+e_y = m.ca_detect("1030", R1030, mm0, st_x, DATES[0], [DATES[249]])
+check("ca_detect: بند يدوي بين اللقطة والحدث يمنع q المجمّد", e_x[0]["q"] is not None and e_y[0]["q"] is None)
+# المسار الكامل يطبع سطر 🔎 لتغيّر الأسهم الذي لا يفسّره المطبَّق
+tmpd = tempfile.mkdtemp()
+try:
+    cdir = os.path.join(tmpd, "candles")
+    os.makedirs(cdir)
+    for s_, R in universe().items():
+        m.save_candles(cdir, s_, R)
+    st_sw = {"symbol": "N01", "sharesHistory": [{"date": "2026-10-20", "lastSeen": "2026-10-20", "shares": 2e6}],
+             "valuationInputs": {"sharesOutstanding": 1e6}}
+    _, outsw = quiet(m.fetch_daily_and_derive, Api(), [st_sw], collections.defaultdict(int), cdir, tasi, "stamp", DATES[-1])
+    check("المسار الكامل: تغيّر أسهم بلا فجوة ⇒ سطر 🔎", "🔎 N01: عدد الأسهم" in outsw)
+finally:
+    shutil.rmtree(tmpd)
+# ظل القيمة: لا دخول على فجوة معلّقة، ولا MAE ولا إغلاق ما دامت معلّقة بعد الدخول
+vs_stock = {"symbol": "3020", "sector": "Materials", "currentPrice": 10.0,
+            "investmentScore": {"filtered": True, "filterReason": "تحت SMA200W بدون إشارات انعكاس",
+                                "axes": {"quality": 20}},
+            "valuation": {"pe": 8.0}, "financials": {"ocf": 1e6}, "weeklyTechnical": {"sma200w": 12.0}}
+base_d = {"runType": "close", "sectorMedians": {"Materials": {"peMedian": 15.0}}}
+cfg6, _ = run_feed(dict(base_d, stocks=[vs_stock]), {"stocks": []})
+check("ظل القيمة: السهم المؤهَّل يدخل (شاهد)", [e["sampleType"] for e in cfg6["stocks"]] == ["value-shadow"])
+vs_p = dict(vs_stock, capActionsPending=[{"date": "2025-10-21", "r": 0.89, "grade": "B", "why": "x"}])
+cfg7, _ = run_feed(dict(base_d, stocks=[vs_p]), {"stocks": []})
+check("ظل القيمة: وبفجوة معلّقة داخل النافذة ⇒ لا دخول", cfg7["stocks"] == [])
+vs_open = {"symbol": "3020", "track": "auto", "status": "open", "sampleType": "value-shadow", "category": "value-shadow",
+           "type": "buy", "entryPrice": 20.0, "entryDate": "2025-08-09", "maePct": 0.0}
+cfg8, _ = run_feed(dict(base_d, stocks=[dict(vs_p, capActionsPending=[{"date": "2025-10-21", "r": 0.5,
+                                                                         "grade": "W", "why": "x"}])]),
+                   {"stocks": [vs_open]})
+check("ظل القيمة المفتوح بفجوة معلّقة بعد دخوله ⇒ لا MAE (لا −50 وهمي) ولا إغلاق",
+      cfg8["stocks"][0]["maePct"] == 0.0 and cfg8["stocks"][0]["status"] == "open")
 
 # JS: صفحة الدقة (entryPriceAdj وdataFault)، وimpliedEpsAlt، وisV3sc
 js = subprocess.run(["node", os.path.join(HERE, "test_capadj_ui.js")], capture_output=True, text=True)

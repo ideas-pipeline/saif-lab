@@ -1136,43 +1136,52 @@ def load_manual_actions(path):
 
 def ca_resolve(sym, events, manual_items, R):
     """دمج الكاشف والملف اليدوي → (الخطة [(date, factor, kind, origin, grade)]، المعلّقة، المُسقَطة).
-    البند اليدوي يغلب أي حدث مكتشف ضمن 3 جلسات منه، وتعارض المعاملين يُطبع إنذاراً.
+    البند اليدوي يرتبط بحدث واحد: حدثُ جلسته نفسها، وإلا أقرب فجوة حقيقية ضمن 3 جلسات —
+    فيُسقطه وحده (والبقية تُعامل كالمعتاد)، وتعارض المعاملين يُطبع إنذاراً.
     وإن كان الحدث المكتشف فجوةً حقيقية (A/B/C/W/S) بتاريخ غير تاريخ البند، أُسند البند إلى
     تاريخ الفجوة (ختم 20-10، شرط 2): apply يشترط الفجوة في تاريخ البند حرفياً، فبندٌ مزاحٌ
     بجلسة كان يُسقط اكتشافاً صحيحاً ثم يُتخطّى هو نفسه بصمت. المُسقَطة {تاريخ البند: الحدث}
     تعود إلى المعلّقة إن لم يُطبَّق البند (ca_plan_apply)."""
     dates = [x[0] for x in R]
     idx = {d: k for k, d in enumerate(dates)}
+    ev_i = [(idx.get(e["date"]), e) for e in events]
     plan, pending, suppressed = [], [], {}
-    man = []          # [فهرس أقرب صف ≥ تاريخ البند، البند، التاريخ المسنَد]
+    bound = set()     # id الأحداث التي ارتبط بها بند — وحدها تُسقَط (إعادة ختم 20-10، A)
     for it in manual_items or []:
         k = next((j for j, d in enumerate(dates) if d >= it["date"]), None)
         d0 = dates[k] if k is not None else it["date"]
         if d0 != it["date"]:
             print("  ℹ️ %s: تاريخ البند اليدوي %s ليس جلسة — أُسند إلى %s" % (sym, it["date"], d0))
-        man.append([k, it, d0])
-    for e in events:
-        i = idx.get(e["date"])
-        near = [x for x in man if x[0] is not None and i is not None and abs(x[0] - i) <= CA_MANUAL_SNAP]
-        if near:
-            x = near[0]
-            it = x[1]
-            if (x[2] != e["date"] and it["kind"] != "no-adjust"
-                    and e["grade"] in ("A", "B", "C", "W", "S")):
-                print("  ℹ️ %s: البند اليدوي %s أُسند إلى تاريخ الفجوة المكتشفة %s" % (sym, x[2], e["date"]))
-                x[2] = e["date"]
-            f_auto = e.get("factor")
+        e_b = None
+        if k is not None:
+            # حدثٌ على جلسة البند نفسها يُربط بلا إسناد؛ وإلا فأقرب فجوة حقيقية ضمن 3 جلسات
+            # (لا آخرها ترتيباً: عطبٌ لاحق قريب كان ينقل البند إليه فيبقى الحدث الحقيقي)
+            exact = [e for i, e in ev_i if i == k and id(e) not in bound]
+            near = sorted(((abs(i - k), i, e) for i, e in ev_i
+                           if i is not None and 0 < abs(i - k) <= CA_MANUAL_SNAP and id(e) not in bound
+                           and e["grade"] in ("A", "B", "C", "W", "S") and it["kind"] != "no-adjust"),
+                          key=lambda x: (x[0], x[1]))
+            if exact:
+                e_b = exact[0]
+            elif near:
+                e_b = near[0][2]
+                print("  ℹ️ %s: البند اليدوي %s أُسند إلى تاريخ الفجوة المكتشفة %s" % (sym, d0, e_b["date"]))
+                d0 = e_b["date"]
+        if e_b is not None:
+            bound.add(id(e_b))
+            f_auto = e_b.get("factor")
             if f_auto and abs(it["factor"] / f_auto - 1) > 0.01 and it["kind"] != "no-adjust":
                 print("  ⚠️ %s %s: البند اليدوي (%.6f) يخالف الكاشف (%.6f) — يُطبَّق اليدوي"
-                      % (sym, e["date"], it["factor"], f_auto))
-            suppressed[x[2]] = e
+                      % (sym, e_b["date"], it["factor"], f_auto))
+            suppressed[d0] = e_b
+        plan.append((d0, float(it["factor"]), it["kind"], "manual", "M"))
+    for e in events:
+        if id(e) in bound:
             continue
         if e.get("decision") == "auto":
             plan.append((e["date"], e["factor"], "bonus/split", "auto", e["grade"]))
         elif e.get("decision") in ("manual", "pending"):
             pending.append({"date": e["date"], "r": e["r"], "grade": e["grade"], "why": e["why"]})
-    for _, it, d in man:
-        plan.append((d, float(it["factor"]), it["kind"], "manual", "M"))
     return plan, pending, suppressed
 
 
@@ -1224,6 +1233,7 @@ def apply_capactions(R, plan):
         if 1 not in cols:
             skipped.append({"date": d, "factor": f, "origin": origin, "why": "الفجوة غائبة في الخام — مُعدَّل لدى المزوّد"})
             continue
+        r_close = R[i][1] / R[i - 1][1]
         for j in range(i):
             for c in cols:
                 if R[j][c] is not None:
@@ -1234,6 +1244,11 @@ def apply_capactions(R, plan):
                 R[j][4] *= f
             if R[j][5] is not None:
                 R[j][5] = R[j][5] / f
+        if origin == "manual" and abs(r_close - 1) <= CA_BAND:
+            # حدّ معلن (إعادة ختم 20-10، B): شرط ع1 يقبل rr ≤ f^0.75 — فلمعامل صغير ومزوّدٍ عدّل
+            # التاريخ لاحقاً مع هبوط تداول ≥ ~6% يوم الحدث قد يتكرر التعديل. يُرى هنا.
+            print("  ℹ️ بند يدوي %s ×%.6f طُبّق والفجوة داخل حد التذبذب (r=%.4f) — تأكد أن المزوّد لم يعدّل"
+                  % (d, f, r_close))
         applied.append({"date": d, "factor": round(f, 6), "kind": kind, "origin": origin,
                         "grade": grade, "cols": ["close" if c == 1 else "adjusted" for c in cols]})
     return R, applied, skipped
@@ -1514,7 +1529,7 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
         # عدد الأسهم المجمّد (08-06) يُحمل على الأساس الحالي: الأسهم ÷ معاملات ما بعد اللقطة.
         # مستهلكوه (dyFlags، self-check، حارس الفترة الجزئية) يقسمون على sharesCapFactor.
         vi = st.get("valuationInputs")
-        if isinstance(vi, dict) and applied and isinstance(st.get("dividendEvents"), list):
+        if isinstance(vi, dict) and (applied or gone) and isinstance(st.get("dividendEvents"), list):
             # التوزيع يُحمل على الأساس الحالي يومياً من الأحقيات المخزّنة (ختم 20-10، بند 9):
             # وإلا بقي أياماً على القديم والسعر وعدد الأسهم على الجديد (عائد 7202 ×2)
             vi["divTtm12m"], vi["divBasis"] = div_ttm_capadj(
