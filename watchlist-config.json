@@ -442,7 +442,7 @@
    "peSectorMedianAtEntry": 18.5,
    "tasiAtEntry": 10817.01,
    "maePct": -10.38,
-   "status": "open",
+   "status": "closed",
    "tasiRet": -8.0,
    "excessNet": -2.76,
    "dataFault": {
@@ -450,7 +450,10 @@
     "date": "2023-11-27",
     "label": "أُغلق بعطب بيانات",
     "note": "وصلة المزوّد 2023-11-27 (§8-ك، قرار المالك 20-10): ما قبلها لم يُعدَّل لحقوق 2024-08 وتخفيض 2024-12 فتضخّم SMA200W. بأي معامل معقول (0.577–0.627) كان السعر فوق المتوسط يوم الدخول (+0.5% إلى +2.5%) لا تحته (−11.93% المسجّل) — فالدخول عبر فلتر SMA أثرٌ للوصلة. السهم بلا بند لأن معامله غير مؤكَّد (التوزيع العيني لأسهم المراعي)"
-   }
+   },
+   "closeDate": "2026-10-20",
+   "closeReason": "data_fault",
+   "closePrice": 23.31
   },
   {
    "symbol": "3020",
@@ -2139,6 +2142,33 @@
    "volTrendAtEntry": 0.83,
    "status": "open",
    "maePct": 0.0
+  },
+  {
+   "symbol": "1302",
+   "name": "بوان",
+   "sector": "Industrials",
+   "type": "buy",
+   "entryPrice": 29.0,
+   "entryDate": "2026-10-20",
+   "track": "auto",
+   "sampleType": "value-shadow",
+   "category": "value-shadow",
+   "engineClass": "filtered",
+   "scoreAtEntry": 0,
+   "qualityAtEntry": 20,
+   "timingAtEntry": "انتظر",
+   "regimeAtEntry": "هابط",
+   "scoreScaleAtEntry": "criteria-v3",
+   "priceBasisAtEntry": "capadj-v1",
+   "aboveSmaAtEntry": false,
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 0.82,
+   "priceVsSmaPct": -32.64,
+   "peAtEntry": 7.34,
+   "peSectorMedianAtEntry": 11.67,
+   "tasiAtEntry": 9952.06,
+   "maePct": 0.0,
+   "status": "open"
   }
  ]
 }
