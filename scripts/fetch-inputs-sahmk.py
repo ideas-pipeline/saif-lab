@@ -1772,7 +1772,9 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today, upco
             st["dividendRejected"] = rej
             for x in rej:
                 print("  🚫 %s توزيع %s (%s) خارج العائد: %s" % (sym, x["date"], x["amount"], x["why"]))
-        if (isinstance(vi, dict) and (applied or gone or rej or rej_prev)
+        # و«غير متوفر» القائم يُعاد حسابه دائماً: أسبوعيٌّ صحّح فيه المزوّد المبلغ وفشلت أساسياته يمسح
+        # الرفض ولا يكتب العائد، فيعلق (None، rejected) بلا هذا (ختم الناقد §8-ن، م1)
+        if (isinstance(vi, dict) and (applied or gone or rej or rej_prev or vi.get("divBasis") == "rejected")
                 and isinstance(st.get("dividendEvents"), list)):
             # التوزيع يُحمل على الأساس الحالي يومياً من الأحقيات المخزّنة (ختم 20-10، بند 9):
             # وإلا بقي أياماً على القديم والسعر وعدد الأسهم على الجديد (عائد 7202 ×2)

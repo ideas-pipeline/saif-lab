@@ -169,5 +169,45 @@ with contextlib.redirect_stdout(io.StringIO()):
 check("والمزوّد صحّح في الأسبوعي ⇒ الوسم يُمسح والعائد 0.04", "dividendRejected" not in stc
       and stc["valuationInputs"]["divTtm12m"] == 0.04)
 
+# ش-أ (ختم الناقد): التكامل الحقيقي يومي ⇒ أسبوعي في التشغيلة نفسها، بلا تعبئة _DIV_ROWS يدوياً
+m._DIV_ROWS.clear()
+tmpd = tempfile.mkdtemp()
+try:
+    cdir = os.path.join(tmpd, "candles")
+    os.makedirs(cdir)
+    m.save_candles(cdir, "3008", R)
+    sti = {"symbol": "3008", "sector": "Basic Materials", "industry": "Building Materials", "financials": {},
+           "guardRejected": [], "_prevFinancials": {}, "dividendEvents": [],
+           "valuationInputs": {"divTtm12m": 0.0, "divBasis": "none"}}
+    with contextlib.redirect_stdout(io.StringIO()):
+        m.fetch_daily_and_derive(Api(), [sti], collections.defaultdict(int), cdir, T0, "s", D[-1])
+        m.fetch_fundamentals(DivApi(), data, [sti], collections.defaultdict(int), TODAY, full_universe=False)
+    check("تكامل: اليومي ثم الأسبوعي — أحقية وهمية جديدة بلا رفض مخزَّن ⇒ None (rejected) في التشغيلة نفسها",
+          sti["valuationInputs"]["divTtm12m"] is None and sti["valuationInputs"]["divBasis"] == "rejected"
+          and sti["dividendRejected"][0]["date"] == D[ie])
+    # م1: صحّح المزوّد في الأسبوعي وفشلت أساسياته ⇒ لا يعلق «غير متوفر» في اليومي التالي
+    stk = {"symbol": "3008", "dividendEvents": [{"date": D[ie], "amount": 0.04}],
+           "valuationInputs": {"divTtm12m": None, "divBasis": "rejected"}}
+    with contextlib.redirect_stdout(io.StringIO()):
+        m.fetch_daily_and_derive(Api(), [stk], collections.defaultdict(int), cdir, T0, "s", D[-1])
+    check("م1: (None، rejected) بلا رفض قائم ⇒ اليومي يعيد الحساب (0.04)",
+          stk["valuationInputs"]["divTtm12m"] == 0.04 and stk["valuationInputs"]["divBasis"] == "ttm12m")
+    # N11: الأسبوعي يمرّر الإجراءات المطبَّقة — 0.30 قبل منحة 1:1 (y = 14% لا 28%) يُرفض بقاعدة الهبوط
+    stb = {"symbol": "3008", "sector": "Basic Materials", "industry": "Building Materials", "financials": {},
+           "guardRejected": [], "_prevFinancials": {}, "dividendEvents": []}
+
+    class BonusDivApi(DivApi):
+        def get(self, path, **k):
+            if path.startswith("/dividends/"):
+                return {"history": [{"eligibility_date": D[ie], "value": 0.30}]}, None
+            return super().get(path, **k)
+    m._DIV_ROWS["3008"] = (R, [{"date": D[ie + 5], "factor": 0.5}])
+    with contextlib.redirect_stdout(io.StringIO()):
+        m.fetch_fundamentals(BonusDivApi(), data, [stb], collections.defaultdict(int), TODAY, full_universe=False)
+    check("N11: الأسبوعي يحسب العائد بمعامل المنحة (14% ⇒ سبب الهبوط لا عتبة 25%)",
+          "هبوط" in stb["dividendRejected"][0]["why"])
+finally:
+    shutil.rmtree(tmpd)
+
 print("\n%s" % ("الكل سليم" if not fails else "فشل %d" % fails))
 sys.exit(1 if fails else 0)
