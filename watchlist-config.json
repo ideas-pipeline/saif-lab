@@ -19,7 +19,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -4.02
+   "maePct": -5.36
   },
   {
    "symbol": "1303",
@@ -118,7 +118,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.87,
+   "maePct": -1.68,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -254,7 +254,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.86
+   "maePct": -1.01
   },
   {
    "symbol": "7010",
@@ -272,7 +272,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.37,
+   "maePct": -4.84,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -392,7 +392,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -3.81
+   "maePct": -5.28
   },
   {
    "symbol": "5110",
@@ -415,10 +415,10 @@
    "peAtEntry": 5.26,
    "peSectorMedianAtEntry": 19.07,
    "tasiAtEntry": 10817.01,
-   "maePct": -12.94,
+   "maePct": -13.69,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -5.84
+   "tasiRet": -8.0,
+   "excessNet": -6.38
   },
   {
    "symbol": "2050",
@@ -443,8 +443,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -10.38,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -3.3
+   "tasiRet": -8.0,
+   "excessNet": -2.76
   },
   {
    "symbol": "3020",
@@ -469,8 +469,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -10.43,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -2.01
+   "tasiRet": -8.0,
+   "excessNet": -1.82
   },
   {
    "symbol": "3080",
@@ -495,8 +495,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -11.06,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -2.27
+   "tasiRet": -8.0,
+   "excessNet": -2.24
   },
   {
    "symbol": "6010",
@@ -519,10 +519,10 @@
    "peAtEntry": 11.47,
    "peSectorMedianAtEntry": 18.5,
    "tasiAtEntry": 10817.01,
-   "maePct": -13.25,
+   "maePct": -15.34,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -7.52
+   "tasiRet": -8.0,
+   "excessNet": -8.04
   },
   {
    "symbol": "4012",
@@ -545,10 +545,10 @@
    "peAtEntry": 13.99,
    "peSectorMedianAtEntry": 22.44,
    "tasiAtEntry": 10817.01,
-   "maePct": -12.15,
+   "maePct": -12.43,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -5.6
+   "tasiRet": -8.0,
+   "excessNet": -5.13
   },
   {
    "symbol": "3010",
@@ -573,8 +573,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -12.2,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -4.4
+   "tasiRet": -8.0,
+   "excessNet": -2.42
   },
   {
    "symbol": "3005",
@@ -599,8 +599,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -20.8,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -15.07
+   "tasiRet": -8.0,
+   "excessNet": -13.41
   },
   {
    "symbol": "3030",
@@ -623,10 +623,10 @@
    "peAtEntry": 12.18,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -9.54,
+   "maePct": -10.39,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -2.54
+   "tasiRet": -8.0,
+   "excessNet": -3.08
   },
   {
    "symbol": "4323",
@@ -649,10 +649,10 @@
    "peAtEntry": 8.85,
    "peSectorMedianAtEntry": 11.99,
    "tasiAtEntry": 10817.01,
-   "maePct": -15.11,
+   "maePct": -15.65,
    "status": "open",
-   "tasiRet": -6.41,
-   "excessNet": -9.27
+   "tasiRet": -8.0,
+   "excessNet": -8.34
   },
   {
    "symbol": "1303",
@@ -729,7 +729,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -4.51,
+   "maePct": -4.66,
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه"
   },
   {
@@ -1054,7 +1054,7 @@
    "volTrendAtEntry": 0.92,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -6.34
+   "maePct": -7.65
   },
   {
    "symbol": "4020",
@@ -1104,8 +1104,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -12.64,
    "status": "open",
-   "tasiRet": -6.47,
-   "excessNet": -5.78
+   "tasiRet": -8.05,
+   "excessNet": -4.52
   },
   {
    "symbol": "4260",
@@ -1163,8 +1163,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -0.77,
    "status": "open",
-   "tasiRet": -6.47,
-   "excessNet": 8.92
+   "tasiRet": -8.05,
+   "excessNet": 8.11
   },
   {
    "symbol": "1180",
@@ -1254,7 +1254,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.15,
    "status": "open",
-   "maePct": -5.88
+   "maePct": -8.54
   },
   {
    "symbol": "1212",
@@ -1321,7 +1321,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.29,
    "status": "open",
-   "maePct": -4.64
+   "maePct": -7.38
   },
   {
    "symbol": "4190",
@@ -1454,8 +1454,11 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.86,
-   "status": "open",
-   "maePct": -11.28
+   "status": "closed",
+   "maePct": -11.28,
+   "closeDate": "2026-10-20",
+   "closePrice": 27.8,
+   "closeReason": "score_below_50"
   },
   {
    "symbol": "3092",
@@ -1506,7 +1509,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.04,
    "status": "open",
-   "maePct": -13.67,
+   "maePct": -17.27,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -1557,7 +1560,7 @@
    "volTrendAtEntry": 1.21,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -8.04
+   "maePct": -10.64
   },
   {
    "symbol": "4020",
@@ -1695,7 +1698,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.2,
    "status": "open",
-   "maePct": -9.23
+   "maePct": -13.01
   },
   {
    "symbol": "1320",
@@ -1764,10 +1767,10 @@
    "peAtEntry": 6.73,
    "peSectorMedianAtEntry": 19.64,
    "tasiAtEntry": 11032.91,
-   "maePct": -21.86,
+   "maePct": -23.86,
    "status": "open",
-   "tasiRet": -8.24,
-   "excessNet": -14.01
+   "tasiRet": -9.8,
+   "excessNet": -14.51
   },
   {
    "symbol": "3040",
@@ -1858,7 +1861,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.03,
    "status": "open",
-   "maePct": -17.8,
+   "maePct": -18.47,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -1879,7 +1882,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.02,
    "status": "open",
-   "maePct": -19.67
+   "maePct": -20.33
   },
   {
    "symbol": "4020",
@@ -1904,10 +1907,10 @@
    "peAtEntry": 6.22,
    "peSectorMedianAtEntry": 20.81,
    "tasiAtEntry": 11007.27,
-   "maePct": -8.37,
+   "maePct": -12.0,
    "status": "open",
-   "tasiRet": -8.03,
-   "excessNet": -0.59
+   "tasiRet": -9.59,
+   "excessNet": -2.79
   },
   {
    "symbol": "6014",
@@ -2047,7 +2050,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.1,
    "status": "open",
-   "maePct": -8.17
+   "maePct": -10.29
   },
   {
    "symbol": "2370",
@@ -2068,7 +2071,7 @@
    "volTrendAtEntry": 0.73,
    "status": "open",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": 0.0
+   "maePct": -4.01
   },
   {
    "symbol": "2150",
@@ -2093,8 +2096,10 @@
    "peAtEntry": 10.65,
    "peSectorMedianAtEntry": 18.25,
    "tasiAtEntry": 10123.62,
-   "maePct": 0.0,
-   "status": "open"
+   "maePct": -1.22,
+   "status": "open",
+   "tasiRet": -1.69,
+   "excessNet": 0.47
   }
  ]
 }
