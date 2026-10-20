@@ -230,6 +230,7 @@ def shift_months(date_str, n):
 def build_series(dates, raw, adj_pairs):
     """سلاسل الرسم المضغوطة (الموجة 1 — تفعيل الرسم التفاعلي): لكل مدة {start, p[, iv]}
     بلا تواريخ لكل نقطة — الواجهة تشتق التواريخ بالفهرس التقريبي (العقد في mapping §3):
+      (§8-ق: «الخام» هنا خام معدّل للإجراءات الرأسمالية بعد 2024-03 — لا هبوط وهمي من منحة)
       d30/d90: إغلاقات يومية **خام** (جلسات تداول)
       w52/w156: أسبوعية مشتقة **معدلة** (أسابيع مكتملة — اصطلاح §6-1 نفسه، تتسق مع SMA200W)
       mAll: آخر إغلاق **خام** لكل شهر ميلادي للتاريخ كله (iv: M — وقد تصير Q بميزانية الحجم)
@@ -924,6 +925,7 @@ CA_FROZEN_ASOF = "2026-08-06" # لقطة valuationInputs.sharesOutstanding ال�
 CA_FROZEN_MCAP_TOL = 0.10     # المجمّد مقبول «قبل» فقط إن وافق marketCap/theirPrice ضمن 10%
 CA_MASS_N = 5                 # ≥ 5 أسهم بفجوة في اليوم نفسه = وصلة مزوّد (S)، لا إجراء
 CA_MANUAL_SNAP = 3            # بند يدوي ضمن 3 جلسات من حدث مكتشف يغلبه
+CA_STALE_TOL = 0.03           # سطر 🔎 فقط: marketCap/theirPrice يوافق العدد الجديد ⇒ «المجمّد بائت» (1820: 1.0%)
 CA_KINDS = ("bonus", "split", "capital-reduction", "rights", "no-adjust")
 
 CA_CANDS = {}
@@ -974,9 +976,14 @@ def ca_q_for(st, D, other_dates):
         return None, "لا sharesHistory"
     if not isinstance(fz, (int, float)) or fz <= 0:
         return None, "لا عدد مجمّد"
-    if not D > CA_FROZEN_ASOF:
+    asof = vi.get("sharesAsOf") or CA_FROZEN_ASOF
+    if not D > asof:
         return None, "الحدث قبل اللقطة المجمّدة"
-    if any(CA_FROZEN_ASOF < d < D for d in other_dates):
+    # بعد أول تسجيل لا يصلح المجمّد «قبل» (مراجعة المحلل 20-10، ع2): كل الأعداد سُجّلت أولاً
+    # في 10-20، فحدثٌ لاحق كان سيأخذ q منحةٍ قديمة (4321: 0.9176 على بعد 0.94% من 10/11)
+    if D > hist[0]["date"]:
+        return None, "الحدث بعد أول تسجيل لعدد الأسهم — التغيّر المسجّل وحده يُستعمل"
+    if any(asof < d < D for d in other_dates):
         return None, "حدث آخر بين اللقطة والحدث"
     mc, tp = vi.get("marketCap"), vi.get("theirPrice")
     if not (isinstance(mc, (int, float)) and isinstance(tp, (int, float)) and tp > 0
@@ -988,7 +995,7 @@ def ca_q_for(st, D, other_dates):
     return q, "مجمّد(%s)/sharesHistory(%s)" % (CA_FROZEN_ASOF, hist[-1]["date"])
 
 
-def ca_detect(sym, R, mm, st, first_universe_date):
+def ca_detect(sym, R, mm, st, first_universe_date, extra_dates=()):
     """كل فجوة خارج حد التذبذب في صفوف السهم ← حدث بدرجة وقرار:
     A/B بقرار auto تُطبَّق آلياً؛ manual/pending تُدرج للمراجعة؛ no لا شيء.
     الدرجات: A مرشح وحيد، B عدة مرشحين (q يحسم)، C لا مرشح (يدوي دائماً)،
@@ -1046,8 +1053,11 @@ def ca_detect(sym, R, mm, st, first_universe_date):
                 es.append(abs(fobs / (f * (1 - delta)) - 1))
             return min(es)
 
-        q, qsrc = ca_q_for(st, d, [x for x in gap_dates if x != d])
+        q, qsrc = ca_q_for(st, d, [x for x in list(gap_dates) + list(extra_dates) if x != d])
         e["q"] = round(q, 6) if q else None
+        # q من المجمّد مقبول بسماحية اتساق 10% مع marketCap/theirPrice، فلا يصح أن يناقض
+        # بأدق منها (ختم 20-10، شرط 3): خارج 1% وداخل 10% = بلا معلومة لا تناقض
+        q_frozen = q is not None and qsrc.startswith("مجمّد")
         if delta >= CA_DIV_MIN and abs(r / (1 - delta) - 1) <= CA_BAND and q is None:
             e.update(grade="D", decision="no", why="توزيع استثنائي %.1f%% يفسّر الفجوة" % (delta * 100))
             continue
@@ -1063,6 +1073,8 @@ def ca_detect(sym, R, mm, st, first_universe_date):
                 e.update(decision="auto", why="مرشح وحيد ضمن 1.5%% ومجال الحد؛ q: %s" % qsrc)
             elif abs(q / f - 1) <= CA_Q_TOL:
                 e.update(decision="auto", why="A مؤكَّدة بعدد الأسهم (%s)" % qsrc)
+            elif q_frozen and abs(q / f - 1) <= CA_FROZEN_MCAP_TOL:
+                e.update(decision="auto", why="A؛ q=%.4f من المجمّد ضمن سماحية اتساقه — بلا معلومة (%s)" % (q, qsrc))
             else:
                 e.update(decision="manual", why="A يناقضها q=%.4f (%s)" % (q, qsrc))
         elif len(qmatch) == 1:
@@ -1082,7 +1094,9 @@ def ca_mark_systemic(events):
     """≥ CA_MASS_N سهماً بفجوة في التاريخ نفسه = وصلة مزوّد: يدوي، لا تطبيق آلي."""
     per = collections.Counter(e["date"] for e in events if e["grade"] not in ("X", "P"))
     for e in events:
-        if e["grade"] not in ("X", "P") and per[e["date"]] >= CA_MASS_N:
+        # N (ارتداد/ضجيج) وD (توزيع) تبقى: يومُ طباعةٍ سيئة يعود في الغد لا يصير تعليقاً
+        # دائماً يجمّد إغلاقات العينة (ختم 20-10، بند 4). العدّ يشملها: هي دليل الوصلة.
+        if e["grade"] in ("A", "B", "C", "W") and per[e["date"]] >= CA_MASS_N:
             e.update(grade="S", decision="manual", why="وصلة مزوّد: %d سهماً بفجوة في اليوم نفسه" % per[e["date"]])
     return events
 
@@ -1097,9 +1111,15 @@ def load_manual_actions(path):
     except Exception as ex:
         print("  🚨 corporate-actions.json غير مقروء (%s) — لا بنود يدوية هذه التشغيلة" % ex)
         return {}
+    if not isinstance(raw, dict):
+        print("  🚨 corporate-actions.json ليس كائناً {sym: [...]} — لا بنود يدوية هذه التشغيلة")
+        return {}
     out = {}
     for sym, items in raw.items():
-        if sym.startswith("_") or not isinstance(items, list):
+        if sym.startswith("_"):
+            continue
+        if not isinstance(items, list):
+            print("  ⚠️ corporate-actions.json: قيمة %s ليست قائمة — تُسقَط" % sym)
             continue
         for it in items:
             ok = (isinstance(it, dict) and isinstance(it.get("date"), str)
@@ -1115,28 +1135,60 @@ def load_manual_actions(path):
 
 
 def ca_resolve(sym, events, manual_items, R):
-    """دمج الكاشف والملف اليدوي → (الخطة [(date, factor, kind, origin, grade)]، المعلّقة).
-    البند اليدوي يغلب أي حدث مكتشف ضمن 3 جلسات منه، وتعارض المعاملين يُطبع إنذاراً."""
-    idx = {x[0]: k for k, x in enumerate(R)}
-    plan, pending = [], []
-    man_idx = []
+    """دمج الكاشف والملف اليدوي → (الخطة [(date, factor, kind, origin, grade)]، المعلّقة، المُسقَطة).
+    البند اليدوي يغلب أي حدث مكتشف ضمن 3 جلسات منه، وتعارض المعاملين يُطبع إنذاراً.
+    وإن كان الحدث المكتشف فجوةً حقيقية (A/B/C/W/S) بتاريخ غير تاريخ البند، أُسند البند إلى
+    تاريخ الفجوة (ختم 20-10، شرط 2): apply يشترط الفجوة في تاريخ البند حرفياً، فبندٌ مزاحٌ
+    بجلسة كان يُسقط اكتشافاً صحيحاً ثم يُتخطّى هو نفسه بصمت. المُسقَطة {تاريخ البند: الحدث}
+    تعود إلى المعلّقة إن لم يُطبَّق البند (ca_plan_apply)."""
+    dates = [x[0] for x in R]
+    idx = {d: k for k, d in enumerate(dates)}
+    plan, pending, suppressed = [], [], {}
+    man = []          # [فهرس أقرب صف ≥ تاريخ البند، البند، التاريخ المسنَد]
     for it in manual_items or []:
-        plan.append((it["date"], float(it["factor"]), it["kind"], "manual", "M"))
-        man_idx.append((idx.get(it["date"]), it))
+        k = next((j for j, d in enumerate(dates) if d >= it["date"]), None)
+        d0 = dates[k] if k is not None else it["date"]
+        if d0 != it["date"]:
+            print("  ℹ️ %s: تاريخ البند اليدوي %s ليس جلسة — أُسند إلى %s" % (sym, it["date"], d0))
+        man.append([k, it, d0])
     for e in events:
         i = idx.get(e["date"])
-        near = [it for k, it in man_idx if k is not None and i is not None and abs(k - i) <= CA_MANUAL_SNAP]
+        near = [x for x in man if x[0] is not None and i is not None and abs(x[0] - i) <= CA_MANUAL_SNAP]
         if near:
+            x = near[0]
+            it = x[1]
+            if (x[2] != e["date"] and it["kind"] != "no-adjust"
+                    and e["grade"] in ("A", "B", "C", "W", "S")):
+                print("  ℹ️ %s: البند اليدوي %s أُسند إلى تاريخ الفجوة المكتشفة %s" % (sym, x[2], e["date"]))
+                x[2] = e["date"]
             f_auto = e.get("factor")
-            if f_auto and abs(near[0]["factor"] / f_auto - 1) > 0.01 and near[0]["kind"] != "no-adjust":
+            if f_auto and abs(it["factor"] / f_auto - 1) > 0.01 and it["kind"] != "no-adjust":
                 print("  ⚠️ %s %s: البند اليدوي (%.6f) يخالف الكاشف (%.6f) — يُطبَّق اليدوي"
-                      % (sym, e["date"], near[0]["factor"], f_auto))
+                      % (sym, e["date"], it["factor"], f_auto))
+            suppressed[x[2]] = e
             continue
         if e.get("decision") == "auto":
             plan.append((e["date"], e["factor"], "bonus/split", "auto", e["grade"]))
         elif e.get("decision") in ("manual", "pending"):
             pending.append({"date": e["date"], "r": e["r"], "grade": e["grade"], "why": e["why"]})
-    return plan, pending
+    for _, it, d in man:
+        plan.append((d, float(it["factor"]), it["kind"], "manual", "M"))
+    return plan, pending, suppressed
+
+
+def ca_plan_apply(sym, events, manual_items, R):
+    """الخطة ثم التطبيق، وبند يدوي لم يُطبَّق وقد أسقط حدثاً مكتشفاً ⇒ يعود الحدث معلّقاً
+    بإنذار 🚨 (لا يختفي اكتشاف صحيح خلف بند معطوب). يعيد (rows, applied, skipped, pending)."""
+    plan, pending, suppressed = ca_resolve(sym, events, manual_items, R)
+    rows, applied, skipped = apply_capactions(R, plan)
+    for x in skipped:
+        e = suppressed.get(x["date"])
+        if x["origin"] == "manual" and x["why"] != "no-adjust" and e and e.get("decision") != "no":
+            print("  🚨 %s: البند اليدوي %s لم يُطبَّق (%s) وقد أسقط حدثاً مكتشفاً %s [%s] — يعود معلّقاً"
+                  % (sym, x["date"], x["why"], e["date"], e["grade"]))
+            pending.append({"date": e["date"], "r": e["r"], "grade": e["grade"],
+                            "why": "بند يدوي لم يُطبَّق: " + x["why"]})
+    return rows, applied, skipped, pending
 
 
 def apply_capactions(R, plan):
@@ -1158,10 +1210,16 @@ def apply_capactions(R, plan):
         cols = []
         for c in (1, 2):
             a, b = R[i - 1][c], R[i][c]
-            if a is None or b is None or not a:
+            if a is None or b is None or not a or not b:
                 continue
             rr = b / a
-            if abs(rr - 1) > CA_BAND and abs(rr / f - 1) <= CA_BAND:
+            if origin == "manual":
+                # بندٌ يدوي داخل حد التذبذب (منحة 1:12 لـ4321، r = 0.91) — مراجعة المحلل 20-10، ع1:
+                # يُطبَّق إن قرّب الفجوة من 1 بما لا يقل عن نصف معامله (لوغاريتمياً). فالمعدّل
+                # سلفاً (rr≈1) وضجيج التداول بعد تعديل المزوّد يُتخطّيان.
+                if abs(math.log(rr)) - abs(math.log(rr / f)) >= 0.5 * abs(math.log(f)):
+                    cols.append(c)
+            elif abs(rr - 1) > CA_BAND and abs(rr / f - 1) <= CA_BAND:
                 cols.append(c)
         if 1 not in cols:
             skipped.append({"date": d, "factor": f, "origin": origin, "why": "الفجوة غائبة في الخام — مُعدَّل لدى المزوّد"})
@@ -1179,6 +1237,45 @@ def apply_capactions(R, plan):
         applied.append({"date": d, "factor": round(f, 6), "kind": kind, "origin": origin,
                         "grade": grade, "cols": ["close" if c == 1 else "adjusted" for c in cols]})
     return R, applied, skipped
+
+
+def ca_shares_watch(st, rows, applied):
+    """تغيّر عدد أسهم لا يفسّره المطبَّق (مراجعة المحلل 20-10، بند 3): سطر 🔎 كل تشغيلة،
+    بلا حقل ولا تجميد. يُطبع معه هل marketCap/theirPrice يوافق العدد الجديد (المجمّد بائت —
+    1820) وأدنى r بعد اللقطة (منحة صغيرة داخل حد التذبذب — 4321)."""
+    vi = st.get("valuationInputs") or {}
+    hist = st.get("sharesHistory") or []
+    fz = vi.get("sharesOutstanding")
+    if not hist or not isinstance(fz, (int, float)) or fz <= 0:
+        return None
+    asof = vi.get("sharesAsOf") or CA_FROZEN_ASOF
+    now = hist[-1]["shares"]
+    dev = fz / ca_factor_after(applied, asof) / now - 1
+    if abs(dev) <= CA_Q_NEUTRAL:
+        return None
+    mc, tp = vi.get("marketCap"), vi.get("theirPrice")
+    stale = (isinstance(mc, (int, float)) and isinstance(tp, (int, float)) and tp > 0
+             and abs(mc / tp / now - 1) <= CA_STALE_TOL)
+    rs = [(rows[i][1] / rows[i - 1][1], rows[i][0]) for i in range(1, len(rows))
+          if rows[i][0] > asof and rows[i - 1][1] and rows[i][1]]
+    rmin = min(rs) if rs else None
+    print("  🔎 %s: عدد الأسهم %.0f ⇐ %.0f (%+.1f%%) لا يفسّره المطبَّق%s%s" % (
+        st["symbol"], fz, now, dev * 100,
+        " — marketCap/theirPrice يوافق الجديد: المجمّد بائت" if stale else "",
+        (" — أدنى r بعد اللقطة %.4f في %s" % rmin) if rmin else ""))
+    return dev
+
+
+def div_ttm_capadj(rows, caps, now, today):
+    """§3.5: العائد = مجموع 12 شهراً حصراً؛ لا توزيع خلال 18 شهراً → «لا يوزع». يعيد (المجموع، الأساس).
+    والمجموع على أساس السهم الحالي (§8-ق): ما قبل منحة/تجزئة مطبَّقة × معاملها، وإلا تضخّم
+    العائد بـ1/f (+20% لـ1030، ×2 لـ7202). rows: [(تاريخ الأحقية، المبلغ الاسمي)]."""
+    d365 = (now - timedelta(days=365)).strftime("%Y-%m-%d")
+    d548 = (now - timedelta(days=548)).strftime("%Y-%m-%d")
+    tot = sum(v * ca_factor_after(caps, e) for e, v in rows if d365 <= e <= today)
+    basis = ("ttm12m" if tot > 0 else
+             "none-recent18m" if any(d548 <= e <= today for e, _ in rows) else "none")
+    return round(tot, 4), basis
 
 
 def ca_factor_after(actions, d0, d1=None):
@@ -1379,20 +1476,24 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
     mm = ca_market_median(allrows)
     fud = min(R[0][0] for R in allrows.values()) if allrows else today
     events = []
+    manual = load_manual_actions(os.path.join(os.path.dirname(os.path.abspath(cdir)), "corporate-actions.json"))
     for sym, R in allrows.items():
-        events += ca_detect(sym, R, mm, by_sym.get(sym), fud)
+        events += ca_detect(sym, R, mm, by_sym.get(sym), fud, [it["date"] for it in manual.get(sym, [])])
     ca_mark_systemic(events)
     ev_by = collections.defaultdict(list)
     for e in events:
         ev_by[e["sym"]].append(e)
-    manual = load_manual_actions(os.path.join(os.path.dirname(os.path.abspath(cdir)), "corporate-actions.json"))
     ca_tot = collections.Counter()
     for st in stocks:
         sym = st["symbol"]
         if sym not in fetched:
             continue
-        plan, pending = ca_resolve(sym, ev_by.get(sym, []), manual.get(sym), fetched[sym])
-        rows, applied, skipped = apply_capactions(fetched[sym], plan)
+        rows, applied, skipped, pending = ca_plan_apply(sym, ev_by.get(sym, []), manual.get(sym), fetched[sym])
+        # حدث كان مطبَّقاً واختفى = مؤشرات السهم تعود بالقفزة الوهمية — يُرى (ختم 20-10، شرط 3)
+        gone = sorted({a.get("date") for a in (st.get("capActions") or [])} - {a["date"] for a in applied})
+        for d_ in gone:
+            print("  🚨 %s: الإجراء الرأسمالي %s كان مطبَّقاً واختفى من الخطة — راجع الكاشف/الملف اليدوي" % (sym, d_))
+            ca_tot["gone"] += 1
         for a in applied:
             ca_tot["applied_" + a["origin"]] += 1
         ca_tot["pending"] += len(pending)
@@ -1413,15 +1514,21 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
         # عدد الأسهم المجمّد (08-06) يُحمل على الأساس الحالي: الأسهم ÷ معاملات ما بعد اللقطة.
         # مستهلكوه (dyFlags، self-check، حارس الفترة الجزئية) يقسمون على sharesCapFactor.
         vi = st.get("valuationInputs")
+        if isinstance(vi, dict) and applied and isinstance(st.get("dividendEvents"), list):
+            # التوزيع يُحمل على الأساس الحالي يومياً من الأحقيات المخزّنة (ختم 20-10، بند 9):
+            # وإلا بقي أياماً على القديم والسعر وعدد الأسهم على الجديد (عائد 7202 ×2)
+            vi["divTtm12m"], vi["divBasis"] = div_ttm_capadj(
+                [(x["date"], x["amount"]) for x in st["dividendEvents"]], applied, datetime.now(timezone.utc), today)
         if isinstance(vi, dict):
-            k = ca_factor_after(applied, CA_FROZEN_ASOF)
+            k = ca_factor_after(applied, vi.get("sharesAsOf") or CA_FROZEN_ASOF)
             if abs(k - 1) > 1e-9:
                 vi["sharesCapFactor"] = round(k, 6)
             else:
                 vi.pop("sharesCapFactor", None)
         _derive_daily(st, rows, [p_["date"] for p_ in pending if p_["grade"] != "P"], tasi, stamp, counters)
-    print("  🧮 إجراءات رأسمالية: مطبَّقة آلياً %d · يدوياً %d · معلّقة للمراجعة %d · متخطّاة %d"
-          % (ca_tot["applied_auto"], ca_tot["applied_manual"], ca_tot["pending"], ca_tot["skipped"]))
+        ca_shares_watch(st, rows, applied)
+    print("  🧮 إجراءات رأسمالية: مطبَّقة آلياً %d · يدوياً %d · معلّقة للمراجعة %d · متخطّاة %d · اختفت %d"
+          % (ca_tot["applied_auto"], ca_tot["applied_manual"], ca_tot["pending"], ca_tot["skipped"], ca_tot["gone"]))
 
 
 def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
@@ -1489,7 +1596,7 @@ def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
     r3, r6 = period_return(raw, 63), period_return(raw, 126)
     r121 = return_12_1(raw)
     rs = {"return3m": r3, "return6m": r6, "return12_1": r121,
-          "basis": "raw-close vs tasi-price", "updatedAt": stamp}
+          "basis": "capadj-close vs tasi-price", "updatedAt": stamp}   # §8-ق: الخام معدّل للإجراءات الرأسمالية
     if r3 is not None and tasi.get("3m") is not None:
         rs["rsTasi3m"] = round(r3 - tasi["3m"], 2)
     if r6 is not None and tasi.get("6m") is not None:
@@ -1638,22 +1745,13 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         if dv is None:
             return False, err
         now = datetime.now(timezone.utc)
-        d365 = (now - timedelta(days=365)).strftime("%Y-%m-%d")
         rows = []
         for h2 in rows_of(dv, "history", "data"):
             ed = h2.get("eligibility_date") or h2.get("due_date") or h2.get("date")
             val = h2.get("value") if h2.get("value") is not None else h2.get("amount")
             if ed and val and val > 0:
                 rows.append((ed, val))
-        # التوزيع على أساس السهم الحالي (§8-ق): ما قبل منحة/تجزئة مطبَّقة × معاملها، وإلا
-        # تضخّم العائد بـ1/f (+20% لـ1030، ×2 لـ7202). dividendEvents يبقى اسمياً للكاشف.
-        caps = st.get("capActions")
-        tot = sum(v * ca_factor_after(caps, e) for e, v in rows if d365 <= e <= today)
-        # §3.5: العائد = مجموع 12 شهراً حصراً؛ لا توزيع خلال 18 شهراً → «لا يوزع»
-        d548 = (now - timedelta(days=548)).strftime("%Y-%m-%d")
-        basis = ("ttm12m" if tot > 0 else
-                 "none-recent18m" if any(d548 <= e <= today for e, _ in rows) else "none")
-        scratch.setdefault(sym, {})["div"] = (round(tot, 4), basis)
+        scratch.setdefault(sym, {})["div"] = div_ttm_capadj(rows, st.get("capActions"), now, today)
         # سجل الأحقيات (المرحلة 1 من تعديل المنح، قرار المالك 20-10): كاشف الإجراءات
         # الرأسمالية يميّز التوزيع النقدي الاستثنائي عن المنحة بتاريخ الأحقية وقيمتها.
         d1095 = (now - timedelta(days=1095)).strftime("%Y-%m-%d")

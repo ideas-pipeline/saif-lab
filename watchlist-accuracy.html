@@ -2544,8 +2544,9 @@ function renderStats() {
   // ومفتوح/مغلق/محكوم ظاهرة. لا مساس بأي حساب أعلاه
   const appliedRows = autoRows.filter(r => !r.shadow);
   const shadowN  = total - appliedRows.length;
-  const closedN  = appliedRows.filter(r => r.status === "closed").length;
-  const openN    = appliedRows.length - closedN;
+  // §8-ق: المغلق بعطب بيانات لا يُعدّ في معلم الإغلاقات (closedN/40) — خارج الحكم كلياً
+  const closedN  = appliedRows.filter(r => r.status === "closed" && !r.dataFault).length;
+  const openN    = appliedRows.filter(r => r.status !== "closed").length;
   // بطاقة الإصابة محايدة اللون ما دامت المحكومة أقل من 40 (لا حكم قبل اكتمال العينة — §7)
   const hitClass = done.length >= 40 ? "green" : "plain";
 

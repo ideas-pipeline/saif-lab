@@ -181,6 +181,7 @@ for s in stocks_config:
 
     # سلسلة سعر الدخول: sahmk-close → cache → manual-fallback (لا Yahoo)
     entry_price, source, divs = manual, "manual-fallback", 0
+    entry_day = entry_date    # جلسة سعر الدخول الفعلية — معاملات §8-ق تُحسب بعدها
     if entry_date == today and current is not None:
         entry_price, source = current, "same-day-close"
     elif entry_date:
@@ -197,6 +198,9 @@ for s in stocks_config:
         if sc is not None:
             entry_price = sc
             source = "cache" if sc_from_cache else "sahmk-close"
+            # سعر الدخول = إغلاق أول جلسة ≥ entryDate: مدخل يوم غير تداولي وحدثٌ في الجلسة
+            # التالية سعره بعد الحدث أصلاً — فالمقارنة بالجلسة لا بالتاريخ (ختم 20-10، شرط 5)
+            entry_day = (cache.get(skey) or {}).get("tradingDay") or entry_date
             dkey = "D|" + key + "|" + div_until
             if dkey in cache:
                 divs = cache[dkey]
@@ -234,12 +238,13 @@ for s in stocks_config:
     lines.append(f'    entryPrice:    {entry_price},      // {source} | يدوي أصلي: {manual}')
     lines.append(f'    entrySource:   "{source}",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)')
     lines.append(f"    divsSince:     {divs},")
-    _k = cap_k(symbol, entry_date, close_date if (status == "closed" and close_date) else None) if entry_date else 1.0
+    _k = cap_k(symbol, entry_day, close_date if (status == "closed" and close_date) else None) if entry_date else 1.0
     if abs(_k - 1) > 1e-9:
         lines.append(f"    entryPriceAdj: {round(entry_price * _k, 4)},   // §8-ق × {round(_k, 6)}")
     if s.get("dataFault"):
         _df = s["dataFault"]
-        lines.append(f'    dataFault:     {{kind: "{_df.get("kind", "")}", date: "{_df.get("date", "")}", label: "{_df.get("label", "")}"}},')
+        _dfj = json.dumps({k: _df.get(k, "") for k in ("kind", "date", "label")}, ensure_ascii=False)
+        lines.append(f'    dataFault:     {_dfj},')
     # measurement v3: عائد تاسي للفترة المطابقة + طول الفترة بالأيام + نظام السوق عند الدخول
     _end = close_date if (status == "closed" and close_date) else None
     _tret, _tdays = tasi_period(entry_date, _end)

@@ -88,7 +88,7 @@ e = EV["1030"][0]
 check("منحة 1 لكل 5 ⇒ A آلي بمعامل 0.833333", len(EV["1030"]) == 1 and e["grade"] == "A"
       and e["decision"] == "auto" and abs(e["factor"] - 5 / 6) < 1e-6)
 check("أسهم الضجيج بلا أي حدث", all(not EV[s] for s in NOISE))
-plan, pend = m.ca_resolve("1030", EV["1030"], None, R1030)
+plan, pend, _sup = m.ca_resolve("1030", EV["1030"], None, R1030)
 orig = copy.deepcopy(R1030)
 R2, ap, sk = m.apply_capactions(R1030, plan)
 check("apply لا يمسّ الصفوف الأصلية", R1030 == orig)
@@ -110,17 +110,46 @@ R1120 = series("1120", 71.4)    # المزوّد عدّلها: لا فجوة ف�
 _, ap4, sk4 = m.apply_capactions(R1120, [(DATES[200], 0.8, "bonus", "manual", "M")])
 check("بند يدوي على مخزن بلا فجوة (1120) ⇒ لا تطبيق", not ap4 and len(sk4) == 1)
 
-# ── 3) اليدوي يغلب الكاشف ضمن 3 جلسات، وتعارض المعاملين إنذار ──
-man = [{"date": DATES[BONUS_I + 1], "factor": 0.8, "kind": "bonus", "source": "اختبار"}]
-(plan5, pend5), out5 = quiet(m.ca_resolve, "1030", EV["1030"], man, R1030)
-check("اليدوي ضمن 3 جلسات يحلّ محل الآلي، والتعارض يُطبع",
-      plan5 == [(DATES[BONUS_I + 1], 0.8, "bonus", "manual", "M")] and "يخالف الكاشف" in out5)
-_, ap5, sk5 = m.apply_capactions(R1030, plan5)
-check("يدوي بتاريخ لا فجوة فيه ⇒ متخطّى لا مطبَّق خطأً", not ap5 and sk5)
-man_na = [{"date": BONUS_D, "factor": 1, "kind": "no-adjust", "source": "اختبار"}]
-plan6, pend6 = m.ca_resolve("1030", EV["1030"], man_na, R1030)
-_, ap6, sk6 = m.apply_capactions(R1030, plan6)
-check("no-adjust يُسكت الكاشف عند تاريخه", not ap6 and not pend6 and sk6[0]["why"] == "no-adjust")
+# ── 3) اليدوي يغلب الكاشف ضمن 3 جلسات، ويُسند إلى تاريخ الفجوة (ختم 20-10، شرط 2) ──
+for off in (-1, 1, 3):
+    man = [{"date": DATES[BONUS_I + off], "factor": 0.8, "kind": "bonus", "source": "اختبار"}]
+    (R5, ap5, sk5, pend5), out5 = quiet(m.ca_plan_apply, "1030", EV["1030"], man, R1030)
+    check("بند يدوي مزاح %+d جلسة ⇒ يُسند إلى تاريخ الفجوة ويُطبَّق بمعامله، والتعارض يُطبع" % off,
+          [(a["date"], a["factor"], a["origin"]) for a in ap5] == [(BONUS_D, 0.8, "manual")]
+          and "أُسند إلى تاريخ الفجوة" in out5 and "يخالف الكاشف" in out5 and not pend5)
+man = [{"date": DATES[BONUS_I], "factor": 2.0, "kind": "capital-reduction", "source": "اختبار"}]
+(R5, ap5, sk5, pend5), out5 = quiet(m.ca_plan_apply, "1030", EV["1030"], man, R1030)
+check("بند يدوي معطوب (اتجاه معاكس) لم يُطبَّق وقد أسقط حدثاً ⇒ الحدث يعود معلّقاً بـ🚨",
+      not ap5 and [p_["date"] for p_ in pend5] == [BONUS_D] and "🚨" in out5)
+man = [{"date": DATES[BONUS_I + 10], "factor": 0.8, "kind": "bonus", "source": "اختبار"}]
+(R5, ap5, sk5, pend5), out5 = quiet(m.ca_plan_apply, "1030", EV["1030"], man, R1030)
+check("بند بعيد (10 جلسات) لا يُسقط الحدث: الآلي يُطبَّق والبند يُتخطّى",
+      [(a["date"], a["origin"]) for a in ap5] == [(BONUS_D, "auto")] and sk5 and not pend5)
+gap_day = DATES[BONUS_I]
+Rhol = [r for r in R1030 if r[0] != DATES[BONUS_I - 1]]   # الجلسة السابقة عطلة
+man = [{"date": DATES[BONUS_I - 1], "factor": 5 / 6, "kind": "bonus", "source": "اختبار"}]
+(R5, ap5, sk5, pend5), out5 = quiet(m.ca_plan_apply, "1030", [], man, Rhol)
+check("بند بتاريخ ليس جلسة ⇒ يُسند إلى أول جلسة بعده ويُطبَّق (ع3)",
+      [a["date"] for a in ap5] == [gap_day] and "ليس جلسة" in out5)
+for f_na in (1, 0.5):
+    man_na = [{"date": BONUS_D, "factor": f_na, "kind": "no-adjust", "source": "اختبار"}]
+    R6, ap6, sk6, pend6 = m.ca_plan_apply("1030", EV["1030"], man_na, R1030)
+    check("no-adjust (معامل %s) يُسكت الكاشف عند تاريخه" % f_na,
+          not ap6 and not pend6 and sk6[0]["why"] == "no-adjust" and R6 == R1030)
+
+# ── 3ب) بند يدوي داخل حد التذبذب (4321: منحة 1:12، r ≈ 0.91) — مراجعة المحلل، ع1 ──
+R4321 = series("4321", 15.95, [(BONUS_I, 12 / 13)])
+EV4 = detect_all(universe(**{"4321": R4321}))
+check("منحة 1:12 داخل الحد ⇒ لا يراها الكاشف", not EV4["4321"])
+man = [{"date": BONUS_D, "factor": 12 / 13, "kind": "bonus", "source": "اختبار"}]
+R7, ap7, sk7, _ = m.ca_plan_apply("4321", [], man, R4321)
+check("والبند اليدوي يُطبَّق داخل الحد (يقرّب الفجوة من 1 بأكثر من نصف معامله)",
+      [a["date"] for a in ap7] == [BONUS_D] and abs(R7[BONUS_I][1] / R7[BONUS_I - 1][1] - 1) < 0.015)
+_, ap8, sk8, _ = m.ca_plan_apply("4321", [], man, R7)
+check("وتطبيقه الثاني على المعدّل يُتخطّى", not ap8 and sk8)
+Rn = series("NZ", 15.95, [(BONUS_I, 0.96)])
+_, ap9, sk9, _ = m.ca_plan_apply("NZ", [], man, Rn)
+check("وضجيج تداول 0.96 بعد تعديل المزوّد لا يكفي لتطبيق 12/13", not ap9 and sk9)
 
 # ── 4) هبوط جماعي في يوم واحد (وصلة مزوّد) ⇒ S يدوي، لا تطبيق ──
 mass = {"M%d" % k: series("M%d" % k, 30 + k, [(200, 5 / 6)]) for k in range(6)}
@@ -162,7 +191,7 @@ EVb2 = detect_all(universe(B1=RB), {"B1": stB})
 check("q = 200/260 ⇒ B آلي بمعامل 10/13",
       EVb2["B1"][0]["grade"] == "B" and EVb2["B1"][0]["decision"] == "auto"
       and abs(EVb2["B1"][0]["factor"] - 10 / 13) < 1e-6)
-plan_b, pend_b = m.ca_resolve("B1", EVb["B1"], None, RB)
+plan_b, pend_b, _sup = m.ca_resolve("B1", EVb["B1"], None, RB)
 check("B المعلّق ⇒ في pending لا في الخطة", not plan_b and pend_b[0]["grade"] == "B")
 
 # ── 9) q يناقض A ⇒ يدوي؛ وq≈1 بلا معلومة ⇒ يبقى آلياً ──
@@ -216,8 +245,8 @@ try:
     check("ملف غير مقروء ⇒ {} بإنذار", man_bad == {} and "غير مقروء" in out)
     check("ملف غائب ⇒ {}", m.load_manual_actions(os.path.join(tmpd, "none.json")) == {})
     real, out = quiet(m.load_manual_actions, os.path.join(ROOT, "corporate-actions.json"))
-    check("corporate-actions.json في المستودع سليم (6040 و1030 و7202) بلا بند معطوب",
-          sorted(real) == ["1030", "6040", "7202"] and "معطوب" not in out)
+    check("corporate-actions.json في المستودع سليم (سبعة أسهم) بلا بند معطوب",
+          sorted(real) == ["1030", "2200", "4004", "4321", "6040", "7202", "8010"] and "معطوب" not in out)
 finally:
     shutil.rmtree(tmpd)
 
@@ -388,10 +417,203 @@ try:
           "entryPriceAdj: 12.0," in blocks[0])
     check("ومدخل بعد المنحة ⇒ بلا entryPriceAdj", "entryPriceAdj" not in blocks[1])
     check("و2200 ⇒ dataFault بوسمه، بلا entryPriceAdj (حدثه معلّق لا مطبَّق)",
-          'dataFault:     {kind: "capaction-unadjusted", date: "2026-08-24", label: "أُغلق بعطب بيانات"},' in blocks[2]
+          'dataFault:     {"kind": "capaction-unadjusted", "date": "2026-08-24", "label": "أُغلق بعطب بيانات"},' in blocks[2]
           and "entryPriceAdj" not in blocks[2])
 finally:
     shutil.rmtree(d)
+
+# ══ 19) حالات ختم 20-10 ومراجعة المحلل ══
+# q من المجمّد ضمن سماحية اتساقه (10%) لا يناقض A (شرط 3)
+st_q = {"sharesHistory": [{"date": DATES[255], "lastSeen": DATES[255], "shares": 1.25e9 / 0.7848}],
+        "valuationInputs": {"sharesOutstanding": 1.25e9, "marketCap": 1.25e9 * 14.5 * 1.06, "theirPrice": 14.5}}
+EVq = detect_all(universe(**{"1030": R1030}), {"1030": st_q})
+check("q=0.7848 من مجمّدٍ منحرف 6% ⇒ بلا معلومة، A يبقى آلياً (شرط 3)", EVq["1030"][0]["decision"] == "auto")
+st_q2 = copy.deepcopy(st_q)
+st_q2["sharesHistory"][0]["shares"] = 1.25e9 / 0.70
+EVq2 = detect_all(universe(**{"1030": R1030}), {"1030": st_q2})
+check("وq=0.70 (خارج 10%) ⇒ يناقض فيدوي", EVq2["1030"][0]["decision"] == "manual")
+# ع2: حدث بعد أول تسجيل لعدد الأسهم ⇒ لا مجمّد
+st_e2 = {"sharesHistory": [{"date": DATES[240], "lastSeen": DATES[260], "shares": 1.5e9}],
+         "valuationInputs": {"sharesOutstanding": 1.25e9, "marketCap": 1.25e9 * 14.5, "theirPrice": 14.5}}
+q, src = m.ca_q_for(st_e2, BONUS_D, [])
+check("حدث بعد أول تسجيل في sharesHistory ⇒ المجمّد لا يُستعمل (ع2)", q is None and "أول تسجيل" in src)
+st_e3 = copy.deepcopy(st_fz)
+st_e3["valuationInputs"]["sharesAsOf"] = "2026-10-05"
+check("sharesAsOf يحلّ محل ثابت اللقطة (حدث قبله ⇒ لا q)", m.ca_q_for(st_e3, "2026-10-01", [])[0] is None)
+check("وتواريخ البنود اليدوية من «حدث آخر بين اللقطة والحدث»",
+      m.ca_q_for(st_fz, "2026-10-01", ["2026-09-15"])[0] is None)
+# الجماعية لا تكتب فوق الارتداد (بند 4)
+mass_rev = {"R%d" % k: series("R%d" % k, 30 + k, [(200, 0.8), (201, 1.25)]) for k in range(6)}
+EVmr = detect_all(universe(**mass_rev))
+check("ارتداد جماعي ليوم واحد ⇒ يبقى N لا S (لا تعليق دائم)",
+      all(x["grade"] == "N" for k in mass_rev for x in EVmr[k]))
+# الملف اليدوي: مصفوفة في الأعلى، وقيمة ليست قائمة (شرط 8)
+tmpd = tempfile.mkdtemp()
+try:
+    p8 = os.path.join(tmpd, "ca.json")
+    json.dump([{"date": "2026-10-01"}], open(p8, "w"))
+    r8, out8 = quiet(m.load_manual_actions, p8)
+    check("مصفوفة في المستوى الأعلى ⇒ {} بإنذار لا انهيار", r8 == {} and "🚨" in out8)
+    json.dump({"1": {"date": "2026-10-01", "factor": 0.5, "kind": "bonus", "source": "s"}}, open(p8, "w"))
+    r8, out8 = quiet(m.load_manual_actions, p8)
+    check("قيمة سهم كائنٌ لا قائمة ⇒ تُسقَط بطباعة", r8 == {} and "ليست قائمة" in out8)
+finally:
+    shutil.rmtree(tmpd)
+check("ca_factor_after: الحدث في d0 لا يُحتسب، وفي d1 يُحتسب",
+      m.ca_factor_after([{"date": "2026-09-01", "factor": 0.5}], "2026-09-01") == 1.0
+      and m.ca_factor_after([{"date": "2026-09-01", "factor": 0.5}], "2026-08-01", "2026-09-01") == 0.5)
+
+# المسار الكامل: الجزئي يقرأ المخزن من القرص، والجماعية، و«اختفى»، وsharesCapFactor القديم، والتوزيع اليومي
+tmpd = tempfile.mkdtemp()
+try:
+    cdir = os.path.join(tmpd, "candles")
+    os.makedirs(cdir)
+    u = universe(**{"1030": R1030}, **mass)
+    for s_, R in u.items():
+        m.save_candles(cdir, s_, R)
+    st_m0 = {"symbol": "M0"}
+    _, outp = quiet(m.fetch_daily_and_derive, Api(), [st_m0], collections.defaultdict(int), cdir, tasi, "stamp", DATES[-1])
+    check("تشغيل جزئي (--symbols) لسهم واحد من الوصلة ⇒ يرى البقية من القرص: S معلّق لا تطبيق",
+          "capActions" not in st_m0 and st_m0.get("capActionsPending", [{}])[0].get("grade") == "S")
+    st_old = {"symbol": "N00", "capActions": [{"date": "2026-01-01", "factor": 0.5}],
+              "valuationInputs": {"sharesOutstanding": 1e6, "sharesCapFactor": 0.5}}
+    st_div = {"symbol": "1030", "dividendEvents": [{"date": "2026-06-30", "amount": 0.6}],
+              "valuationInputs": {"sharesOutstanding": 1.25e9, "divTtm12m": 0.6, "divBasis": "ttm12m"}}
+    st_asof = {"symbol": "1030", "valuationInputs": {"sharesOutstanding": 1.25e9, "sharesAsOf": "2026-09-01"}}
+    _, outg = quiet(m.fetch_daily_and_derive, Api(), [st_old, st_div], collections.defaultdict(int), cdir, tasi,
+                    "stamp", DATES[-1])
+    check("حدث كان مطبَّقاً واختفى ⇒ 🚨 ويُعدّ في «اختفت»",
+          "كان مطبَّقاً واختفى" in outg and "اختفت 1" in outg and "capActions" not in st_old)
+    check("sharesCapFactor قديم بلا حدث ⇒ يُحذف", "sharesCapFactor" not in st_old["valuationInputs"])
+    check("التوزيع يُحمل على الأساس الحالي يومياً من الأحقيات المخزّنة (0.6 → 0.5) — بند 9",
+          abs(st_div["valuationInputs"]["divTtm12m"] - 0.5) < 1e-6 and st_div["valuationInputs"]["divBasis"] == "ttm12m")
+    quiet(m.fetch_daily_and_derive, Api(), [st_asof], collections.defaultdict(int), cdir, tasi, "stamp", DATES[-1])
+    check("sharesAsOf بعد الحدث ⇒ لا sharesCapFactor (العدد على الأساس الجديد أصلاً)",
+          "sharesCapFactor" not in st_asof["valuationInputs"] and st_asof.get("capActions"))
+finally:
+    shutil.rmtree(tmpd)
+
+# سطر 🔎 لتغيّر الأسهم الذي لا يفسّره المطبَّق (مراجعة المحلل، بند 3)
+st_w = {"symbol": "1820", "sharesHistory": [{"date": "2026-10-20", "lastSeen": "2026-10-20", "shares": 619.67e6}],
+        "valuationInputs": {"sharesOutstanding": 315e6, "marketCap": 625.96e6 * 10, "theirPrice": 10}}
+dev, outw = quiet(m.ca_shares_watch, st_w, R1030, [])
+check("1820: تغيّر بلا فجوة ⇒ سطر 🔎 بوسم «المجمّد بائت»", dev is not None and "المجمّد بائت" in outw)
+st_w2 = {"symbol": "1030", "sharesHistory": [{"date": "2026-10-20", "lastSeen": "2026-10-20", "shares": 1.5e9}],
+         "valuationInputs": {"sharesOutstanding": 1.25e9}}
+dev2, outw2 = quiet(m.ca_shares_watch, st_w2, R1030, [{"date": BONUS_D, "factor": 5 / 6}])
+check("1030 بعد تطبيق 5/6 ⇒ لا سطر (المطبَّق يفسّره)", dev2 is None and not outw2)
+
+# حارس الفترة الجزئية يأخذ العدد على الأساس الحالي (المجمّد ÷ sharesCapFactor)
+seen = {}
+orig_ppg = m.partial_period_guard
+m.partial_period_guard = lambda st, prev, eps, shares, pm, today: seen.setdefault("shares", shares)
+try:
+    st_g = {"symbol": "1030", "sector": "Industrials", "industry": "x", "financials": {}, "guardRejected": [],
+            "_prevFinancials": {}, "valuationInputs": {"sharesOutstanding": 1.25e9, "sharesCapFactor": 0.833333}}
+    quiet(m.fetch_fundamentals, DivApi(), data, [st_g], collections.defaultdict(int), "2026-10-22", full_universe=False)
+finally:
+    m.partial_period_guard = orig_ppg
+check("partial_period_guard يتلقى 1.25 مليار ÷ 0.833333 = 1.5 مليار", abs(seen.get("shares", 0) - 1.5e9) < 1e4)
+
+# عدّاد تغيّر عدد الأسهم يقارن بآخر قيمة لا بطول السجل (ملاحظة ختم المرحلة 1)
+hist12 = [{"date": "2026-01-%02d" % (i + 1), "lastSeen": "2026-01-%02d" % (i + 1), "shares": 1000 + i}
+          for i in range(m.SHARES_HIST_MAX)]
+st_c = {"symbol": "1030", "sector": "Industrials", "industry": "x", "financials": {}, "guardRejected": [],
+        "_prevFinancials": {}, "sharesHistory": hist12}
+_, outc = quiet(m.fetch_fundamentals, DivApi(), data, [st_c], collections.defaultdict(int), "2026-10-22",
+                full_universe=False)
+check("سجل عند سقفه (12) وقيمة جديدة ⇒ يُعدّ تغيّراً واحداً", "1 تغيّراً في عدد الأسهم" in outc)
+
+# صفحة الدقة: حدث بعد الإغلاق، وحدث في يوم الدخول، وجلسة الدخول الفعلية (شرط 5)
+d = tempfile.mkdtemp()
+try:
+    P = {k: os.path.join(d, k) for k in ("s.json", "c.json", "p.html", "cache.json", "t.json")}
+    json.dump({"runType": "close", "lastUpdated": "2026-10-20 16:00", "stocks": [
+        {"symbol": "1030", "currentPrice": 12.0, "capActions": [{"date": "2026-10-01", "factor": 0.833333}]}]},
+        open(P["s.json"], "w"))
+    json.dump({"stocks": [
+        {"symbol": "1030", "name": "س", "entryPrice": 14.4, "entryDate": "2026-09-01", "track": "auto",
+         "status": "closed", "closeDate": "2026-09-20", "closePrice": 14.0, "closeReason": "score_below_50"},
+        {"symbol": "1030", "name": "س", "entryPrice": 12.1, "entryDate": "2026-10-01", "track": "auto"},
+        {"symbol": "1030", "name": "س", "entryPrice": 14.5, "entryDate": "2026-09-26", "track": "auto"}]},
+        open(P["c.json"], "w"))
+    json.dump({"S|1030|2026-09-26": {"close": 12.11, "tradingDay": "2026-10-01", "fetchedAt": "x"},
+               "D|1030|2026-09-26|" + __import__("datetime").datetime.now().strftime("%Y-%m-%d"): 0},
+              open(P["cache.json"], "w"))
+    open(P["p.html"], "w").write('<script>\nconst WATCHLIST = [\n];\nconst META = {updatedAt: "x"};\n</script>\n')
+    json.dump({"data": []}, open(P["t.json"], "w"))
+    env = {k: v for k, v in os.environ.items() if not k.startswith("SAHMK")}
+    env.update(STOCKS_JSON=P["s.json"], CONFIG_JSON=P["c.json"], HTML_FILE=P["p.html"],
+               CACHE_FILE=P["cache.json"], TASI_HISTORY=P["t.json"])
+    subprocess.run(["bash", os.path.join(ROOT, "scripts", "update-watchlist-accuracy.sh")], env=env,
+                   capture_output=True, text=True)
+    blocks = open(P["p.html"]).read().split("\n  {\n")[1:]
+    check("مدخل أُغلق قبل الحدث ⇒ بلا entryPriceAdj", "entryPriceAdj" not in blocks[0])
+    check("حدث في يوم الدخول نفسه ⇒ بلا entryPriceAdj (إغلاق ذلك اليوم بعد الحدث)", "entryPriceAdj" not in blocks[1])
+    check("مدخل يوم غير تداولي وسعره من جلسة الحدث (tradingDay) ⇒ لا تعديل مزدوج",
+          "entryPriceAdj" not in blocks[2] and "entryPrice:    12.11" in blocks[2])
+finally:
+    shutil.rmtree(d)
+
+# feed-watchlist: MAE لا يُحدَّث على فجوة معلّقة ثم يُقاس على المعدّل (شرط 1)، ولا دخول جديد (بند 6)
+e200 = {"symbol": "7202", "track": "auto", "status": "open", "category": "buy", "type": "buy",
+        "entryPrice": 200.0, "entryDate": "2026-10-01", "maePct": 0.0}
+w_day = {"symbol": "7202", "currentPrice": 101.0, "investmentScore": {"total": 70, "classCode": "hold"},
+         "capActionsPending": [{"date": "2026-10-06", "r": 0.5, "grade": "W", "why": "x"}]}
+cfg, out = run_feed({"runType": "close", "stocks": [w_day]}, {"stocks": [dict(e200)]})
+check("يوم W (فجوة معلّقة): MAE لا يسجّل −49.5 الوهمي", cfg["stocks"][0]["maePct"] == 0.0)
+ap_day = {"symbol": "7202", "currentPrice": 101.0, "investmentScore": {"total": 70, "classCode": "hold"},
+          "capActions": [{"date": "2026-10-06", "factor": 0.5}]}
+cfg2, _ = run_feed({"runType": "close", "stocks": [ap_day]}, cfg)
+check("ثم بعد التطبيق: MAE على الدخول المعدّل (100) ⇒ يبقى 0.0", cfg2["stocks"][0]["maePct"] == 0.0)
+vs = dict(e200, sampleType="value-shadow", category="value-shadow")
+cfg3, _ = run_feed({"runType": "close", "stocks": [dict(ap_day, investmentScore={"filtered": True})]},
+                   {"stocks": [vs]})
+check("ظل القيمة: MAE على الدخول المعدّل كذلك", cfg3["stocks"][0]["maePct"] == 0.0)
+newc = {"symbol": "1213", "currentPrice": 16.0, "investmentScore": {"total": 80, "classCode": "strong_buy"},
+        "capActionsPending": [{"date": "2026-08-26", "r": 0.65, "grade": "C", "why": "x"}]}
+cfg4, out4 = run_feed({"runType": "close", "stocks": [newc]}, {"stocks": []})
+check("لا دخول جديد على سهم بفجوة معلّقة داخل نافذة المؤشرات", cfg4["stocks"] == [] and "لا دخول" in out4)
+newc2 = dict(newc)
+newc2.pop("capActionsPending")
+cfg5, _ = run_feed({"runType": "close", "stocks": [newc2]}, {"stocks": []})
+check("والسهم نفسه بلا فجوة معلّقة ⇒ يدخل (فالمنع من الفجوة وحدها) ويحمل priceBasisAtEntry",
+      len(cfg5["stocks"]) == 1 and cfg5["stocks"][0].get("priceBasisAtEntry") == "capadj-v1")
+
+# close_sma200w: تقريب «دخل فوق المتوسط» بسعر الدخول المعدّل
+d = tempfile.mkdtemp()
+try:
+    sp, cp = os.path.join(d, "s.json"), os.path.join(d, "c.json")
+    e3 = {"symbol": "7202", "track": "auto", "status": "open", "entryPrice": 200.0, "entryDate": "2026-10-01"}
+    for caps, want in (([{"date": "2026-10-06", "factor": 0.5}], "كان سيُغلق 0"), ([], "كان سيُغلق 1")):
+        json.dump({"runType": "close", "lastUpdated": "x", "stocks": [
+            {"symbol": "7202", "currentPrice": 105.0, "weeklyTechnical": {"sma200w": 110.0}, "capActions": caps}]},
+            open(sp, "w"))
+        json.dump({"stocks": [dict(e3)]}, open(cp, "w"))
+        env = dict(os.environ, STOCKS_JSON=sp, CONFIG_JSON=cp, ARCHIVE_DIR=d, DRY_RUN="1")
+        out = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "close_sma200w.py")], env=env,
+                             capture_output=True, text=True).stdout
+        check("close_sma200w: دخول 200 بعده منحة 1:1 والمتوسط 110 ⇒ %s" % want, want in out)
+finally:
+    shutil.rmtree(d)
+
+# self-check-L1: الدالتان تقسمان على sharesCapFactor (تُستخرج الدوال من المصدر بلا تشغيله)
+import ast
+src_l1 = open(os.path.join(ROOT, "scripts", "self-check-L1.py")).read()
+tree = ast.parse(src_l1)
+ns = {}
+keep = [n for n in tree.body if (isinstance(n, ast.FunctionDef) and n.name in ("_cap_k", "_implied_eps", "_implied_eps_alt"))
+        or (isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "SH_SANITY_TOL" for t in n.targets))]
+exec(compile(ast.Module(body=keep, type_ignores=[]), "l1", "exec"), ns)
+s_l1 = {"financials": {"netIncome": 3e9}, "valuationInputs": {"sharesOutstanding": 1.25e9, "marketCap": 1.25e9 * 14.5,
+                                                             "theirPrice": 14.5, "sharesCapFactor": 0.833333}}
+check("self-check: _implied_eps و_implied_eps_alt على العدد الحالي (3 مليار ÷ 1.5 مليار = 2.0)",
+      abs(ns["_implied_eps"](s_l1) - 2.0) < 1e-4 and abs(ns["_implied_eps_alt"](s_l1) - 2.0) < 1e-4)
+
+# JS: صفحة الدقة (entryPriceAdj وdataFault)، وimpliedEpsAlt، وisV3sc
+js = subprocess.run(["node", os.path.join(HERE, "test_capadj_ui.js")], capture_output=True, text=True)
+print(js.stdout.rstrip())
+check("test_capadj_ui.js ⇒ خروج 0", js.returncode == 0)
 
 print("\n%s" % ("الكل سليم" if not fails else "فشل %d" % fails))
 sys.exit(1 if fails else 0)

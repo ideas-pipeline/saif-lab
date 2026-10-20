@@ -72,6 +72,14 @@ def entry_adj(e):
 def close_frozen(e):
     return any(p.get("date", "") > e.get("entryDate", "") for p in pend_by.get(e["symbol"], []))
 
+# دخول جديد ممنوع ما دامت فجوة معلّقة داخل نافذة المؤشرات (~200 أسبوع) — ختم 20-10، بند 6:
+# هبوطٌ قد يكون وهمياً مع eps غير معدّل هو الدخول الزائف النموذجي (لا سيما ظل القيمة)
+from datetime import timedelta as _td
+PEND_WIN_START = (datetime.strptime(today, "%Y-%m-%d") - _td(days=1400)).strftime("%Y-%m-%d")
+
+def entry_blocked(sym):
+    return any(p.get("date", "") >= PEND_WIN_START for p in pend_by.get(sym, []))
+
 for s in data.get("stocks", []):
     inv = s.get("investmentScore") or {}
     total = inv.get("total")
@@ -88,6 +96,9 @@ for s in data.get("stocks", []):
         continue
     # (criteria v3 §2) بوابة السيولة إقصائية عن التوصيات — لا دخول بأي عينة (يشمل الظل — قرار معلن)
     if not (s.get("liquidityGate") or {}).get("passed", True):
+        continue
+    if entry_blocked(s["symbol"]):
+        print("  ⏸️ %s: لا دخول — فجوة سعرية معلّقة داخل نافذة المؤشرات (§8-ق)" % s["symbol"])
         continue
     if code in ("strong_buy", "buy"):
         sample, category = "applied", code
@@ -162,6 +173,8 @@ for e in stocks_cfg:
     cur_mae, _tot = snapshot.get(e["symbol"], (None, None))
     if cur_mae is None or not e.get("entryPrice"):
         continue
+    if close_frozen(e):
+        continue   # ‏MAE رتيب لا يتحسن: هبوط فجوة معلّقة يبقى فيه للأبد (ختم 20-10، شرط 1)
     ret_mae = (cur_mae / entry_adj(e) - 1) * 100
     new_mae = round(min(e.get("maePct", 0.0), ret_mae), 2)
     if new_mae != e.get("maePct"):
@@ -190,6 +203,8 @@ for e in vs_all:
     if cur is None or not e.get("entryPrice"):
         continue
     days = (datetime.strptime(today, "%Y-%m-%d") - datetime.strptime(e["entryDate"], "%Y-%m-%d")).days
+    if close_frozen(e):
+        continue   # لا قياس ولا إغلاق على فجوة معلّقة (MAE رتيب — ختم 20-10، شرط 1)
     ret = (cur / entry_adj(e) - 1) * 100
     e["maePct"] = round(min(e.get("maePct", 0.0), ret), 2)          # أقصى انزلاق سلبي بالإغلاقات
     vs_meas_updated = True
@@ -219,6 +234,8 @@ if len(vs_open_syms) < VS_CAP:
     cands = []
     for s in data.get("stocks", []):
         inv = s.get("investmentScore") or {}
+        if entry_blocked(s["symbol"]):
+            continue   # فجوة معلّقة داخل نافذة المؤشرات — لا دخول ظل قيمة (ختم 20-10، بند 6)
         if not (inv.get("filtered") is True and inv.get("filterReason") == SMA_FILTER_REASON):
             continue   # فلتر SMA تحديداً — لا unrated ولا فاقد البيانات المالية
         if not (s.get("liquidityGate") or {}).get("passed", True):
