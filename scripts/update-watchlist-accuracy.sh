@@ -101,6 +101,16 @@ with open(CONFIG_JSON) as f:
 stocks_config = config.get("stocks", [])
 
 price_map = {s["symbol"]: s.get("currentPrice") for s in data.get("stocks", [])}
+# §8-ق: الإجراءات الرأسمالية المطبَّقة لدى الجالب — سعر دخول مدخلٍ يعبر حدثاً منها يُحمل على
+# أساس السعر الحالي (entryPriceAdj = الدخول × معاملات ما بعد الدخول حتى نهاية الفترة)
+cap_map = {s["symbol"]: (s.get("capActions") or []) for s in data.get("stocks", []) if s.get("symbol")}
+
+def cap_k(symbol, entry_date, end_date):
+    k = 1.0
+    for a in cap_map.get(symbol, []):
+        if a.get("date", "") > entry_date and (not end_date or a["date"] <= end_date):
+            k *= a["factor"]
+    return k
 
 # ── 1-ب) measurement v3 (2026-08-03): عائد تاسي للفترة المطابقة لكل مدخل ──
 # قيمة تاسي عند تاريخ d = إغلاق آخر سجل تاريخه <= d (عطل/نهايات أسبوع = آخر إغلاق متاح).
@@ -224,6 +234,12 @@ for s in stocks_config:
     lines.append(f'    entryPrice:    {entry_price},      // {source} | يدوي أصلي: {manual}')
     lines.append(f'    entrySource:   "{source}",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)')
     lines.append(f"    divsSince:     {divs},")
+    _k = cap_k(symbol, entry_date, close_date if (status == "closed" and close_date) else None) if entry_date else 1.0
+    if abs(_k - 1) > 1e-9:
+        lines.append(f"    entryPriceAdj: {round(entry_price * _k, 4)},   // §8-ق × {round(_k, 6)}")
+    if s.get("dataFault"):
+        _df = s["dataFault"]
+        lines.append(f'    dataFault:     {{kind: "{_df.get("kind", "")}", date: "{_df.get("date", "")}", label: "{_df.get("label", "")}"}},')
     # measurement v3: عائد تاسي للفترة المطابقة + طول الفترة بالأيام + نظام السوق عند الدخول
     _end = close_date if (status == "closed" and close_date) else None
     _tret, _tdays = tasi_period(entry_date, _end)

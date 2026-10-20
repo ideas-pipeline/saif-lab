@@ -438,7 +438,8 @@ const classLabelOf = (s) => {
 // ═══ جسر العقدين v2.1/v3 (criteria v3 — 05-08) ═══
 // v3: quality/30 حلّ محل financial/30، مخاطر /15 لا /20، قوة نسبية «القوة النسبية» لا «الزخم».
 // الكشف بالحقل لا بالنسخة وحدها: quality موجود = v3 حتى لو غاب وسم criteriaVersion
-const isV3sc = (sc) => !!sc && (sc.criteriaVersion === 'v3' || sc.quality != null);
+// v3.1 (§8-ق) = v3 نفسها على أساس سعري معدّل للإجراءات الرأسمالية — فالمطابقة بالبادئة
+const isV3sc = (sc) => !!sc && (/^v3(\.|$)/.test(sc.criteriaVersion || '') || sc.quality != null);
 const qualityVal = (sc) => sc == null ? null : (sc.quality != null ? sc.quality : sc.financial);
 const riskMaxOf = (sc) => isV3sc(sc) ? 15 : 20;
 const secOf = (s) => (s.investmentScore && s.investmentScore.sector) || s.sector || '';
