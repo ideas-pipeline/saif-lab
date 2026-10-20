@@ -245,8 +245,9 @@ try:
     check("ملف غير مقروء ⇒ {} بإنذار", man_bad == {} and "غير مقروء" in out)
     check("ملف غائب ⇒ {}", m.load_manual_actions(os.path.join(tmpd, "none.json")) == {})
     real, out = quiet(m.load_manual_actions, os.path.join(ROOT, "corporate-actions.json"))
-    check("corporate-actions.json في المستودع سليم (سبعة أسهم) بلا بند معطوب",
-          sorted(real) == ["1030", "2200", "4004", "4321", "6040", "7202", "8010"] and "معطوب" not in out)
+    check("corporate-actions.json في المستودع سليم (عشرة أسهم) بلا بند معطوب",
+          sorted(real) == ["1030", "1080", "1120", "2200", "4004", "4200", "4321", "6040", "7202", "8010"]
+          and "معطوب" not in out)
 finally:
     shutil.rmtree(tmpd)
 
