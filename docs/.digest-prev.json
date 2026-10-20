@@ -1,5 +1,5 @@
 {
- "at": "2026-10-19",
+ "at": "2026-10-20",
  "counts": {
   "filtered": 171,
   "hold": 20,
@@ -17,9 +17,11 @@
  ],
  "unrated": 49,
  "guardByField": {
-  "revenueGrowth": 6,
+  "revenueGrowth": 16,
   "pb": 1,
-  "returnOnEquity": 3
+  "returnOnEquity": 6,
+  "returnOnAssets": 3,
+  "ocfLiabilities": 3
  },
  "reversalMembers": [
   "2030",
@@ -51,6 +53,10 @@
   },
   {
    "date": "2026-10-19",
+   "regime": "هابط"
+  },
+  {
+   "date": "2026-10-20",
    "regime": "هابط"
   }
  ]
