@@ -137,6 +137,8 @@ for s in data.get("stocks", []):
         "aboveSmaAtEntry": bool(cur >= sma_w) if (cur is not None and sma_w) else None,
         "scoreScaleAtEntry": "criteria-v3",  # مقام 100 مباشرة — لا مقارنة عبر سلالم النسخ الأقدم
         "priceBasisAtEntry": "capadj-v1",   # §8-ق: أساس سعري معدّل للإجراءات الرأسمالية (v3.1)
+        # §8-ل: أساس الاتجاه من السهم نفسه (سهمٌ تعذّر اشتقاقه يبقى أسبوعيه القديم بلا basis)
+        "trendBasisAtEntry": (s.get("weeklyTechnical") or {}).get("basis") or "provider-mixed",
         # أختام اجتماع قسم الانعكاس (موجة 11-08): تجزئة cohort الانعكاس + حالة الحجم
         "viaReversalAtEntry": bool(inv.get("viaReversal")),
         "volTrendAtEntry": (round((s.get("dailyExtra") or {}).get("avgVol20") /
@@ -286,7 +288,9 @@ if len(vs_open_syms) < VS_CAP:
             "sampleType": "value-shadow", "category": "value-shadow",
             "engineClass": "filtered", "scoreAtEntry": 0, "qualityAtEntry": q,
             "timingAtEntry": inv.get("timing", ""), "regimeAtEntry": regime,
-            "scoreScaleAtEntry": "criteria-v3", "priceBasisAtEntry": "capadj-v1", "aboveSmaAtEntry": False,
+            "scoreScaleAtEntry": "criteria-v3", "priceBasisAtEntry": "capadj-v1",
+            "trendBasisAtEntry": (s.get("weeklyTechnical") or {}).get("basis") or "provider-mixed",
+            "aboveSmaAtEntry": False,
             "viaReversalAtEntry": False,   # مستبعد بالتعريف — الختم للتوحيد
             "volTrendAtEntry": (round((s.get("dailyExtra") or {}).get("avgVol20") /
                                       (s.get("dailyExtra") or {}).get("avgVol50"), 2)

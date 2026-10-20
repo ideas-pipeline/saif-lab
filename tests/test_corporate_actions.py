@@ -580,11 +580,17 @@ newc = {"symbol": "1213", "currentPrice": 16.0, "investmentScore": {"total": 80,
         "capActionsPending": [{"date": "2026-08-26", "r": 0.65, "grade": "C", "why": "x"}]}
 cfg4, out4 = run_feed({"runType": "close", "stocks": [newc]}, {"stocks": []})
 check("لا دخول جديد على سهم بفجوة معلّقة داخل نافذة المؤشرات", cfg4["stocks"] == [] and "لا دخول" in out4)
-newc2 = dict(newc)
+newc2 = dict(newc, weeklyTechnical={"basis": "tr-local-v1"})
 newc2.pop("capActionsPending")
 cfg5, _ = run_feed({"runType": "close", "stocks": [newc2]}, {"stocks": []})
-check("والسهم نفسه بلا فجوة معلّقة ⇒ يدخل (فالمنع من الفجوة وحدها) ويحمل priceBasisAtEntry",
-      len(cfg5["stocks"]) == 1 and cfg5["stocks"][0].get("priceBasisAtEntry") == "capadj-v1")
+check("والسهم نفسه بلا فجوة معلّقة ⇒ يدخل (فالمنع من الفجوة وحدها) ويحمل priceBasisAtEntry وtrendBasisAtEntry من السهم",
+      len(cfg5["stocks"]) == 1 and cfg5["stocks"][0].get("priceBasisAtEntry") == "capadj-v1"
+      and cfg5["stocks"][0].get("trendBasisAtEntry") == "tr-local-v1")
+newc3 = dict(newc2)
+newc3.pop("weeklyTechnical")
+cfg5b, _ = run_feed({"runType": "close", "stocks": [newc3]}, {"stocks": []})
+check("وسهمٌ بلا weeklyTechnical.basis ⇒ trendBasisAtEntry = provider-mixed",
+      cfg5b["stocks"][0].get("trendBasisAtEntry") == "provider-mixed")
 
 # close_sma200w: تقريب «دخل فوق المتوسط» بسعر الدخول المعدّل
 d = tempfile.mkdtemp()
@@ -765,6 +771,10 @@ finally:
 cfgw = json.load(open(os.path.join(ROOT, "watchlist-config.json")))
 f1080 = [e for e in cfgw["stocks"] if e["symbol"] == "1080" and e.get("track") == "auto"
          and e.get("entryDate") in ("2026-08-19", "2026-08-20")]
+c4291 = [e for e in cfgw["stocks"] if e["symbol"] == "4291" and e.get("closeReason") == "sma200w_weekly_break"]
+check("قرار المالك (§8-ل): إغلاقات 4291 الثلاثة موسومة closeBasis provider-mixed بلا dataFault ولا إعادة فتح",
+      len(c4291) == 3 and all((e.get("closeBasis") or {}).get("kind") == "provider-mixed" and not e.get("dataFault")
+                              and e["status"] == "closed" for e in c4291))
 check("قرار المالك: مدخلا 1080 (08-19 و08-20) موسومان dataFault بوصلة المزوّد",
       len(f1080) == 2 and all((e.get("dataFault") or {}).get("kind") == "provider-splice" for e in f1080))
 f2050 = [e for e in cfgw["stocks"] if e["symbol"] == "2050" and e.get("sampleType") == "value-shadow"

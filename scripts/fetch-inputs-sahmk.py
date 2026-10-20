@@ -232,7 +232,8 @@ def build_series(dates, raw, adj_pairs):
     بلا تواريخ لكل نقطة — الواجهة تشتق التواريخ بالفهرس التقريبي (العقد في mapping §3):
       (§8-ق: «الخام» هنا خام معدّل للإجراءات الرأسمالية بعد 2024-03 — لا هبوط وهمي من منحة)
       d30/d90: إغلاقات يومية **خام** (جلسات تداول)
-      w52/w156: أسبوعية مشتقة **معدلة** (أسابيع مكتملة — اصطلاح §6-1 نفسه، تتسق مع SMA200W)
+      w52/w156: أسبوعية مشتقة (أسابيع مكتملة) — منذ §8-ل يمرّرها المستدعي **سعرية** (الخام المعدّل
+        رأسمالياً)، والعائد الكلي للمؤشرات وحدها
       mAll: آخر إغلاق **خام** لكل شهر ميلادي للتاريخ كله (iv: M — وقد تصير Q بميزانية الحجم)
     قواعد الغياب: سهم بلا مخزن كافٍ → المدد المتاحة فقط (d30≥5 جلسات، d90>30،
     ‏w52≥8 أسابيع، w156>52، mAll≥6 أشهر).
@@ -1463,7 +1464,7 @@ def fetch_candles_paged(api, sym, frm, to, counters):
     return (rows_all if rows_all else None), err, partial_total
 
 
-def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
+def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today, upcoming=None):
     """1d تزايدي → الفنية اليومية + الاشتقاق الأسبوعي + Z + القوة النسبية + بوابة السيولة.
     على مرحلتين (§8-ق): الجلب يحدّث candles/ لكل الأسهم أولاً، ثم كاشف الإجراءات
     الرأسمالية يرى السوق كله (وسيطه اليومي ووصلات المزوّد) قبل أي اشتقاق، فتُشتق
@@ -1524,6 +1525,13 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
     ev_by = collections.defaultdict(list)
     for e in events:
         ev_by[e["sym"]].append(e)
+    # أحقيات المفكرة اليومية (upcomingDividends من التشغيلة السابقة) التي حلّت (≤ اليوم): dividendEvents
+    # تُكتب أسبوعياً فقط، فبدونها يبقى كسر الاستبعاد الوهمي في الاتجاه أياماً (ختم §8-ل، شرط 3)
+    up_by = collections.defaultdict(list)
+    for u in upcoming or []:
+        if (isinstance(u, dict) and isinstance(u.get("eligDate"), str) and u["eligDate"] <= today
+                and isinstance(u.get("value"), (int, float)) and u["value"] > 0):
+            up_by[u.get("sym")].append({"date": u["eligDate"], "amount": u["value"]})
     ca_tot = collections.Counter()
     for st in stocks:
         sym = st["symbol"]
@@ -1566,21 +1574,103 @@ def fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today):
                 vi["sharesCapFactor"] = round(k, 6)
             else:
                 vi.pop("sharesCapFactor", None)
-        _derive_daily(st, rows, [p_["date"] for p_ in pending if p_["grade"] != "P"], tasi, stamp, counters)
+        _derive_daily(st, rows, [p_["date"] for p_ in pending if p_["grade"] != "P"], tasi, stamp, counters,
+                      up_by.get(sym))
         ca_shares_watch(st, rows, applied)
     print("  🧮 إجراءات رأسمالية: مطبَّقة آلياً %d · يدوياً %d · معلّقة للمراجعة %d · متخطّاة %d · اختفت %d"
           % (ca_tot["applied_auto"], ca_tot["applied_manual"], ca_tot["pending"], ca_tot["skipped"], ca_tot["gone"]))
+    print("  🧾 أساس الاتجاه (عائد كلي محلي): أحداث مرفوضة %d · أحقيات من المفكرة اليومية %d"
+          % (counters["tr_rejected"], sum(len(v) for v in up_by.values())))
 
 
-def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
+# ═══════════ أساس الاتجاه: عائد كلي محلي (§8-ل، قرار المالك 20-10 — criteria v3.2) ═══════════
+# نص §6-1/6-2/6-3-أ: الأسبوعي وZ وSMA200D «على المعدّل» (يمنع كسوراً وهمية يوم التوزيع)، وملحق
+# 24-07 في accuracy-criteria: SMA200W معدّل للتوزيعات اصطلاحاً مقصوداً. لكن عمود adjusted عند
+# المزوّد خليط: معدّل للتوزيعات حتى لقطة قديمة (~2024-04) فيما قبل وصلة 2023-11-27، وadjusted =
+# close بعدها — فنافذة 200 أسبوع كانت ~3 سنوات من 4 سعرية خالصة. الحل: نبني المعدّل نحن.
+TR_TC = "2023-10-23"      # حدّ التغطية: من هنا فصاعداً من dividendEvents محلياً، وقبله عامل المزوّد
+TR_Y_MAX = 0.25           # عائد توزيع ≥ 25% مرفوض (3008: 43.44 على سعر 1.06 — مبلغ تالف)
+TR_Y_BIG = 0.08           # عائد > 8% يُقبل فقط إن هبط سعر جلسة الاستبعاد بنصفه على الأقل
+TR_PROV_UP = 1.02         # خطوة صاعدة في عامل المزوّد > 2% ليست توزيعاً (4322: +36.5% وclose متصل)
+
+
+def tr_local_series(rows, div_events, caps, tc=TR_TC):
+    """سلسلة العائد الكلي: close (بعد apply_capactions) × عوامل التوزيعات. يعيد (pairs، log).
+    - من tc فصاعداً، لكل توزيع في dividendEvents (تاريخ الأحقية e، المبلغ الاسمي D): جلسة الاستبعاد =
+      أول جلسة > e (مقيس على 671 حدثاً: الهبوط في الجلسة التالية، ومطابق لخطوة المزوّد)، والمرجع C =
+      إغلاق آخر جلسة ≤ e. y = D × k / C حيث k = ca_factor_after_event(caps, e) (الاسمي على أساس
+      السهم الحالي)، وكل صف حتى e يُضرب بـ(1 − y). لا عامل إن لم تأتِ جلسة بعد e.
+    - قبل tc: عامل المزوّد adjusted/close خطوةً خطوة مطبَّعاً على آخر صف قبل tc (فيُلغى منه كل ما بعد
+      الحد، ومنه خطوة الوصلة)، مع رفض الخطوات التي ليست توزيعاً.
+    دالة نقية: لا تمسّ rows."""
+    dates = [r[0] for r in rows]
+    n = len(rows)
+    fac = [1.0] * n
+    log = []
+    for x in sorted(div_events or [], key=lambda x: x["date"]):
+        e, D = x["date"], x["amount"]
+        if e < tc:
+            continue
+        j = next((i for i, d in enumerate(dates) if d > e), n)
+        if j <= 0 or j >= n or not rows[j - 1][1]:
+            continue
+        c = rows[j - 1][1]
+        y = D * ca_factor_after_event(caps, e) / c
+        if y <= 0 or y >= TR_Y_MAX:
+            log.append((e, round(y, 4), "مرفوض: عائد %.1f%%" % (y * 100)))
+            continue
+        drop = 1 - rows[j][1] / c if rows[j][1] else 0
+        if y > TR_Y_BIG and drop < 0.5 * y:
+            log.append((e, round(y, 4), "مرفوض: عائد %.1f%% وهبوط الاستبعاد %.1f%% (مبلغ اسمي لا يوافق السعر)"
+                        % (y * 100, drop * 100)))
+            continue
+        for i in range(j):
+            fac[i] *= (1 - y)
+    ic = next((i for i in range(n - 1, -1, -1) if dates[i] < tc), -1)   # آخر صف قبل الحد
+
+    def p(i):
+        a, cc = rows[i][2], rows[i][1]
+        return (a / cc) if (a and cc) else None
+    cum, nxt = 1.0, (p(ic) if ic >= 0 else None)
+    for i in range(ic, -1, -1):
+        pi = p(i)
+        if i < ic and pi is not None and nxt is not None:
+            f = pi / nxt
+            if abs(f - 1) > 1e-4:
+                drop = 1 - rows[i + 1][1] / rows[i][1] if rows[i][1] else 0
+                if (1 - f) > TR_Y_BIG and drop < 0.5 * (1 - f):
+                    log.append((dates[i + 1], round(1 - f, 4), "خطوة مزوّد مرفوضة بلا هبوط مقابل"))
+                    f = 1.0
+                elif f > TR_PROV_UP:
+                    log.append((dates[i + 1], round(1 - f, 4), "خطوة مزوّد صاعدة مرفوضة"))
+                    f = 1.0
+            cum *= f
+        fac[i] *= cum
+        if pi is not None:
+            nxt = pi
+    return [(dates[i], rows[i][1] * fac[i]) for i in range(n) if rows[i][1] is not None], log
+
+
+def _derive_daily(st, rows, pending_dates, tasi, stamp, counters, extra_divs=None):
     """الاشتقاق من صفوف السهم (المعدّلة للإجراءات الرأسمالية إن وُجدت)."""
     dates = [r2[0] for r2 in rows]
     raw = [r2[1] for r2 in rows]
     highs = [r2[3] for r2 in rows]
     lows = [r2[4] for r2 in rows]
     vols = [r2[5] for r2 in rows]
-    adj_pairs = [(d, r2[2]) for d, r2 in zip(dates, rows) if r2[2] is not None]
+    # أساس الاتجاه (§8-ل، v3.2): عائد كلي محلي بدل عمود المزوّد المختلط
+    divs = list(st.get("dividendEvents") or [])
+    known = {x["date"] for x in divs}
+    divs += [x for x in (extra_divs or []) if x["date"] not in known]   # المخزَّن يغلب عند التطابق
+    adj_pairs, tr_log = tr_local_series(rows, divs, st.get("capActions"))
     counters["adj_dropped_rows"] += len(rows) - len(adj_pairs)
+    # يُطبع ما يقع داخل نافذة SMA200W وحدها (~1400 يوم): رفضٌ أقدم بلا أثر، وخطوات المزوّد الصاعدة
+    # لأسعار دون الريال (1303 في 2020) تقريبُ وحدة سعر لا توزيع — ضجيج لا إنذار
+    win0 = (datetime.strptime(dates[-1], "%Y-%m-%d") - timedelta(days=1400)).strftime("%Y-%m-%d")
+    for d_, y_, why in tr_log:
+        counters["tr_rejected"] += 1
+        if d_ >= win0:
+            print("  ⚠️ %s %s (y=%s): %s" % (st["symbol"], d_, y_, why))
 
     last_close = raw[-1]
     # ── يومية على الخام (§6-2) — والخام هنا معدّل للإجراءات الرأسمالية بعد 2024-03 (§8-ق) ──
@@ -1617,6 +1707,7 @@ def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
     last_adj = adj_pairs[-1][1] if adj_pairs else last_close
     wm, ws, wh = calc_macd(weeks, dp=3)
     st["weeklyTechnical"] = {
+        "basis": "tr-local-v1",   # §8-ل: عائد كلي محلي (tr_local_series) — لا عمود المزوّد المختلط
         "sma200w": calc_sma(weeks, 200),
         # عمود بحثي صامت (قرار المالك 13-08) — لا يستهلكه المحرك ولا الواجهة؛
         # غرضه قراءة افتراضية عند م-3: من كان سيدخله فلتر 100 أسبوع.
@@ -1631,7 +1722,9 @@ def _derive_daily(st, rows, pending_dates, tasi, stamp, counters):
         "derived": True, "updatedAt": stamp,
     }
     # ── سلاسل الرسم (الموجة 1) + مستويات §4-ب — من المخزن وقت الجلب ──
-    st["series"] = build_series(dates, raw, adj_pairs)
+    # سلاسل الرسم سعرية (الخام المعدّل رأسمالياً) لا عائداً كلياً (ختم §8-ل، شرط 1): الكلاسيكية ترسم
+    # series دائماً فوق مستويات خام، فعائدٌ كلي فيها يعرض أسعاراً لم تُتداول (7010 −17% في w156)
+    st["series"] = build_series(dates, raw, list(zip(dates, raw)))
     st["levels"] = build_levels(rows, atr, st.get("levels"), stamp, pending_dates)
     # ── القوة النسبية على الخام مقابل تاسي السعري (§3.3) ──
     r3, r6 = period_return(raw, 63), period_return(raw, 126)
@@ -1795,7 +1888,9 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         scratch.setdefault(sym, {})["div"] = div_ttm_capadj(rows, st.get("capActions"), now, today)
         # سجل الأحقيات (المرحلة 1 من تعديل المنح، قرار المالك 20-10): كاشف الإجراءات
         # الرأسمالية يميّز التوزيع النقدي الاستثنائي عن المنحة بتاريخ الأحقية وقيمتها.
-        d1095 = (now - timedelta(days=1095)).strftime("%Y-%m-%d")
+        # الحد الأدنى ثابت عند TR_TC (§8-ل، شرط المحلل 1): سلسلة العائد الكلي تبني ما بعد الحد من
+        # هذه الأحقيات، فقصّها على 1095 يوماً كان سيُسقط توزيع 2023-10-31 مثلاً ويغيّر السلسلة بصمت
+        d1095 = min((now - timedelta(days=1095)).strftime("%Y-%m-%d"), TR_TC)
         scratch[sym]["divEvents"] = sorted({(e, round(v, 4)) for e, v in rows if d1095 <= e <= today})
         return True, None
 
@@ -2580,7 +2675,7 @@ def main():
         "company_ok", "company_fail", "dividends_ok", "dividends_fail",
         "adj_dropped_rows", "partial_excluded", "tasi_ok", "tasi_fail", "tasi_api_stale",
         "regime_ok", "regime_fail", "universe_ok", "universe_fail",
-        "divcal_ok", "divcal_fail", "hist_gap_truncated")}
+        "divcal_ok", "divcal_fail", "hist_gap_truncated", "tr_rejected")}
     now_riyadh = datetime.now(RIYADH).strftime("%Y-%m-%d %H:%M")
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -2595,7 +2690,7 @@ def main():
         sys.exit("⛔ فشل الأسعار كلياً — لا كتابة")
 
     print("📊 شموع 1d (تزايدي) + اشتقاق أسبوعي + Z + سيولة...")
-    fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today)
+    fetch_daily_and_derive(api, stocks, counters, cdir, tasi, stamp, today, data.get("upcomingDividends"))
 
     if not args.symbols:
         print("📅 مفكرة التوزيعات (upcoming، نافذة %d يوماً)..." % DIVCAL_WINDOW_DAYS)
@@ -2710,7 +2805,8 @@ def main():
     data["lastUpdated"] = now_riyadh + " الرياض"
     data["priceSource"] = "sahmk-direct-v3"
     # v3.1 (§8-ق): قواعد v3 والمقام 100 بلا تغيير، على أساس سعري معدّل للإجراءات الرأسمالية
-    data["criteriaVersion"] = "v3.1"
+    # v3.2 (§8-ل): الاتجاه (الأسبوعي وZ وSMA200D) على عائد كلي محلي — تصحيح التنفيذ إلى نص §6-1/6-2
+    data["criteriaVersion"] = "v3.2"
     # ── ختم نوع التشغيلة (شرط المحلل 2 — قاعدة الإقفال الحصرية، اعتماد 05-08ب):
     # ‏close = بعد ~15:10 الرياض في يوم تداول، أو يوم غير تداولي (أسعار الملف أسعار إقفال)
     # ‏intraday = سوق مفتوح — المغذي وسكربتا الإغلاق يرفضان العمل عليه

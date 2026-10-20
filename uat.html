@@ -1379,9 +1379,16 @@ async function loadCandles(sym){
   }catch(e){ candleCache[sym]=null; }
   return candleCache[sym];
 }
+function capAdjPts(s,pts){
+  const ap=s.capActions||[];
+  if(!pts||!ap.length) return pts;
+  return pts.map(p=>{ let k=1; for(const a of ap) if(p.t<a.date) k*=a.factor; return k===1?p:{t:p.t,v:p.v*k}; });
+}
 function chartPoints(s,rangeKey){
   /* شموع حقيقية إن حُمّلت (تواريخ فعلية)، وإلا سقوط لسلاسل المحرك */
-  const c=candleCache[s.symbol];
+  /* §8-ق: الشموع خام من candles/ — تُحمل هنا على أساس الإجراءات الرأسمالية المطبَّقة (capActions)،
+     وإلا ظهر في الرسم الهبوط الوهمي الذي تنفيه ملاحظة capNote تحته */
+  const c=capAdjPts(s,candleCache[s.symbol]);
   if(c&&c.length>=2){
     const n=CANDLE_SESSIONS[rangeKey]||66;
     let pts=n===Infinity?c:c.slice(-n);
