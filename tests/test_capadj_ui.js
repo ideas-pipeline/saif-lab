@@ -49,5 +49,16 @@ ok(isV3sc({ criteriaVersion: "v3.1", filtered: true }), "isV3sc: مستبعد v3
 ok(isV3sc({ criteriaVersion: "v3" }), "وv3 كما كان");
 ok(!isV3sc({ criteriaVersion: "v30" }) && !isV3sc({ criteriaVersion: "v2.1" }), "ولا يقبل v30 ولا v2.1");
 
+// ── uat.html: capNote — نص وصلة المزوّد حين يختلف eventDate (§8-ك) ──
+const c0 = uat.indexOf("const CAP_KIND"), c1 = uat.indexOf("function impliedEpsAnnual");
+if (c0 < 0 || c1 < 0) throw new Error("مرساة capNote مفقودة");
+const esc = s => String(s);
+const capNote = new Function("esc", uat.slice(c0, c1) + "\nreturn capNote;")(esc);
+const nS = capNote({ capActions: [{ date: "2023-11-27", eventDate: "2026-04-21", factor: 0.666667, kind: "bonus" }] });
+ok(nS.includes("2026-04-21") && nS.includes("عدّل المزوّد أسعارها حتى") && nS.includes("2023-11-27"),
+   "capNote: بند الوصلة يذكر يوم المنحة وحدّ تعديل المزوّد");
+const nP = capNote({ capActions: [{ date: "2026-10-01", factor: 0.833333, kind: "bonus" }] });
+ok(nP.includes("الأسعار قبل") && !nP.includes("عدّل المزوّد"), "وبند عادي بالنص المعتاد");
+
 console.log("\n" + (fail ? "❌ " : "✅ ") + pass + " نجحت، " + fail + " فشلت");
 process.exit(fail ? 1 : 0);

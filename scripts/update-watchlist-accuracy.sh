@@ -106,9 +106,11 @@ price_map = {s["symbol"]: s.get("currentPrice") for s in data.get("stocks", [])}
 cap_map = {s["symbol"]: (s.get("capActions") or []) for s in data.get("stocks", []) if s.get("symbol")}
 
 def cap_k(symbol, entry_date, end_date):
+    # يوم الحدث الاقتصادي (eventDate، وإلا date): سعر الدخول اسمي يومه — §8-ك
     k = 1.0
     for a in cap_map.get(symbol, []):
-        if a.get("date", "") > entry_date and (not end_date or a["date"] <= end_date):
+        t = a.get("eventDate") or a.get("date", "")
+        if t > entry_date and (not end_date or t <= end_date):
             k *= a["factor"]
     return k
 

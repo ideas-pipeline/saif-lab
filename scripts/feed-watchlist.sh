@@ -60,9 +60,10 @@ caps_by = {s["symbol"]: (s.get("capActions") or []) for s in data.get("stocks", 
 pend_by = {s["symbol"]: (s.get("capActionsPending") or []) for s in data.get("stocks", []) if s.get("symbol")}
 
 def cap_k(e):
+    # سعر الدخول اسمي يوم الدخول ⇒ يتبع يوم الحدث الاقتصادي (eventDate، وإلا date) — §8-ك
     k = 1.0
     for a in caps_by.get(e["symbol"], []):
-        if a.get("date", "") > e.get("entryDate", ""):
+        if (a.get("eventDate") or a.get("date", "")) > e.get("entryDate", ""):
             k *= a["factor"]
     return k
 

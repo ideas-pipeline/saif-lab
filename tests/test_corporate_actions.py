@@ -88,7 +88,7 @@ e = EV["1030"][0]
 check("منحة 1 لكل 5 ⇒ A آلي بمعامل 0.833333", len(EV["1030"]) == 1 and e["grade"] == "A"
       and e["decision"] == "auto" and abs(e["factor"] - 5 / 6) < 1e-6)
 check("أسهم الضجيج بلا أي حدث", all(not EV[s] for s in NOISE))
-plan, pend, _sup = m.ca_resolve("1030", EV["1030"], None, R1030)
+plan, pend, _sup, _meta = m.ca_resolve("1030", EV["1030"], None, R1030)
 orig = copy.deepcopy(R1030)
 R2, ap, sk = m.apply_capactions(R1030, plan)
 check("apply لا يمسّ الصفوف الأصلية", R1030 == orig)
@@ -191,7 +191,7 @@ EVb2 = detect_all(universe(B1=RB), {"B1": stB})
 check("q = 200/260 ⇒ B آلي بمعامل 10/13",
       EVb2["B1"][0]["grade"] == "B" and EVb2["B1"][0]["decision"] == "auto"
       and abs(EVb2["B1"][0]["factor"] - 10 / 13) < 1e-6)
-plan_b, pend_b, _sup = m.ca_resolve("B1", EVb["B1"], None, RB)
+plan_b, pend_b, _sup, _meta = m.ca_resolve("B1", EVb["B1"], None, RB)
 check("B المعلّق ⇒ في pending لا في الخطة", not plan_b and pend_b[0]["grade"] == "B")
 
 # ── 9) q يناقض A ⇒ يدوي؛ وq≈1 بلا معلومة ⇒ يبقى آلياً ──
@@ -251,8 +251,8 @@ try:
 finally:
     shutil.rmtree(tmpd)
 
-check("ca_factor_after: ما بعد d0 وحتى d1",
-      m.ca_factor_after([{"date": "2026-09-01", "factor": 0.5}, {"date": "2026-10-01", "factor": 0.8}], "2026-08-31",
+check("ca_factor_after_event: ما بعد d0 وحتى d1",
+      m.ca_factor_after_event([{"date": "2026-09-01", "factor": 0.5}, {"date": "2026-10-01", "factor": 0.8}], "2026-08-31",
                         "2026-09-30") == 0.5)
 
 # ── 14) build_levels: الفجوة المعلّقة تقيّد النافذة بما بعدها ──
@@ -460,9 +460,9 @@ try:
     check("قيمة سهم كائنٌ لا قائمة ⇒ تُسقَط بطباعة", r8 == {} and "ليست قائمة" in out8)
 finally:
     shutil.rmtree(tmpd)
-check("ca_factor_after: الحدث في d0 لا يُحتسب، وفي d1 يُحتسب",
-      m.ca_factor_after([{"date": "2026-09-01", "factor": 0.5}], "2026-09-01") == 1.0
-      and m.ca_factor_after([{"date": "2026-09-01", "factor": 0.5}], "2026-08-01", "2026-09-01") == 0.5)
+check("ca_factor_after_event: الحدث في d0 لا يُحتسب، وفي d1 يُحتسب",
+      m.ca_factor_after_event([{"date": "2026-09-01", "factor": 0.5}], "2026-09-01") == 1.0
+      and m.ca_factor_after_event([{"date": "2026-09-01", "factor": 0.5}], "2026-08-01", "2026-09-01") == 0.5)
 
 # المسار الكامل: الجزئي يقرأ المخزن من القرص، والجماعية، و«اختفى»، وsharesCapFactor القديم، والتوزيع اليومي
 tmpd = tempfile.mkdtemp()
@@ -676,6 +676,90 @@ check("والبند اليدوي عليها يُطبَّق على close وadjust
       apsp and apsp[0]["cols"] == ["close", "adjusted"] and abs(Rsp2[0][1] - 20.0) < 1e-9 and abs(Rsp2[0][2] - 20.0) < 1e-9)
 (_, apsp3, sksp3, _), _ = quiet(m.ca_plan_apply, "SP", EVsp["SP"], man, Rsp2)
 check("ولا يتكرر إن وُجد المخزن معدّلاً (صحّح المزوّد لاحقاً)", not apsp3 and sksp3)
+
+# ══ §8-ك: eventDate (وصلة المزوّد) — شروط ختم الدفعة الأولى ══
+tmpd = tempfile.mkdtemp()
+try:
+    pe = os.path.join(tmpd, "ca.json")
+    json.dump({"1": [{"date": "2023-11-27", "eventDate": "2026-04-21", "factor": 0.5, "kind": "bonus", "source": "s"},
+                     {"date": "2023-11-27", "eventDate": "2023-11-26", "factor": 0.5, "kind": "bonus", "source": "s"},
+                     {"date": "2023-11-27", "eventDate": "21-04-2026", "factor": 0.5, "kind": "bonus", "source": "s"}]},
+              open(pe, "w"))
+    re_, oute = quiet(m.load_manual_actions, pe)
+    check("eventDate: يُقبل ≥ date، ويُسقط إن سبقه أو كان تالفاً",
+          [it.get("eventDate") for it in re_["1"]] == ["2026-04-21"] and oute.count("بند معطوب") == 2)
+    real, _ = quiet(m.load_manual_actions, os.path.join(ROOT, "corporate-actions.json"))
+    check("الملف الحقيقي: eventDate لـ1080 و1120 و4200 وحدها",
+          sorted(k for k, v in real.items() if v[0].get("eventDate")) == ["1080", "1120", "4200"])
+finally:
+    shutil.rmtree(tmpd)
+man_ev = [{"date": "2023-11-27", "eventDate": "2026-04-21", "factor": 2 / 3, "kind": "bonus", "source": "s"}]
+Rsp_ = [["2023-11-%02d" % d, 75.0, 75.0, 75.7, 74.3, 1000] for d in range(1, 27)]
+Rsp_ += [["2023-11-27", 50.0, 50.0, 50.5, 49.5, 1000]] + series("SPY", 50.0)
+(_, ap_ev, _, _), _ = quiet(m.ca_plan_apply, "1120", [], man_ev, Rsp_)
+check("eventDate يُنقل إلى capActions المطبَّق", ap_ev and ap_ev[0].get("eventDate") == "2026-04-21"
+      and ap_ev[0]["date"] == "2023-11-27")
+tot, basis = m.div_ttm_capadj([("2026-04-20", 1.75), ("2026-09-21", 1.26)], ap_ev,
+                              m.datetime(2026, 10, 20, tzinfo=m.timezone.utc), "2026-10-20")
+check("1120: توزيع 1.75 قبل eventDate يُضرب بـ2/3، و1.26 بعده لا ⇒ 2.4267", abs(tot - 2.4267) < 1e-4)
+tot2, _ = m.div_ttm_capadj([("2026-04-21", 1.75)], ap_ev, m.datetime(2026, 10, 20, tzinfo=m.timezone.utc), "2026-10-20")
+check("وتوزيع أحقيته يوم eventDate نفسه لا يُضرب", abs(tot2 - 1.75) < 1e-9)
+check("ca_factor_after_event على eventDate لا date (وdate وحده إن غاب)",
+      abs(m.ca_factor_after_event(ap_ev, "2026-01-01") - 2 / 3) < 1e-6 and m.ca_factor_after_event(ap_ev, "2026-04-21") == 1.0
+      and m.ca_factor_after_event([{"date": "2026-09-01", "factor": 0.5}], "2026-08-01") == 0.5)
+# وصلة بعمود adjusted مختلف قبلها (1080: 0.973 × close) ⇒ يُطبَّق على العمودين
+Radj = [["2023-11-%02d" % d, 23.88, round(23.88 * 0.973, 4), 24.1, 23.6, 1000] for d in range(1, 27)]
+Radj += [["2023-11-27", 18.04, 18.04, 18.2, 17.9, 1000]] + series("ADJ", 18.04)
+man_a = [{"date": "2023-11-27", "eventDate": "2024-05-21", "factor": 0.75, "kind": "bonus", "source": "s"}]
+(Radj2, ap_a, _, _), out_a = quiet(m.ca_plan_apply, "1080", [], man_a, Radj)
+check("adjusted قبل الوصلة = 0.973×close ⇒ البند على العمودين، وclose بلا قفزة متبقية",
+      ap_a[0]["cols"] == ["close", "adjusted"] and abs(Radj2[25][1] - 23.88 * 0.75) < 1e-6 and "🚨" not in out_a)
+# فجوة متبقية بعد البند ⇒ 🚨 (معامل ناقص)، ولا 🚨 لـ6040 الفعلي (−5.4% تداولاً)
+Rres = Rsp_[:26] + [["2023-11-27", 37.5, 37.5, 37.9, 37.1, 1000]] + series("RES", 37.5)
+_, out_r = quiet(m.ca_plan_apply, "X", [], man_ev, Rres)
+check("بند 2/3 وفجوة 0.5 ⇒ 🚨 فجوة متبقية", "فجوة متبقية" in out_r)
+R6040 = [["2026-09-%02d" % d, 8.99, 8.99, 9.0, 8.9, 1000] for d in range(1, 27)]
+R6040 += [["2026-09-27", 43.52, 43.52, 47.97, 43.32, 1000]] + [["2026-09-28", 43.6, 43.6, 44.0, 43.0, 1000]]
+_, out6 = quiet(m.ca_plan_apply, "6040", [], [{"date": "2026-09-27", "factor": 5.119482,
+                                                "kind": "capital-reduction", "source": "s"}], R6040)
+check("6040 الفعلي (−5.4% بعد البند) ⇒ لا 🚨", "🚨" not in out6)
+# سعر الدخول بين date وeventDate يأخذ المعامل (feed وclose_sma200w وصفحة الدقة)
+e1120 = {"symbol": "1120", "track": "auto", "status": "open", "category": "buy", "type": "buy",
+         "entryPrice": 106.6, "entryDate": "2026-04-02", "maePct": 0.0}
+st1120 = {"symbol": "1120", "currentPrice": 70.0, "investmentScore": {"total": 70, "classCode": "hold"},
+          "capActions": [{"date": "2023-11-27", "eventDate": "2026-04-21", "factor": 0.666667}]}
+cfgE, _ = run_feed({"runType": "close", "stocks": [st1120]}, {"stocks": [dict(e1120)]})
+check("feed: دخول 106.6 قبل eventDate ⇒ على 71.07 فـ70 = −1.5% لا −34%", cfgE["stocks"][0]["maePct"] == -1.5)
+d = tempfile.mkdtemp()
+try:
+    sp, cp = os.path.join(d, "s.json"), os.path.join(d, "c.json")
+    json.dump({"runType": "close", "lastUpdated": "x", "stocks": [dict(st1120, weeklyTechnical={"sma200w": 80.0})]},
+              open(sp, "w"))
+    json.dump({"stocks": [{k: v for k, v in e1120.items() if k != "maePct"}]}, open(cp, "w"))
+    env = dict(os.environ, STOCKS_JSON=sp, CONFIG_JSON=cp, ARCHIVE_DIR=d, DRY_RUN="1")
+    out = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "close_sma200w.py")], env=env,
+                         capture_output=True, text=True).stdout
+    check("close_sma200w: دخول 106.6 × 2/3 = 71.07 تحت متوسط 80 ⇒ لم يدخل فوقه فلا إغلاق", "كان سيُغلق 0" in out)
+    P = {k: os.path.join(d, k) for k in ("s2.json", "c2.json", "p.html", "cache.json", "t.json")}
+    json.dump({"runType": "close", "lastUpdated": "2026-10-20 16:00", "stocks": [st1120]}, open(P["s2.json"], "w"))
+    json.dump({"stocks": [{"symbol": "1120", "name": "ر", "entryPrice": 106.6, "entryDate": "2026-04-02",
+                           "track": "legacy"}]}, open(P["c2.json"], "w"))
+    open(P["p.html"], "w").write('<script>\nconst WATCHLIST = [\n];\nconst META = {updatedAt: "x"};\n</script>\n')
+    json.dump({"data": []}, open(P["t.json"], "w"))
+    env = {k: v for k, v in os.environ.items() if not k.startswith("SAHMK")}
+    env.update(STOCKS_JSON=P["s2.json"], CONFIG_JSON=P["c2.json"], HTML_FILE=P["p.html"],
+               CACHE_FILE=P["cache.json"], TASI_HISTORY=P["t.json"])
+    subprocess.run(["bash", os.path.join(ROOT, "scripts", "update-watchlist-accuracy.sh")], env=env,
+                   capture_output=True, text=True)
+    check("صفحة الدقة: مدخل 1120 القديم قبل eventDate ⇒ entryPriceAdj 71.0667",
+          "entryPriceAdj: 71.0667," in open(P["p.html"]).read())
+finally:
+    shutil.rmtree(d)
+cfgw = json.load(open(os.path.join(ROOT, "watchlist-config.json")))
+f1080 = [e for e in cfgw["stocks"] if e["symbol"] == "1080" and e.get("track") == "auto"
+         and e.get("entryDate") in ("2026-08-19", "2026-08-20")]
+check("قرار المالك: مدخلا 1080 (08-19 و08-20) موسومان dataFault بوصلة المزوّد",
+      len(f1080) == 2 and all((e.get("dataFault") or {}).get("kind") == "provider-splice" for e in f1080))
 
 # JS: صفحة الدقة (entryPriceAdj وdataFault)، وimpliedEpsAlt، وisV3sc
 js = subprocess.run(["node", os.path.join(HERE, "test_capadj_ui.js")], capture_output=True, text=True)

@@ -1057,7 +1057,15 @@ const CAP_KIND={"bonus":"أسهم منحة","bonus/split":"منحة أو تجز�
 function capNote(s){
   const ap=s.capActions||[], pd=s.capActionsPending||[];
   const out=[];
-  if(ap.length) out.push(`<div class="fin-note">الأسعار قبل ${ap.map(a=>`<span class="num">${esc(a.date)}</span> معدّلة لـ${CAP_KIND[a.kind]||"إجراء رأسمالي"} (×<span class="num">${esc(String(+a.factor.toFixed(4)))}</span>)`).join("، و")} — كي لا يظهر هبوط وهمي في الرسم والمؤشرات.</div>`);
+  /* §8-ك: بند وصلة المزوّد (eventDate ≠ date) — المنحة في eventDate، والمزوّد عدّل أسعارها
+     رجوعاً حتى date فقط، فما قبله معدّل هنا. وإلا فالنص المعتاد. */
+  const capTxt=a=>{
+    const f=`(×<span class="num">${esc(String(+a.factor.toFixed(4)))}</span>)`, k=CAP_KIND[a.kind]||"إجراء رأسمالي";
+    return (a.eventDate&&a.eventDate!==a.date)
+      ?`${k} <span class="num">${esc(a.eventDate)}</span> ${f}: عدّل المزوّد أسعارها حتى <span class="num">${esc(a.date)}</span> فقط، وما قبل ذلك معدّل هنا`
+      :`الأسعار قبل <span class="num">${esc(a.date)}</span> معدّلة لـ${k} ${f}`;
+  };
+  if(ap.length) out.push(`<div class="fin-note">${ap.map(capTxt).join("؛ ")} — كي لا يظهر هبوط وهمي في الرسم والمؤشرات.</div>`);
   if(pd.length) out.push(`<div class="guard-note">فجوة سعرية في ${pd.map(p=>`<span class="num">${esc(p.date)}</span>`).join("، ")} قيد المراجعة: قد تكون منحة أو إجراءً رأسمالياً لم يُعدَّل بعد، فالمؤشرات الفنية التي تمتد عبرها قد تحمل حركة وهمية حتى تُحسم.</div>`);
   return out.join("");
 }
