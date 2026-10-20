@@ -464,7 +464,7 @@
    ══════════════════════════════════════════════════════ */
 const CONFIG = {
   entryDate:   "2025-03-13",
-  updatedAt:   "2026-10-20T16:25:55+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
+  updatedAt:   "2026-10-20T17:00:58+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
 };
 
 /*
@@ -1795,6 +1795,7 @@ const WATCHLIST = [
     entryPrice:    22.35,      // cache | يدوي أصلي: 22.35
     entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
+    dataFault:     {"kind": "provider-splice", "date": "2023-11-27", "label": "أُغلق بعطب بيانات"},
     tasiRet:       -5.17,
     periodDays:    53,
     regimeAtEntry: "حذر",
@@ -1837,6 +1838,7 @@ const WATCHLIST = [
     entryPrice:    22.19,      // cache | يدوي أصلي: 22.19
     entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
+    dataFault:     {"kind": "provider-splice", "date": "2023-11-27", "label": "أُغلق بعطب بيانات"},
     tasiRet:       -5.42,
     periodDays:    52,
     regimeAtEntry: "حذر",
@@ -2386,8 +2388,8 @@ const WATCHLIST = [
     name:          "مسك",
     sector:        "Industrials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    32.88,      // sahmk-close | يدوي أصلي: 32.88
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    32.88,      // cache | يدوي أصلي: 32.88
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
     tasiRet:       -1.69,
     periodDays:    1,
@@ -2403,8 +2405,8 @@ const WATCHLIST = [
     name:          "الزجاج الوطنية",
     sector:        "Consumer Discretionary",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    36.1,      // sahmk-close | يدوي أصلي: 36.1
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    36.1,      // cache | يدوي أصلي: 36.1
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
     tasiRet:       -1.69,
     periodDays:    1,
@@ -2420,6 +2422,23 @@ const WATCHLIST = [
     qualityAtEntry: 19,
     excessNet: 0.47,
     currentPrice:  35.66,           // ✅ confirmed 2026-10-20
+  },
+  {
+    symbol:        "1080",
+    name:          "البنك العربي الوطني",
+    sector:        "Financials",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    21.05,      // same-day-close | يدوي أصلي: 21.05
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
+    entryDate:     "2026-10-20",
+    track:         "auto",
+    category:      "buy_wait",
+    maePct: 0.0,
+    currentPrice:  21.05,           // ✅ confirmed 2026-10-20
   },
 ];
 

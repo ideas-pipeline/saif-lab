@@ -2112,6 +2112,27 @@
    "status": "open",
    "tasiRet": -1.69,
    "excessNet": 0.47
+  },
+  {
+   "symbol": "1080",
+   "name": "البنك العربي الوطني",
+   "sector": "Financials",
+   "type": "buy",
+   "entryPrice": 21.05,
+   "entryDate": "2026-10-20",
+   "track": "auto",
+   "category": "buy_wait",
+   "engineClass": "hold",
+   "scoreAtEntry": 66,
+   "timingAtEntry": "انتظر",
+   "regimeAtEntry": "هابط",
+   "aboveSmaAtEntry": true,
+   "scoreScaleAtEntry": "criteria-v3",
+   "priceBasisAtEntry": "capadj-v1",
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 0.83,
+   "status": "open",
+   "maePct": 0.0
   }
  ]
 }
