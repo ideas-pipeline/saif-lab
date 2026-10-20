@@ -78,8 +78,10 @@ check("ومعه توزيع سليم في النافذة ⇒ مجموع السل�
 check("الرفض بالتاريخ والمبلغ معاً: صحّح المزوّد المبلغ ⇒ يُحسب",
       m.div_ttm_capadj([(D[ie], 0.04)], [], NOW, TODAY, [(D[ie], 43.44)]) == (0.04, "ttm12m"))
 old = (date.fromisoformat(TODAY) - timedelta(days=400)).isoformat()
-check("رفضٌ خارج نافذة 12 شهراً ⇒ لا «غير متوفر»، ولا يُعدّ توزيعاً حديثاً (none لا none-recent18m)",
-      m.div_ttm_capadj([(old, 43.44)], [], NOW, TODAY, [(old, 43.44)]) == (0.0, "none"))
+check("رفضٌ خارج نافذة 12 شهراً وداخل 18 ⇒ يبقى «خارج نافذة 12 شهراً» لا «لا يوزع» (3007، ش3)",
+      m.div_ttm_capadj([(old, 43.44)], [], NOW, TODAY, [(old, 43.44)]) == (0.0, "none-recent18m"))
+check("المطابقة على 4 منازل: المزوّد 0.333333 والمرفوض المخزَّن 0.3333 ⇒ يبقى مرفوضاً (ش2)",
+      m.div_ttm_capadj([(D[ie], 0.333333)], [], NOW, TODAY, [(D[ie], 0.3333)]) == (None, "rejected"))
 
 # ── 4) المحرك: لا عائد ولا دخول في وسيط القطاع ──
 v = se.compute_valuation({"currentPrice": 1.06, "valuationInputs": {"divTtm12m": None, "divBasis": "rejected"}}, TODAY)
@@ -131,6 +133,7 @@ class DivApi:
         return None, "HTTP 500"
 
 
+m._DIV_ROWS.clear()          # بلا تمريرة يومية في التشغيلة ⇒ المرفوض المخزَّن وحده
 stw = {"symbol": "3008", "sector": "Basic Materials", "industry": "Building Materials", "financials": {},
        "guardRejected": [], "_prevFinancials": {},
        "dividendRejected": [{"date": D[ie], "amount": 43.44, "y": 40.98, "why": "x"}]}
@@ -140,6 +143,31 @@ with contextlib.redirect_stdout(io.StringIO()):
 check("الأسبوعي: /dividends يعيد 43.44 ⇒ divTtm12m None (rejected) بالرفض المخزَّن، وdividendEvents كما هي",
       stw["valuationInputs"]["divTtm12m"] is None and stw["valuationInputs"]["divBasis"] == "rejected"
       and stw["dividendEvents"] == [{"date": D[ie], "amount": 43.44}])
+
+# ش1: توزيع وهمي جديد يصل من /dividends في الأسبوعي ولا رفض مخزَّن له ⇒ يُحكم بأسعار اليومي في التشغيلة نفسها
+m._DIV_ROWS.clear()
+m._DIV_ROWS["3008"] = (R, [])
+stn = {"symbol": "3008", "sector": "Basic Materials", "industry": "Building Materials", "financials": {},
+       "guardRejected": [], "_prevFinancials": {}}
+with contextlib.redirect_stdout(io.StringIO()) as bw:
+    m.fetch_fundamentals(DivApi(), data, [stn], collections.defaultdict(int), TODAY, full_universe=False)
+check("الأسبوعي: حدث وهمي جديد بلا رفض مخزَّن ⇒ None (rejected) فوراً، وdividendRejected يُكتب، وسطر 🚫",
+      stn["valuationInputs"]["divTtm12m"] is None and stn["valuationInputs"]["divBasis"] == "rejected"
+      and stn["dividendRejected"][0]["date"] == D[ie] and "🚫 3008" in bw.getvalue())
+stc = dict(stn, dividendRejected=[{"date": D[ie], "amount": 43.44, "y": 40.98, "why": "x"}])
+
+
+class FixedApi(DivApi):
+    def get(self, path, **k):
+        if path.startswith("/dividends/"):
+            return {"history": [{"eligibility_date": D[ie], "value": 0.04}]}, None
+        return super().get(path, **k)
+
+
+with contextlib.redirect_stdout(io.StringIO()):
+    m.fetch_fundamentals(FixedApi(), data, [stc], collections.defaultdict(int), TODAY, full_universe=False)
+check("والمزوّد صحّح في الأسبوعي ⇒ الوسم يُمسح والعائد 0.04", "dividendRejected" not in stc
+      and stc["valuationInputs"]["divTtm12m"] == 0.04)
 
 print("\n%s" % ("الكل سليم" if not fails else "فشل %d" % fails))
 sys.exit(1 if fails else 0)
