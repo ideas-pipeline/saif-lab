@@ -245,9 +245,14 @@ try:
     check("ملف غير مقروء ⇒ {} بإنذار", man_bad == {} and "غير مقروء" in out)
     check("ملف غائب ⇒ {}", m.load_manual_actions(os.path.join(tmpd, "none.json")) == {})
     real, out = quiet(m.load_manual_actions, os.path.join(ROOT, "corporate-actions.json"))
-    check("corporate-actions.json في المستودع سليم (عشرة أسهم) بلا بند معطوب",
-          sorted(real) == ["1030", "1080", "1120", "2200", "4004", "4200", "4321", "6040", "7202", "8010"]
-          and "معطوب" not in out)
+    raw_ca = json.load(open(os.path.join(ROOT, "corporate-actions.json")))
+    n_items = sum(len(v) for k, v in raw_ca.items() if not k.startswith("_"))
+    check("corporate-actions.json في المستودع سليم (33 سهماً، 34 بنداً) بلا بند معطوب",
+          len(real) == 33 and sum(len(v) for v in real.values()) == n_items == 34 and "معطوب" not in out)
+    check("وصلة 2023-11-27: 27 بنداً بـeventDate ≥ date، ولا بندان لسهم على التاريخ نفسه، و1030 ببندين",
+          sum(1 for v in real.values() for it in v if it["date"] == "2023-11-27" and it.get("eventDate", "") >= it["date"]) == 27
+          and all(len({it["date"] for it in v}) == len(v) for v in real.values())
+          and [it["date"] for it in real["1030"]] == ["2023-11-27", "2026-10-01"])
 finally:
     shutil.rmtree(tmpd)
 
@@ -689,8 +694,10 @@ try:
     check("eventDate: يُقبل ≥ date، ويُسقط إن سبقه أو كان تالفاً",
           [it.get("eventDate") for it in re_["1"]] == ["2026-04-21"] and oute.count("بند معطوب") == 2)
     real, _ = quiet(m.load_manual_actions, os.path.join(ROOT, "corporate-actions.json"))
-    check("الملف الحقيقي: eventDate لـ1080 و1120 و4200 وحدها",
-          sorted(k for k, v in real.items() if v[0].get("eventDate")) == ["1080", "1120", "4200"])
+    check("الملف الحقيقي: eventDate لبنود الوصلة وحدها (27 سهماً)",
+          sorted(k for k, v in real.items() if any(it.get("eventDate") for it in v))
+          == sorted(k for k, v in real.items() if any(it["date"] == "2023-11-27" for it in v))
+          and len([k for k, v in real.items() if any(it.get("eventDate") for it in v)]) == 27)
 finally:
     shutil.rmtree(tmpd)
 man_ev = [{"date": "2023-11-27", "eventDate": "2026-04-21", "factor": 2 / 3, "kind": "bonus", "source": "s"}]
@@ -760,6 +767,10 @@ f1080 = [e for e in cfgw["stocks"] if e["symbol"] == "1080" and e.get("track") =
          and e.get("entryDate") in ("2026-08-19", "2026-08-20")]
 check("قرار المالك: مدخلا 1080 (08-19 و08-20) موسومان dataFault بوصلة المزوّد",
       len(f1080) == 2 and all((e.get("dataFault") or {}).get("kind") == "provider-splice" for e in f1080))
+f2050 = [e for e in cfgw["stocks"] if e["symbol"] == "2050" and e.get("sampleType") == "value-shadow"
+         and e.get("entryDate") == "2026-08-09"]
+check("قرار المالك: مدخل ظل القيمة لـ2050 (08-09) موسوم dataFault بوصلة المزوّد",
+      len(f2050) == 1 and (f2050[0].get("dataFault") or {}).get("kind") == "provider-splice")
 
 # ══ إعادة ختم 20-10 (شرط 1): صفحة الدقة بحسب أساس سعر الدخول ══
 def acc_run(cfg_stocks, cache_obj, st_list):
