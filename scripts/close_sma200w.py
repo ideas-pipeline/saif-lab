@@ -45,7 +45,7 @@ for e in stocks:
         # التقريب بسعر الدخول على أساس المتوسط نفسه (المعدّل للإجراءات الرأسمالية بعد الدخول)
         k = 1.0
         for a in caps.get(e["symbol"], []):
-            if a.get("date", "") > e.get("entryDate", ""):
+            if (a.get("eventDate") or a.get("date", "")) > e.get("entryDate", ""):
                 k *= a["factor"]
         entered_above = e.get("entryPrice", 0) * k >= sma
     if entered_above and cur < sma:
