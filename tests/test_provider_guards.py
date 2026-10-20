@@ -301,6 +301,93 @@ try:
 finally:
     _sh.rmtree(tmp)
 
+# ── 4هـ) شروط الختم المتبقية: حالات سلبية للمسارين، ومسح bookValueCheck، والختم، والتجميد، وفصل L1 [3] ──
+s_b1 = stock("1080", ni=2e9, eq=30e9, revenue=4e9, revenuePrev=3.8e9, netIncomePrev=1.9e9, profitMargins=65.0)
+check("(ب) سلبي: هامش المزوّد 65% داخل النطاق ويخالف القوائم (50%) بـ15 نقطة ⇒ لا رفض (الشرط: خارج النطاق)",
+      m.bank_revenue_guard(s_b1, TODAY) is None and s_b1["financials"]["profitMargins"] == 65.0)
+s_b2 = stock("1080", ni=1.28e9, eq=30e9, revenue=4e9, revenuePrev=3.8e9, netIncomePrev=1.2e9, profitMargins=25.0)
+check("(ب) سلبي: هامش المزوّد 25% خارج النطاق والقوائم 32% (فجوة 7 نقاط ≤ 10) ⇒ لا رفض",
+      m.bank_revenue_guard(s_b2, TODAY) is None and s_b2["financials"]["profitMargins"] == 25.0)
+s_a1 = stock("1080", ni=1e9, eq=30e9, revenue=4e9, revenuePrev=1.7e9, netIncomePrev=0.34e9,
+             profitMargins=25.0, revenueGrowth=135.0)
+check("(أ) سلبي: هامش سابقٍ خارج النطاق أيضاً (20%) مع قفزة إيراد ⇒ لا تبدّل أساس، لا رفض",
+      m.bank_revenue_guard(s_a1, TODAY) is None and s_a1["financials"]["revenueGrowth"] == 135.0)
+s_bc = stock("X", bv=5.0, ni=1e8, eq=1e9, shares=100e6, bank=False)
+m.bv_guard(s_bc, TODAY)
+s_bc["valuationInputs"]["bookValueProvider"] = 10.0              # B = 1.0
+check("bookValueCheck يُمسح حين تزول المراقبة",
+      m.bv_guard(s_bc, TODAY) == "keep" and "bookValueCheck" not in s_bc["valuationInputs"])
+
+D0 = copy.deepcopy(DATA)
+DATA.pop("providerGuardsSince", None)
+_, _ = run(base, Api())
+check("fetch_fundamentals يختم data.providerGuardsSince = اليوم (يوم الانتقال)", DATA.get("providerGuardsSince") == TODAY)
+DATA["providerGuardsSince"] = "2026-10-01"
+run(base, Api())
+check("ولا يُعاد الختم بعد أول تشغيلة (setdefault)", DATA["providerGuardsSince"] == "2026-10-01")
+DATA.clear(); DATA.update(D0)
+sb = copy.deepcopy(base)
+sb["sharesHistory"] = [{"date": "2026-10-20", "lastSeen": "2026-10-20", "shares": 1.5e9}]
+sb["valuationInputs"] = {"sharesOutstanding": 4e9}
+_, outS = run(sb, Api())
+check("عدد مشكوك فيه ⇒ السهم يُطبع في سطر 🛡️ (لا تعطيل صامت)", "عدد أسهم مشكوك فيه" in outS and "1030" in outS)
+
+import datetime as _dt
+FEED_TODAY = _dt.datetime.now().strftime("%Y-%m-%d")
+
+
+def run_feed(stocks_data, cfg):
+    d = _tf.mkdtemp()
+    try:
+        sp, cp = os.path.join(d, "s.json"), os.path.join(d, "c.json")
+        _json.dump(stocks_data, open(sp, "w"))
+        _json.dump(cfg, open(cp, "w"))
+        os.makedirs(os.path.join(d, "arch"))
+        env = dict(os.environ, STOCKS_JSON=sp, CONFIG_JSON=cp, ARCHIVE_DIR=os.path.join(d, "arch"))
+        out = _sp.run(["bash", os.path.join(ROOT, "scripts", "feed-watchlist.sh")], env=env,
+                      capture_output=True, text=True).stdout
+        return _json.load(open(cp)), out
+    finally:
+        _sh.rmtree(d)
+
+
+vs_old = {"symbol": "2010", "track": "auto", "status": "open", "sampleType": "value-shadow", "category": "value-shadow",
+          "type": "buy", "entryPrice": 50.0, "entryDate": "2025-01-01", "maePct": 0.0}
+cand = {"symbol": "2020", "sector": "Basic Materials", "currentPrice": 40.0, "valuation": {"pe": 8.0},
+        "investmentScore": {"filtered": True, "filterReason": "تحت SMA200W بدون إشارات انعكاس", "axes": {"quality": 20}},
+        "financials": {"ocf": 1e9}, "weeklyTechnical": {"sma200w": 45.0}}
+held = {"symbol": "2010", "currentPrice": 52.0, "investmentScore": {"filtered": True}}
+SD = {"runType": "close", "sectorMedians": {"Basic Materials": {"peMedian": 15.0}}, "stocks": [held, cand]}
+cfgN, _ = run_feed(SD, {"stocks": [dict(vs_old)]})
+byN = {e["symbol"]: e for e in cfgN["stocks"]}
+check("المغذي بلا ختم اليوم: ظل القيمة يُغلق (max_age_12m) ويدخل المرشح (الأساس)",
+      byN["2010"]["status"] == "closed" and "2020" in byN)
+cfgF, outF = run_feed(dict(SD, providerGuardsSince=FEED_TODAY), {"stocks": [dict(vs_old)]})
+byF = {e["symbol"]: e for e in cfgF["stocks"]}
+check("يوم الانتقال (providerGuardsSince = اليوم): لا إغلاق ولا دخول في ظل القيمة",
+      byF["2010"]["status"] == "open" and "2020" not in byF and "مجمّد اليوم" in outF)
+cfgY, _ = run_feed(dict(SD, providerGuardsSince="2026-01-01"), {"stocks": [dict(vs_old)]})
+check("وختمٌ قديم لا يجمّد (يوم واحد فقط)", {e["symbol"]: e for e in cfgY["stocks"]}["2010"]["status"] == "closed")
+
+tmp = _tf.mkdtemp()
+try:
+    def l1_out(guard):
+        Dl = _json.load(open(os.path.join(ROOT, "stocks-data.json")))
+        for st in Dl["stocks"]:
+            st["guardRejected"] = []
+        Dl["stocks"][0]["guardRejected"] = [dict({"field": "eps", "value": 1, "reason": "x", "date": TODAY}, **guard)
+                                            for _ in range(41)]
+        fp = os.path.join(tmp, "d.json")
+        _json.dump(Dl, open(fp, "w"), ensure_ascii=False)
+        return _sp.run([sys.executable, os.path.join(ROOT, "scripts", "self-check-L1.py"), fp],
+                       capture_output=True, text=True).stdout
+    oP, oG = l1_out({"guard": "provider"}), l1_out({})
+    check("L1 [3]: 41 رفضاً من حراس المزوّد ⇒ تُعدّ منفصلة ولا إنذار «رفض الحراس مرتفع»",
+          "رفض الحراس مرتفع" not in oP and "خارج العتبة): {'eps': 41}" in oP)
+    check("و41 رفضاً عادياً ⇒ الإنذار (العتبة باقية)", "رفض الحراس مرتفع: 41" in oG)
+finally:
+    _sh.rmtree(tmp)
+
 # ── 5) المستهلكون ──
 st_v = {"currentPrice": 12.0, "valuationInputs": {"eps": 1.621, "epsBasis": "fy-derived", "peSource": 5.0}}
 v = se.compute_valuation(st_v, TODAY)

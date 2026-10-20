@@ -882,7 +882,7 @@ BV_MIN_WATCH = 0.70       # يتسع لصكوك الشريحة الأولى حت
 PROV_STALE_DAYS = 456
 BANK_M_BAND = (0.30, 0.80)    # صافي الربح ÷ دخل العمليات — البنوك التسعة بين 32.6% و63.4%
 BANK_R_BAND = (2 / 3, 1.5)    # إيراد ÷ سابقه
-SHARES_SANITY = 0.25          # العدد الحالي يوافق المجمّد ÷ sharesCapFactor ضمن 25% (كحارس الواجهة)
+SHARES_SANITY = 0.25          # العدد الحالي يوافق المجمّد ÷ sharesCapFactor ضمن 25% (عتبة الواجهة، ومرجعها marketCap/theirPrice)
 
 
 def _num(x):
@@ -891,7 +891,9 @@ def _num(x):
 
 def shares_now(st):
     """العدد الحالي: آخر sharesHistory، وإلا المجمّد على الأساس الحالي (÷ sharesCapFactor). وإن وُجدا
-    معاً واختلفا بأكثر من 25% ⇒ None (لا يُشتق رقمٌ من عددٍ مشكوك فيه — ختم §8-م، شرط 6؛ 1213 و6016)."""
+    معاً واختلفا بأكثر من 25% ⇒ None (لا يُشتق رقمٌ من عددٍ مشكوك فيه — ختم §8-م، شرط 6؛ 1213 و1820).
+    المجمّد لقطة 08-06 لا تتجدّد: تغيّر عددٍ حقيقي بلا capActions (إصدار، اندماج) يعطّل الحارس عن السهم،
+    فيُطبع في سطر 🛡️ لا يُسكت."""
     h = ((st.get("sharesHistory") or [{}])[-1]).get("shares")
     vi = st.get("valuationInputs") or {}
     fz, k = vi.get("sharesOutstanding"), vi.get("sharesCapFactor")
@@ -2148,6 +2150,7 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
     # ── كتابة financials الموحدة + الحراس (§8) ──
     sh_seen = sh_changed = 0
     g_tot = collections.Counter()   # عدّادات حراس §8-م
+    sh_bad = []                     # عددٌ مشكوك فيه ⇒ الحراس معطّلة عن السهم (لا تُسكت)
     for st in stocks:
         sym = st["symbol"]
         sc = scratch.get(sym) or {}
@@ -2266,6 +2269,8 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         # حراس §8-م على السجل المخزَّن كل تشغيلة (لا على الطازج وحده): eps وbookValue يُعاد حسابهما
         # من الخام كل مرة، فلا يتراكم اشتقاقٌ فوق اشتقاق
         g_tot[eps_guard(st, today)] += 1
+        if shares_now(st) is None and st.get("sharesHistory"):
+            sh_bad.append(st.get("symbol"))
         g_tot["bv_" + bv_guard(st, today)] += 1
         if bank and bank_revenue_guard(st, today):
             g_tot["rev_reject"] += 1
@@ -2280,6 +2285,12 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
     print("  🛡️ حراس المزوّد (§8-م): eps أُبدل %d · مُلئ %d · مراقبة %d | القيمة الدفترية أُبدلت %d · مراقبة %d"
           " | إيراد بنك مرفوض %d" % (g_tot["replace"], g_tot["fill"], g_tot["watch"], g_tot["bv_replace"],
                                       g_tot["bv_watch"], g_tot["rev_reject"]))
+    if sh_bad:
+        print("  🛡️ عدد أسهم مشكوك فيه (sharesHistory يخالف المجمّد ÷ k بأكثر من 25%%) ⇒ الحراس معطّلة: %s"
+              % ", ".join(sh_bad))
+    # يوم الانتقال إلى حراس المزوّد (§8-م): ختمٌ يقرؤه المغذي فيجمّد ظل القيمة ذلك اليوم
+    # (قرار المالك — الإغلاق والدخول بسبب الأرقام الجديدة لا السوق)
+    data.setdefault("providerGuardsSince", today)
     # ── حارس الانزياح الجماعي (§8): فئة ≥5 يتغير حقلها باتجاه واحد >80% ──
     drift = []
     groups = {"البنوك": [s for s in stocks if is_bank(s)]}
@@ -2909,9 +2920,6 @@ def main():
         print("🏦 الأساسيات...")
         drift = fetch_fundamentals(api, data, stocks, counters, today,
                                    full_universe=not args.symbols)
-        # يوم الانتقال إلى حراس المزوّد (§8-م): ختمٌ يقرؤه المغذي فيجمّد ظل القيمة ذلك اليوم
-        # (قرار المالك — الإغلاق والدخول بسبب الأرقام الجديدة لا السوق)
-        data.setdefault("providerGuardsSince", today)
         print("  🏦 بنوك مكتشفة بالتعريف الموحد: %d (المتوقع ~10 — بوابة تشغيلة أولى)"
               % sum(1 for s in stocks if is_bank(s)))
     gone_pending = None
