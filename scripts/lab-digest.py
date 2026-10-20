@@ -229,13 +229,17 @@ def main():
                  " (يظهر حين يكتبها خط القياس).")
 
     # سطر عينة الظل الثانية (قيمة-تحت-الفلتر — ظل بحثي)
-    vs_open = [e for e in vs_all if e.get("status", "open") == "open"]
+    # المدخل الموسوم dataFault خارج القياس (§8-ك، قرار المالك) — لا يدخل العدّ ولا المتوسط
+    vs_fault = [e for e in vs_all if e.get("dataFault")]
+    vs_meas = [e for e in vs_all if not e.get("dataFault")]
+    vs_open = [e for e in vs_meas if e.get("status", "open") == "open"]
     vs_ex = [e.get("excessNet") for e in vs_open if e.get("excessNet") is not None]
     if vs_all:
-        L.append("- **ظل القيمة (بحثي — ليست توصيات):** مفتوحة %d | مغلقة %d | متوسط الزائد الجاري: %s"
-                 % (len(vs_open), len(vs_all) - len(vs_open),
+        L.append("- **ظل القيمة (بحثي — ليست توصيات):** مفتوحة %d | مغلقة %d | متوسط الزائد الجاري: %s%s"
+                 % (len(vs_open), len(vs_meas) - len(vs_open),
                     ("‏%+.2f%% (n=%d)" % (sum(vs_ex) / len(vs_ex), len(vs_ex))) if vs_ex
-                    else "غير متوفر بعد"))
+                    else "غير متوفر بعد",
+                    (" | خارج القياس بعطب بيانات: %d" % len(vs_fault)) if vs_fault else ""))
 
     # ── بند المحلل 1: عدّاد تجويع العينة ──
     regime = (data.get("marketRegime") or {}).get("regime", "")

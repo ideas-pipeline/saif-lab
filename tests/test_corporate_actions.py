@@ -844,6 +844,21 @@ st_wv = {"symbol": "SP2", "sharesHistory": [{"date": "2026-10-20", "lastSeen": "
 dv, outv = quiet(m.ca_shares_watch, st_wv, Rsp_, [{"date": "2023-11-27", "eventDate": "2026-09-15", "factor": 2 / 3}])
 check("ca_shares_watch على eventDate: 4 ⇐ 6 مليار يفسّره البند ⇒ لا سطر", dv is None and not outv)
 
+# إعادة ختم الدفعة الثانية (شرط 1): مدخل مفتوح موسوم dataFault يُغلق ولا يشغل مقعداً، ولا دخول على وصلة غير محسومة
+vs2050 = {"symbol": "2050", "track": "auto", "status": "open", "sampleType": "value-shadow", "category": "value-shadow",
+          "type": "buy", "entryPrice": 20.0, "entryDate": "2026-08-09", "maePct": 0.0,
+          "dataFault": {"kind": "provider-splice", "date": "2023-11-27", "label": "أُغلق بعطب بيانات"}}
+st2050 = dict(vs_stock, symbol="2050")
+cfgF, outF = run_feed(dict(base_d, stocks=[st2050]), {"stocks": [dict(vs2050)]})
+e2050 = [e for e in cfgF["stocks"] if e["symbol"] == "2050"]
+check("مدخل ظل قيمة مفتوح موسوم dataFault ⇒ يُغلق data_fault بسعر اليوم",
+      e2050[0]["status"] == "closed" and e2050[0]["closeReason"] == "data_fault" and e2050[0]["closePrice"] == 10.0)
+check("ولا يُعاد دخول 2050 (وصلة غير محسومة: مدخل provider-splice بلا بند وصلة)", len(e2050) == 1)
+cfgG, _ = run_feed(dict(base_d, stocks=[dict(st2050, capActions=[{"date": "2023-11-27", "factor": 0.6}])]),
+                   {"stocks": [dict(vs2050, status="closed", closeDate="2026-10-20", closeReason="data_fault")]})
+check("وبعد بند وصلة لـ2050 ⇒ يُسمح بدخول جديد (المنع من الوصلة غير المحسومة وحدها)",
+      sum(1 for e in cfgG["stocks"] if e["symbol"] == "2050" and e.get("status") == "open") == 1)
+
 # JS: صفحة الدقة (entryPriceAdj وdataFault)، وimpliedEpsAlt، وisV3sc
 js = subprocess.run(["node", os.path.join(HERE, "test_capadj_ui.js")], capture_output=True, text=True)
 print(js.stdout.rstrip())
