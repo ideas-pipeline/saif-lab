@@ -844,15 +844,20 @@ def update_shares_history(st, shares, today):
     /company (q = قبل ÷ بعد). والتأكيد يحتاج تاريخاً، فيبدأ التخزين قبل الكاشف.
     مُدخَلٌ لكل **قيمة** جديدة: {date: أول رؤية، lastSeen: آخر رؤية، shares} — فلا
     يتضخم السجل أسبوعياً، ويبقى زمن التغيّر محصوراً بين lastSeen السابق وdate اللاحق.
-    قيمة غائبة أو غير موجبة لا تُكتب ولا تمسح السجل."""
-    if not isinstance(shares, (int, float)) or isinstance(shares, bool) or shares <= 0:
-        return
+    قيمة غائبة أو غير موجبة أو غير منتهية (NaN/Inf) لا تُكتب ولا تمسح السجل.
+    **الحصر لزمن تحديث المزوّد قيمتَه، لا لتاريخ الإجراء:** حقوله للسهم لا تتحدّث معاً
+    (1120: الأسهم 6 مليارات بعد المنحة والدفترية 33.48 قبلها)، فلا يُقيَّد كاشف فجوة
+    السعر في المرحلة 2 بهذا الحصر. يعيد True إن كُتبت مشاهدة."""
+    if (not isinstance(shares, (int, float)) or isinstance(shares, bool)
+            or not math.isfinite(shares) or shares <= 0):
+        return False
     hist = [dict(h) for h in (st.get("sharesHistory") or [])]
     if hist and hist[-1].get("shares") == shares:
         hist[-1]["lastSeen"] = today
     else:
         hist.append({"date": today, "lastSeen": today, "shares": shares})
     st["sharesHistory"] = hist[-SHARES_HIST_MAX:]
+    return True
 
 
 def reject(st, field, value, reason, today):
@@ -1352,11 +1357,21 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         print("⚠️ D/E: لا قرار مثبت (جزئية قبل كاملة) — لا يُكتب debtToEquity")
 
     # ── كتابة financials الموحدة + الحراس (§8) ──
+    sh_seen = sh_changed = 0
     for st in stocks:
         sym = st["symbol"]
         sc = scratch.get(sym) or {}
         p = sc.get("fs")
         rat = sc.get("ratios") or {}
+        # سجلّا المرحلة 1 من تعديل المنح **قبل** حارس «فشل الطرفين»: مصدرهما /company
+        # و/dividends لا /ratios ولا /financials، فربطهما بهما كان يُضيّع مشاهدة نجح
+        # مصدرها (شرط ختم 20-10: الطرفان يفشلان و/company 1.5 مليار ⇒ السجل بقي 1.25).
+        n0 = len(st.get("sharesHistory") or [])
+        if update_shares_history(st, (sc.get("company") or {}).get("shares"), today):
+            sh_seen += 1
+            sh_changed += int(n0 > 0 and len(st["sharesHistory"]) > n0)
+        if sc.get("divEvents") is not None:
+            st["dividendEvents"] = [{"date": e, "amount": v} for e, v in sc["divEvents"]]
         if not p and not rat:
             continue   # فشل كلا المصدرين — الكتلة القديمة تبقى بختمها (لا ختم زور)
         bank = is_bank(st)
@@ -1437,9 +1452,6 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             vi.update({"eps": comp.get("eps"), "bookValue": comp.get("bookValue"),
                        "peSource": comp.get("peSource"), "beta": comp.get("beta"),
                        "companyAsOf": today})
-        update_shares_history(st, comp.get("shares"), today)
-        if sc.get("divEvents") is not None:
-            st["dividendEvents"] = [{"date": e, "amount": v} for e, v in sc["divEvents"]]
         if div:
             vi["divTtm12m"], vi["divBasis"] = div
             vi["divsAsOf"] = today
@@ -1453,6 +1465,9 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             vi.pop(dead, None)
         st["valuationInputs"] = vi
 
+    # سطر سجل يعدّ ما كُتب (شرط ختم 20-10): قيمة المرحلة 1 في تاريخٍ يبدأ الآن، فإهمالٌ
+    # صامت لأسابيع (حقل غاب أو صار نصاً) يُرى هنا، وكذلك تغيّر وحدة جماعي (تغيّرات كثيرة).
+    print("  📈 sharesHistory: %d قيمة مسجّلة، %d تغيّراً في عدد الأسهم" % (sh_seen, sh_changed))
     # ── حارس الانزياح الجماعي (§8): فئة ≥5 يتغير حقلها باتجاه واحد >80% ──
     drift = []
     groups = {"البنوك": [s for s in stocks if is_bank(s)]}
