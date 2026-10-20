@@ -83,6 +83,8 @@ for i, s in enumerate(stocks):
         s["valuationInputs"] = {
             "priceToBook": ptb, "bookValue": bv, "theirPrice": tp,
             "marketCap": mc, "sharesOutstanding": sh,
+            # §8-ق: ختم اللقطة — معاملات الإجراءات الرأسمالية تُحسب بعده (sharesCapFactor)
+            "sharesAsOf": today,
             "divTtm12m": div, "divBasis": basis, "pbConsistent": cons,
             "updatedAt": today, "source": "sahmk"
         }

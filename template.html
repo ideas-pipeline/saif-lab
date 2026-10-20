@@ -1047,20 +1047,38 @@ const DY_EXTREME_PCT=10;
    خطأً — نمو سنوي حقيقي يضاعفه مشروعاً، ولذلك لا وسم على التباعد نفسه.
    حارس عدد الأسهم: انحراف sharesOutstanding عن marketCap÷theirPrice مرصود بوسيط
    0.91% وبلغ 98.7% لسهمين — فوق 25% يُهمل المرجع (خطأ جسيم في العدد لا تعارض). */
+/* §8-ق: عدد الأسهم ولقطة القيمة السوقية مجمّدان (08-06)، والتوزيع صار على أساس السهم
+   الحالي بعد المنح/التجزئة — فكلا العددين يُحملان على الأساس الحالي بقسمتهما على
+   sharesCapFactor (حاصل معاملات ما بعد اللقطة). وحارس الاتساق يبقى على المجمّد نفسه. */
+function sharesCapK(vi){
+  const k=vi.sharesCapFactor;
+  return (typeof k==="number"&&k>0)?k:1;
+}
+/* §8-ق: المزوّد لا يعدّل الأسعار بعد 2024-03، فالمنصة تعدّلها للمنح والتجزئة وتخفيض
+   رأس المال — والرسم والمؤشرات كلها على الأساس المعدّل. يُقال ذلك صراحةً تحت الرسم،
+   وكذلك الفجوة التي لم تُحسم بعد (مؤشراتها قد تحمل هبوطاً وهمياً حتى تُحسم). */
+const CAP_KIND={"bonus":"أسهم منحة","bonus/split":"منحة أو تجزئة","split":"تجزئة","capital-reduction":"تخفيض رأس المال","rights":"حقوق أولوية"};
+function capNote(s){
+  const ap=s.capActions||[], pd=s.capActionsPending||[];
+  const out=[];
+  if(ap.length) out.push(`<div class="fin-note">الأسعار قبل ${ap.map(a=>`<span class="num">${esc(a.date)}</span> معدّلة لـ${CAP_KIND[a.kind]||"إجراء رأسمالي"} (×<span class="num">${esc(String(+a.factor.toFixed(4)))}</span>)`).join("، و")} — كي لا يظهر هبوط وهمي في الرسم والمؤشرات.</div>`);
+  if(pd.length) out.push(`<div class="guard-note">فجوة سعرية في ${pd.map(p=>`<span class="num">${esc(p.date)}</span>`).join("، ")} قيد المراجعة: قد تكون منحة أو إجراءً رأسمالياً لم يُعدَّل بعد، فالمؤشرات الفنية التي تمتد عبرها قد تحمل حركة وهمية حتى تُحسم.</div>`);
+  return out.join("");
+}
 function impliedEpsAnnual(s){
   const vi=s.valuationInputs||{}, fin=s.financials||{};
   const ni=fin.netIncome, sh=vi.sharesOutstanding;
   if(typeof ni!=="number"||typeof sh!=="number"||!(sh>0)) return null;
   const mc=vi.marketCap, tp=vi.theirPrice;
   if(typeof mc==="number"&&typeof tp==="number"&&tp>0&&Math.abs(mc/(sh*tp)-1)>0.25) return null;
-  return ni/sh;
+  return ni/(sh/sharesCapK(vi));
 }
 /* عدد الأسهم المضمَّن من القيمة السوقية — أساس ثانٍ مستقل لاختبار الصلابة */
 function impliedEpsAlt(s){
   const vi=s.valuationInputs||{}, fin=s.financials||{};
   const ni=fin.netIncome, mc=vi.marketCap, tp=vi.theirPrice;
   if(typeof ni!=="number"||typeof mc!=="number"||typeof tp!=="number"||!(tp>0)) return null;
-  const sh=mc/tp;
+  const sh=mc/tp/sharesCapK(vi);
   return sh>0?ni/sh:null;
 }
 /* هامش ميت 5% + اشتراط صمود الحكم على أساسَي عدد الأسهم كليهما.
@@ -1551,6 +1569,7 @@ function drawerHtml(s){
         ${RANGE_LABELS.map(([k,l])=>`<button data-r="${k}" class="${state.chartRange===k?"on":""}">${l}</button>`).join("")}
       </div>
       <div id="chartBox">${chartSvg(s,state.chartRange)}</div>
+      ${capNote(s)}
     </div>
 
     ${rated(s)||i.axes?`<div class="dr-sec">

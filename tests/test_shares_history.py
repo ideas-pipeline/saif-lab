@@ -114,9 +114,12 @@ s2 = run(s1, Api(1500000000, divs), "2026-10-22")
 check("جلب بعد المنحة ⇒ مُدخَل ثانٍ بـ1.5 مليار", [h["shares"] for h in s2["sharesHistory"]] == [1250000000, 1500000000])
 s3 = run(s2, Api(None, divs, company_ok=False), "2026-10-29")
 check("فشل /company ⇒ السجل يبقى كما هو", s3["sharesHistory"] == s2["sharesHistory"])
-s4 = run(s1, Api(1500000000, divs, ratios_ok=False), "2026-10-22")
+# قائمة توزيعات مختلفة عن s1 (ملاحظة ختم 20-10): كي يثبت أن الكتابة حدثت فعلاً لا أن القديم بقي
+divs4 = divs + [{"eligibility_date": "2026-09-30", "value": 0.5}]
+s4 = run(s1, Api(1500000000, divs4, ratios_ok=False), "2026-10-22")
 check("فشل /ratios و/financials معاً ونجاح /company ⇒ المشاهدة تُكتب (شرط ختم 20-10)",
-      [h["shares"] for h in s4["sharesHistory"]] == [1250000000, 1500000000] and s4.get("dividendEvents") == s1["dividendEvents"]
+      [h["shares"] for h in s4["sharesHistory"]] == [1250000000, 1500000000]
+      and s4.get("dividendEvents") == s1["dividendEvents"] + [{"date": "2026-09-30", "amount": 0.5}]
       and s4.get("financialsUpdated") == s1.get("financialsUpdated") == "2026-09-17")
 s5 = run(s1, Api(1250000000, divs, divs_ok=False), "2026-10-22")
 check("فشل /dividends ⇒ dividendEvents القديم يبقى", s5.get("dividendEvents") == s1["dividendEvents"])

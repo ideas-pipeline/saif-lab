@@ -264,13 +264,20 @@ SH_SANITY_TOL = 0.25       # انحراف عدد الأسهم عن marketCap÷th
 EPS_BLIND_WARN_AT = 2
 
 
+def _cap_k(vi):
+    """§8-ق: العدد المجمّد (08-06) ولقطة القيمة السوقية على أساس السهم قبل المنح/التجزئة،
+    والتوزيع على أساس السهم الحالي — فالعددان يُقسمان على sharesCapFactor كما في الواجهة."""
+    k = vi.get("sharesCapFactor")
+    return k if isinstance(k, (int, float)) and not isinstance(k, bool) and k > 0 else 1.0
+
+
 def _implied_eps_alt(s):
     """العدد المضمَّن من القيمة السوقية — الأساس الثاني في اختبار الصلابة (uat.html)"""
     fin, vi = s.get("financials") or {}, s.get("valuationInputs") or {}
     ni, mc, tp = fin.get("netIncome"), vi.get("marketCap"), vi.get("theirPrice")
     if not all(isinstance(x, (int, float)) for x in (ni, mc, tp)) or tp <= 0:
         return None
-    sh = mc / tp
+    sh = mc / tp / _cap_k(vi)
     return ni / sh if sh > 0 else None
 
 
@@ -283,7 +290,7 @@ def _implied_eps(s):
     if isinstance(mc, (int, float)) and isinstance(tp, (int, float)) and tp > 0 \
        and abs(mc / (sh * tp) - 1) > SH_SANITY_TOL:
         return None
-    return ni / sh
+    return ni / (sh / _cap_k(vi))
 
 
 # عقد المطابقة مع الواجهة: شرط القلب هنا هو شرط dyFlags حرفياً — هامش ميت 1.05

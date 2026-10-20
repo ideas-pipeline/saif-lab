@@ -2473,6 +2473,7 @@ function returnClass(ret, success) {
 
 function statusBadge(success, r) {
   if (r && r.legacy)    return `<span class="status-badge status-pending">📒 خارج الحكم (يدوي)</span>`;
+  if (r && r.dataFault) return `<span class="status-badge status-pending">⚠️ أُغلق بعطب بيانات — خارج الحكم</span>`;
   if (r && r.status === "closed") {
     // «النقاط دون 50» بدل «نقاط<50»: علامة < تنعكس في RTL وتُربك القراءة (موثق باللقطات)
     const why = r.closeReason === "score_below_50" ? "النقاط دون 50" : (r.closeReason === "sma200w_weekly_break" ? "كسر SMA200W" : r.closeReason);
@@ -2506,14 +2507,16 @@ function isEarly(item) {
 }
 const rows = WATCHLIST.map(item => {
   const px = item.status === "closed" ? item.closePrice : item.currentPrice;
-  const ret = calcReturn(item.entryPrice, px, item.type, item.divsSince);
+  // §8-ق: سعر الدخول على أساس السعر الحالي إن عبر المدخل منحة/تجزئة مطبَّقة (entryPriceAdj)
+  const ret = calcReturn(item.entryPriceAdj ?? item.entryPrice, px, item.type, item.divsSince);
   const shadow = item.category === "buy_wait";     // الظل يُسجل ولا يُحاكم (وثيقة المعايير §2)
   const legacy = item.track === "legacy";          // المسار اليدوي — خارج عينة الحكم كلياً (§2)
   const vshadow = item.sampleType === "value-shadow";  // ظل القيمة البحثي — جدول مستقل، خارج الحكم
   const early = isEarly(item);
   const ex = calcExcess(ret, item.tasiRet, item.periodDays);   // v3
-  const success = (shadow || early || legacy || vshadow) ? null : isSuccess(ex.net, item.type);
-  return { ...item, ret, shadow, legacy, vshadow, early, success,
+  const dataFault = !!item.dataFault;   // §8-ق: أُغلق بعطب بيانات (هبوط وهمي من منحة غير معدّلة) — خارج الحكم
+  const success = (shadow || early || legacy || vshadow || dataFault) ? null : isSuccess(ex.net, item.type);
+  return { ...item, ret, shadow, legacy, vshadow, early, dataFault, success,
            excessGross: ex.gross, discount: ex.discount, excessNet: ex.net };
 });
 const autoRows   = rows.filter(r => !r.legacy && !r.vshadow);   // عينة النظام (المطبقة + الظل)
@@ -2541,8 +2544,9 @@ function renderStats() {
   // ومفتوح/مغلق/محكوم ظاهرة. لا مساس بأي حساب أعلاه
   const appliedRows = autoRows.filter(r => !r.shadow);
   const shadowN  = total - appliedRows.length;
-  const closedN  = appliedRows.filter(r => r.status === "closed").length;
-  const openN    = appliedRows.length - closedN;
+  // §8-ق: المغلق بعطب بيانات لا يُعدّ في معلم الإغلاقات (closedN/40) — خارج الحكم كلياً
+  const closedN  = appliedRows.filter(r => r.status === "closed" && !r.dataFault).length;
+  const openN    = appliedRows.filter(r => r.status !== "closed").length;
   // بطاقة الإصابة محايدة اللون ما دامت المحكومة أقل من 40 (لا حكم قبل اكتمال العينة — §7)
   const hitClass = done.length >= 40 ? "green" : "plain";
 

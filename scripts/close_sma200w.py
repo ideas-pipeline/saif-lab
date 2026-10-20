@@ -19,9 +19,12 @@ if rt != "close" and not DRY:
 if rt != "close" and DRY:
     print(f"[DRY] تنبيه: runType={rt} — التشغيلة الفعلية كانت سترفض (DRY يتجاهل الختم)")
 wt = {}
+caps, pend = {}, {}
 for s in data.get("stocks", []):
     w = s.get("weeklyTechnical") or {}
     wt[s["symbol"]] = (s.get("currentPrice"), w.get("sma200w"))
+    caps[s["symbol"]] = s.get("capActions") or []
+    pend[s["symbol"]] = s.get("capActionsPending") or []
 cfg = json.load(open(CONFIG))
 stocks = cfg.get("stocks", cfg if isinstance(cfg, list) else [])
 closed = []
@@ -33,9 +36,18 @@ for e in stocks:
         continue
     # تفسير الكسر الامين (قرار سلطان 23-07): يغلق فقط من دخل فوق المتوسط ثم كسره
     # aboveSmaAtEntry من المغذي للجدد، والتقريب entryPrice>=sma للقائمين (المتوسط بطيء)
+    # §8-ق: فجوة سعرية معلّقة بعد الدخول = SMA200W قد يحمل هبوطاً وهمياً — لا إغلاق حتى تُحسم
+    if any(p.get("date", "") > e.get("entryDate", "") for p in pend.get(e["symbol"], [])):
+        print(f"  ⏸️ {e['symbol']}: إغلاق SMA200W مجمّد — فجوة سعرية معلّقة بعد الدخول")
+        continue
     entered_above = e.get("aboveSmaAtEntry")
     if entered_above is None:
-        entered_above = e.get("entryPrice", 0) >= sma
+        # التقريب بسعر الدخول على أساس المتوسط نفسه (المعدّل للإجراءات الرأسمالية بعد الدخول)
+        k = 1.0
+        for a in caps.get(e["symbol"], []):
+            if a.get("date", "") > e.get("entryDate", ""):
+                k *= a["factor"]
+        entered_above = e.get("entryPrice", 0) * k >= sma
     if entered_above and cur < sma:
         e["status"] = "closed"
         e["closeDate"] = today

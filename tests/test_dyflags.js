@@ -131,12 +131,9 @@ else {
     }
   }
   eq(bad, [], "4) لا سهم يفقد وسماً إلا ليكسب نسخةً أغنى منه (وسم التعارض يسمّي شهوداً أكثر)");
-  const grew = stocks.filter(s => (before[s.symbol] || []).some(o =>
-    o.includes(OPPO) && !after[s.symbol].includes(o))).map(s => s.symbol).sort();
-  eq(grew, ["2170", "2282", "2290", "3050"], "4أ) والأغنياء هم الأربعة بعينهم");
-  const softened = stocks.filter(s => (before[s.symbol] || []).some(o =>
-    (o.includes(LOSS) || o.includes(NOPROFIT)) && !after[s.symbol].includes(o))).map(s => s.symbol);
-  eq(softened, ["2250"], "4ب) ولا يلين إلا 2250: يعود من القطع إلى النسبة بعودة شاهدَيه");
+  /* (4أ و4ب حُذفا — ختم 20-10، بند 12): كانا شكلَ دلتا موجة الشهود 06-10 بعينها
+     (الأغنياء 2170/2282/2290/3050، ويلين 2250). وبعد دمجها صار الأساس يحملها، فأي موجة
+     لاحقة تغيّر الخرج كانت ستُطالَب بدلتا 06-10 فتسقط زوراً. والتأكيد العام 4 أعلاه باقٍ. */
 }
 // ٥ المجاميع والقواعد الخمس
 if (B.identical) vac("5) دلتا الكود صفر");
@@ -215,6 +212,28 @@ ok(lossOf("2010", x => x.financials.netIncome = -0.000001 * x.valuationInputs.sh
      "10أ) وعائد 8% لا يُطلقه فالحدّ 10% فعّال — " + JSON.stringify(at8));
 }
 
+/* ١١ §8-ق: بعد منحة/تجزئة مطبَّقة يصير التوزيع والسعر على أساس السهم الحالي، ويُقسم عدد
+   الأسهم المجمّد (ولقطة القيمة السوقية) على sharesCapFactor — فالوسوم لا تتغيّر بالإجراء
+   نفسه. سهمٌ بمنحة 1:1 على 4194 و2290: كل ما هو للسهم ÷2 والعدد المجمّد كما هو. */
+for (const sym of ["4194", "2290"]) {
+  const x = JSON.parse(JSON.stringify(stocks.find(s => s.symbol === sym)));
+  const y = JSON.parse(JSON.stringify(x));
+  const half = v => (typeof v === "number" ? v / 2 : v);
+  y.valuationInputs.sharesCapFactor = 0.5;
+  for (const k of ["divTtm12m", "eps"]) y.valuationInputs[k] = half(y.valuationInputs[k]);
+  y.currentPrice = half(y.currentPrice);
+  if (y.dailyExtra) y.dailyExtra.lastClose = half(y.dailyExtra.lastClose);
+  if (y.weeklyTechnical) y.weeklyTechnical.sma200w = half(y.weeklyTechnical.sma200w);
+  eq(dyFlags(y), dyFlags(x), "11) §8-ق " + sym + ": منحة 1:1 مطبَّقة لا تغيّر الوسوم (العدد ÷ sharesCapFactor)");
+  /* حارس حياة على 4194 (وسمه نصٌّ بنسبة التغطية، فيتحرّك بالعدد)؛ ووسم 2290 لا يعبر عتبةً
+     بخطأ العدد فلا يصلح شاهداً هنا */
+  if (sym === "4194") {
+    const z = JSON.parse(JSON.stringify(y)); delete z.valuationInputs.sharesCapFactor;
+    ok(JSON.stringify(dyFlags(z)) !== JSON.stringify(dyFlags(x)),
+       "11أ) §8-ق 4194: وبلا sharesCapFactor تنحرف — فالقسمة فعّالة لا زينة");
+  }
+}
+
 console.log("\n" + (fail ? "❌ " : "✅ ") + pass + " نجحت، " + fail + " فشلت" +
-            (vacu ? "، " + vacu + " لاغية (الأساس مطابق بايتاً)" : ""));
+            (vacu ? "، " + vacu + " لاغية" : ""));
 process.exit(fail ? 1 : 0);

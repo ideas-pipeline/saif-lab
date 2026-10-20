@@ -53,6 +53,33 @@ for e in stocks_cfg:
 added, closed, skipped = [], [], 0
 snapshot = {}   # رمز -> (سعر، نقاط)
 
+# ── الإجراءات الرأسمالية (§8-ق): الجالب يعدّل أسعار ما قبل المنحة/التجزئة، فسعر الدخول
+#    المسجَّل لمدخل يعبر حدثاً مطبَّقاً يُحمل على الأساس الحالي بمعامل ما بعد دخوله.
+#    وحدث معلّق بعد الدخول يجمّد قاعدتي الإغلاق (لا إغلاق على هبوط قد يكون وهمياً — 2200) ──
+caps_by = {s["symbol"]: (s.get("capActions") or []) for s in data.get("stocks", []) if s.get("symbol")}
+pend_by = {s["symbol"]: (s.get("capActionsPending") or []) for s in data.get("stocks", []) if s.get("symbol")}
+
+def cap_k(e):
+    k = 1.0
+    for a in caps_by.get(e["symbol"], []):
+        if a.get("date", "") > e.get("entryDate", ""):
+            k *= a["factor"]
+    return k
+
+def entry_adj(e):
+    return e["entryPrice"] * cap_k(e) if e.get("entryPrice") else e.get("entryPrice")
+
+def close_frozen(e):
+    return any(p.get("date", "") > e.get("entryDate", "") for p in pend_by.get(e["symbol"], []))
+
+# دخول جديد ممنوع ما دامت فجوة معلّقة داخل نافذة المؤشرات (~200 أسبوع) — ختم 20-10، بند 6:
+# هبوطٌ قد يكون وهمياً مع eps غير معدّل هو الدخول الزائف النموذجي (لا سيما ظل القيمة)
+from datetime import timedelta as _td
+PEND_WIN_START = (datetime.strptime(today, "%Y-%m-%d") - _td(days=1400)).strftime("%Y-%m-%d")
+
+def entry_blocked(sym):
+    return any(p.get("date", "") >= PEND_WIN_START for p in pend_by.get(sym, []))
+
 for s in data.get("stocks", []):
     inv = s.get("investmentScore") or {}
     total = inv.get("total")
@@ -69,6 +96,9 @@ for s in data.get("stocks", []):
         continue
     # (criteria v3 §2) بوابة السيولة إقصائية عن التوصيات — لا دخول بأي عينة (يشمل الظل — قرار معلن)
     if not (s.get("liquidityGate") or {}).get("passed", True):
+        continue
+    if entry_blocked(s["symbol"]):
+        print("  ⏸️ %s: لا دخول — فجوة سعرية معلّقة داخل نافذة المؤشرات (§8-ق)" % s["symbol"])
         continue
     if code in ("strong_buy", "buy"):
         sample, category = "applied", code
@@ -94,6 +124,7 @@ for s in data.get("stocks", []):
         "regimeAtEntry": regime,
         "aboveSmaAtEntry": bool(cur >= sma_w) if (cur is not None and sma_w) else None,
         "scoreScaleAtEntry": "criteria-v3",  # مقام 100 مباشرة — لا مقارنة عبر سلالم النسخ الأقدم
+        "priceBasisAtEntry": "capadj-v1",   # §8-ق: أساس سعري معدّل للإجراءات الرأسمالية (v3.1)
         # أختام اجتماع قسم الانعكاس (موجة 11-08): تجزئة cohort الانعكاس + حالة الحجم
         "viaReversalAtEntry": bool(inv.get("viaReversal")),
         "volTrendAtEntry": (round((s.get("dailyExtra") or {}).get("avgVol20") /
@@ -120,6 +151,10 @@ for e in stocks_cfg:
     if e.get("sampleType") == "value-shadow":
         continue   # مستبعد بالتعريف (total=0) — إغلاقه بقاعدة <50 يقتله فوراً زوراً
     cur, total = snapshot.get(e["symbol"], (None, None))
+    if total is not None and total < 50 and close_frozen(e):
+        print("  ⏸️ %s: نقاط %s دون 50 لكن الإغلاق مجمّد — فجوة سعرية معلّقة بعد الدخول (§8-ق)"
+              % (e["symbol"], total))
+        continue
     if total is not None and total < 50:
         e["status"] = "closed"
         e["closeDate"] = today
@@ -138,7 +173,9 @@ for e in stocks_cfg:
     cur_mae, _tot = snapshot.get(e["symbol"], (None, None))
     if cur_mae is None or not e.get("entryPrice"):
         continue
-    ret_mae = (cur_mae / e["entryPrice"] - 1) * 100
+    if close_frozen(e):
+        continue   # ‏MAE رتيب لا يتحسن: هبوط فجوة معلّقة يبقى فيه للأبد (ختم 20-10، شرط 1)
+    ret_mae = (cur_mae / entry_adj(e) - 1) * 100
     new_mae = round(min(e.get("maePct", 0.0), ret_mae), 2)
     if new_mae != e.get("maePct"):
         e["maePct"] = new_mae
@@ -166,7 +203,9 @@ for e in vs_all:
     if cur is None or not e.get("entryPrice"):
         continue
     days = (datetime.strptime(today, "%Y-%m-%d") - datetime.strptime(e["entryDate"], "%Y-%m-%d")).days
-    ret = (cur / e["entryPrice"] - 1) * 100
+    if close_frozen(e):
+        continue   # لا قياس ولا إغلاق على فجوة معلّقة (MAE رتيب — ختم 20-10، شرط 1)
+    ret = (cur / entry_adj(e) - 1) * 100
     e["maePct"] = round(min(e.get("maePct", 0.0), ret), 2)          # أقصى انزلاق سلبي بالإغلاقات
     vs_meas_updated = True
     if tasi_now and e.get("tasiAtEntry"):
@@ -195,6 +234,8 @@ if len(vs_open_syms) < VS_CAP:
     cands = []
     for s in data.get("stocks", []):
         inv = s.get("investmentScore") or {}
+        if entry_blocked(s["symbol"]):
+            continue   # فجوة معلّقة داخل نافذة المؤشرات — لا دخول ظل قيمة (ختم 20-10، بند 6)
         if not (inv.get("filtered") is True and inv.get("filterReason") == SMA_FILTER_REASON):
             continue   # فلتر SMA تحديداً — لا unrated ولا فاقد البيانات المالية
         if not (s.get("liquidityGate") or {}).get("passed", True):
@@ -222,7 +263,7 @@ if len(vs_open_syms) < VS_CAP:
             "sampleType": "value-shadow", "category": "value-shadow",
             "engineClass": "filtered", "scoreAtEntry": 0, "qualityAtEntry": q,
             "timingAtEntry": inv.get("timing", ""), "regimeAtEntry": regime,
-            "scoreScaleAtEntry": "criteria-v3", "aboveSmaAtEntry": False,
+            "scoreScaleAtEntry": "criteria-v3", "priceBasisAtEntry": "capadj-v1", "aboveSmaAtEntry": False,
             "viaReversalAtEntry": False,   # مستبعد بالتعريف — الختم للتوحيد
             "volTrendAtEntry": (round((s.get("dailyExtra") or {}).get("avgVol20") /
                                       (s.get("dailyExtra") or {}).get("avgVol50"), 2)

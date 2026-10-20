@@ -482,6 +482,10 @@ def entry_layer(s, regime):
 
 # ═══════════════ الفلاتر والتصنيف ═══════════════
 
+# v3.1 (§8-ق، 20-10): قواعد v3 ومقامها 100 بلا تغيير — الفرق أساس سعري معدّل للإجراءات
+# الرأسمالية بعد 2024-03 (الجالب). لا قطع عينة: السجل الوحيد العابر لحدث عولج فردياً.
+CRITERIA_VERSION = "v3.1"
+
 REVERSAL = "تحت SMA200W لكن إشارات انعكاس"
 
 def investment_filter(s):
@@ -684,7 +688,7 @@ def run(data_path, activation=False):
                          "risk": fk, "valuation": fv},
                 "timing": entry["timing"], "timingSignals": entry["signals"],
                 "entry": entry, "riskReasons": [], "topDrivers": [],
-                "criteriaVersion": "v3",
+                "criteriaVersion": CRITERIA_VERSION,
             }
             stats["filtered"] = stats.get("filtered", 0) + 1
             continue
@@ -709,7 +713,7 @@ def run(data_path, activation=False):
             "details": {"quality": qd, "trend": td, "relativeStrength": rd,
                         "risk": kd, "valuation": vd, "timing": entry["signalDetails"]},
             "topDrivers": build_top_drivers(s, medians),
-            "criteriaVersion": "v3",
+            "criteriaVersion": CRITERIA_VERSION,
         }
         stats[code] = stats.get(code, 0) + 1
 
