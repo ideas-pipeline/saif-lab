@@ -70,5 +70,15 @@ ok(Math.abs(adjp[0].v - 14.54 * 0.833333) < 1e-9 && adjp[1].v === 12.11 && raw[0
    "capAdjPts: ما قبل الحدث × المعامل، وما بعده كما هو، والأصل لا يُمسّ");
 ok(capAdjPts({}, raw) === raw, "وبلا capActions تعود الشموع كما هي");
 
+// ── uat.html: provNote — ملاحظة حراس المزوّد في الدرج (§8-م) ──
+const g0 = uat.indexOf("function provNote"), g1 = uat.indexOf("function impliedEpsAnnual");
+if (g0 < 0 || g1 < 0) throw new Error("مرساة provNote مفقودة");
+const provNote = new Function(uat.slice(g0, g1) + "\nreturn provNote;")();
+const pn = provNote({ valuationInputs: { epsBasis: "fy-derived", bookValueBasis: "provider-capadj" },
+                      financials: { revenueBasisSuspect: { m: 0.25 } } });
+ok(pn.includes("ربحية السهم") && pn.includes("القيمة الدفترية") && pn.includes("إيراد البنك"),
+   "provNote: يذكر ما أُبدل (eps، القيمة الدفترية، إيراد البنك)");
+ok(provNote({ valuationInputs: { epsBasis: "provider" }, financials: {} }) === "", "وبلا حارس لا ملاحظة");
+
 console.log("\n" + (fail ? "❌ " : "✅ ") + pass + " نجحت، " + fail + " فشلت");
 process.exit(fail ? 1 : 0);

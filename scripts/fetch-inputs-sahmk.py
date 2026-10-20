@@ -868,6 +868,195 @@ def update_shares_history(st, shares, today):
     return True
 
 
+# ═══════════ حراس بيانات المزوّد: ربحية السهم والقيمة الدفترية وإيراد البنوك (§8-م، v3.3) ═══════════
+# مواصفة المحلل 20-10، وبعد رفض الناقد (قرار المالك المعدّل): إبدال eps وملؤه **للبنوك وحدها**
+# (1020 = 3.05؛ 1030 بمعامل منحة مضروب لا مقسوم؛ 1010 فارغ — مؤكَّدة بالقوائم)، وغير البنوك مراقبة
+# فقط: قفزة E فيها قد تكون نمواً حقيقياً (البحري 4030: eps_ttm المزوّد صحيح بفارق 0.1% بعد طفرة
+# 2026). والقيمة الدفترية تُعدَّل بمعامل الإجراء الرأسمالي للسوق كله (1120)، والاشتقاق من الملكية
+# للبنوك وحدها. والعلاج اشتقاق لا فراغ؛ والخام يبقى في epsProvider/bookValueProvider.
+EPS_BANK_MAX = 1.15       # ربح 12 شهراً ÷ ربح السنة الكاملة — البنوك: نمو حقيقي أقصاه ~1.07 اليوم
+EPS_BANK_WATCH = 0.85
+EPS_MKT_WATCH = (0.5, 1.5)    # غير البنوك: مراقبة وحدها خارج هذا النطاق (لا إبدال ولا ملء)
+BV_BANK_MAX, BV_MKT_MAX = 1.25, 1.30
+BV_MIN_WATCH = 0.70       # يتسع لصكوك الشريحة الأولى حتى ~30% من الملكية (book_value بدونها)
+PROV_STALE_DAYS = 456
+BANK_M_BAND = (0.30, 0.80)    # صافي الربح ÷ دخل العمليات — البنوك التسعة بين 32.6% و63.4%
+BANK_R_BAND = (2 / 3, 1.5)    # إيراد ÷ سابقه
+SHARES_SANITY = 0.25          # العدد الحالي يوافق المجمّد ÷ sharesCapFactor ضمن 25% (عتبة الواجهة، ومرجعها marketCap/theirPrice)
+
+
+def _num(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+
+
+def shares_now(st):
+    """العدد الحالي: آخر sharesHistory، وإلا المجمّد على الأساس الحالي (÷ sharesCapFactor). وإن وُجدا
+    معاً واختلفا بأكثر من 25% ⇒ None (لا يُشتق رقمٌ من عددٍ مشكوك فيه — ختم §8-م، شرط 6؛ 1213 و1820).
+    المجمّد لقطة 08-06 لا تتجدّد: تغيّر عددٍ حقيقي بلا capActions (إصدار، اندماج) يعطّل الحارس عن السهم،
+    فيُطبع في سطر 🛡️ لا يُسكت."""
+    h = ((st.get("sharesHistory") or [{}])[-1]).get("shares")
+    vi = st.get("valuationInputs") or {}
+    fz, k = vi.get("sharesOutstanding"), vi.get("sharesCapFactor")
+    fzn = (fz / k if _num(k) and k > 0 else fz) if _num(fz) and fz > 0 else None
+    if _num(h) and h > 0:
+        if fzn and abs(h / fzn - 1) > SHARES_SANITY:
+            return None
+        return h
+    return fzn
+
+
+def _reject_prov(st, field, value, reason, today):
+    """reject موسوماً بحراس §8-م — L1 [3] يعدّه منفصلاً عن عتبة جودة المصدر (ختم §8-م، شرط 4)."""
+    reject(st, field, value, reason, today)
+    st["guardRejected"][-1]["guard"] = "provider"
+
+
+def _fy_fresh(fin, today):
+    rd = str(fin.get("reportDate") or "")[:10]
+    try:
+        return (datetime.strptime(today, "%Y-%m-%d") - datetime.strptime(rd, "%Y-%m-%d")).days <= PROV_STALE_DAYS
+    except ValueError:
+        return False
+
+
+def eps_guard(st, today):
+    """E = epsProvider × العدد الحالي ÷ صافي ربح السنة الكاملة. للبنوك، في الاتجاه المُجمِّل وحده
+    (eps متضخّم ⇒ P/E رخيص زوراً): فوق 1.15 يُبدل بصافي الربح ÷ العدد (fy-derived)، والفارغ مع ربح
+    موجب يُملأ (fy-filled). وغير البنوك مراقبة في epsCheck فقط. يتخطّى القائمة الجزئية والمتقادمة
+    والربح الضئيل والعدد المشكوك فيه. يعيد الحالة: keep | replace | fill | watch | skip."""
+    fin = st.get("financials") or {}
+    vi = st.setdefault("valuationInputs", {})
+    raw = vi.get("epsProvider")
+    vi["eps"], vi["epsBasis"] = raw, "provider"
+    vi.pop("epsCheck", None)
+    ni, eq, sh = fin.get("netIncome"), fin.get("equity"), shares_now(st)
+    if not (_num(ni) and _num(sh)) or fin.get("periodSuspect") or not _fy_fresh(fin, today):
+        return "skip"
+    floor = max(5e6, 0.01 * eq) if _num(eq) and eq > 0 else 5e6
+    if ni < floor:
+        if _num(raw) and raw > 0 and ni < 0:
+            vi["epsCheck"] = {"E": None, "why": "eps موجب وربح السنة سالب", "date": today}
+            return "watch"
+        return "skip"
+    der = round(ni / sh, 4)
+    bank = is_bank(st)
+    if raw is None:
+        if not bank:
+            return "skip"          # غير البنوك: لا ملء (قرار المالك المعدّل)
+        vi["eps"], vi["epsBasis"] = der, "fy-filled"
+        return "fill"
+    if not _num(raw) or raw <= 0:
+        vi["epsCheck"] = {"E": None, "why": "eps غير موجب وربح السنة موجب", "date": today}
+        return "watch"
+    E = raw * sh / ni
+    if bank and E > EPS_BANK_MAX:
+        _reject_prov(st, "eps", raw, "eps × الأسهم ÷ صافي ربح السنة = %.2f > %.2f — أُبدل بصافي الربح ÷ العدد الحالي"
+                     % (E, EPS_BANK_MAX), today)
+        vi["eps"], vi["epsBasis"] = der, "fy-derived"
+        return "replace"
+    if (bank and E < EPS_BANK_WATCH) or (not bank and (E > EPS_MKT_WATCH[1] or E < EPS_MKT_WATCH[0])):
+        vi["epsCheck"] = {"E": round(E, 3), "date": today}
+        return "watch"
+    return "keep"
+
+
+def bv_guard(st, today):
+    """B = bookValueProvider × العدد الحالي ÷ ملكية السنة الكاملة. فوق العتبة: إن فسّرها إجراء رأسمالي
+    بعد reportDate (B×f داخل [0.70، العتبة]) تُضرب في f (provider-capadj — يحفظ أساس المزوّد، وفي البنوك
+    بلا صكوك) للسوق كله؛ وإلا للبنوك وحدها الملكية ÷ العدد (fy-derived)، ولغيرها مراقبة. ودون 0.70
+    مراقبة في bookValueCheck."""
+    fin = st.get("financials") or {}
+    vi = st.setdefault("valuationInputs", {})
+    raw = vi.get("bookValueProvider")
+    vi["bookValue"], vi["bookValueBasis"] = raw, "provider"
+    vi.pop("bookValueCheck", None)
+    eq, sh = fin.get("equity"), shares_now(st)
+    if not (_num(raw) and raw > 0 and _num(eq) and eq > 0 and _num(sh)) or not _fy_fresh(fin, today):
+        return "skip"
+    B = raw * sh / eq
+    hi = BV_BANK_MAX if is_bank(st) else BV_MKT_MAX
+    if B > hi:
+        rd = str(fin.get("reportDate") or "")[:10]
+        f = ca_factor_after_event([a for a in st.get("capActions") or []
+                                   if a.get("kind") in ("bonus", "split", "bonus/split", "capital-reduction")], rd)
+        if f != 1.0 and BV_MIN_WATCH <= B * f <= hi:
+            _reject_prov(st, "bookValue", raw, "القيمة الدفترية × الأسهم ÷ الملكية = %.2f > %.2f، ويفسّرها إجراء "
+                         "رأسمالي (×%.4f ⇒ %.2f) — عُدّلت بالمعامل" % (B, hi, f, B * f), today)
+            vi["bookValue"], vi["bookValueBasis"] = round(raw * f, 4), "provider-capadj"
+            return "replace"
+        if not is_bank(st):
+            vi["bookValueCheck"] = {"B": round(B, 3), "date": today}
+            return "watch"         # غير البنوك: لا اشتقاق من الملكية بلا إجراء يفسّرها (مراقبة)
+        _reject_prov(st, "bookValue", raw, "القيمة الدفترية × الأسهم ÷ الملكية = %.2f > %.2f — أُبدلت بالملكية ÷ "
+                     "العدد الحالي" % (B, hi), today)
+        vi["bookValue"], vi["bookValueBasis"] = round(eq / sh, 4), "fy-derived"
+        return "replace"
+    if B < BV_MIN_WATCH:
+        vi["bookValueCheck"] = {"B": round(B, 3), "date": today}
+        return "watch"
+    return "keep"
+
+
+def bank_revenue_guard(st, today):
+    """أساس إيراد البنك (قرار المالك: الفارغ لا القيمة السابقة، حتى يصحّحه المزوّد). على السجل المخزَّن
+    كل تشغيلة، وبمسارين:
+    (أ) تبدّل أساس القوائم (1030 في 2025: إجمالي دخل العمولات بدل دخل العمليات) — هامشٌ خارج
+        [30%، 80%] وهامشُ سابقٍ داخله وإيرادٌ ÷ سابقه خارج [2/3، 1.5] ⇒ يُفرغ الهامش والنمو؛
+    (ب) القيمة المستهلكة نفسها (ختم §8-م، شرط 5): profitMargins من /ratios خارج النطاق والقوائم داخله
+        وبينهما > 10 نقاط ⇒ يُفرغ الهامش (القوائم صُحّحت و/ratios ما زال 25.1).
+    والوسم يبقى ما دام الحقل فارغاً (لا فراغ صامت في أسبوع فشل /ratios)، ويُمسح حين تعود قيمة.
+    يعيد "reject" أو None."""
+    fin = st.get("financials")
+    if not fin or not is_bank(st):
+        return None
+    rev, revp, ni, nip = fin.get("revenue"), fin.get("revenuePrev"), fin.get("netIncome"), fin.get("netIncomePrev")
+    basis = dict(fin.get("ratiosBasis") or {})
+    inb = lambda x, b: b[0] <= x <= b[1]
+    m = mp = R = None
+    if _num(rev) and _num(ni) and rev > 0:
+        m = ni / rev
+    if m is not None and _num(revp) and _num(nip) and revp > 0:
+        mp, R = nip / revp, rev / revp
+    hit_a = m is not None and mp is not None and not inb(m, BANK_M_BAND) and inb(mp, BANK_M_BAND) \
+        and not inb(R, BANK_R_BAND)
+    pm = fin.get("profitMargins")
+    hit_b = (not hit_a and m is not None and _num(pm) and inb(m, BANK_M_BAND)
+             and not inb(pm / 100, BANK_M_BAND) and abs(pm / 100 - m) > 0.10)
+    if hit_a or hit_b:
+        if hit_a:
+            why = "أساس إيراد البنك تبدّل: هامش %.1f%% (سابقه %.1f%%) وإيراد ÷ سابقه %.2f" % (m * 100, mp * 100, R)
+            keys = ("profitMargins", "revenueGrowth")
+            fin["revenueBasisSuspect"] = {"m": round(m, 3), "mPrev": round(mp, 3), "R": round(R, 3), "date": today}
+        else:
+            why = "هامش المزوّد %.1f%% يخالف القوائم (%.1f%%) — أساس إيراد البنك" % (pm, m * 100)
+            keys = ("profitMargins",)
+            fin["revenueBasisSuspect"] = {"m": round(m, 3), "providerMargin": pm, "date": today}
+        for k in keys:
+            if fin.get(k) is not None:
+                _reject_prov(st, k, fin[k], why, today)
+            fin[k] = None
+            basis[k] = "bank-revenue-basis"
+        fin["ratiosBasis"] = basis
+        return "reject"
+    # الوسم يبقى ما دام حقلٌ أفرغه الحارس فارغاً (لا فراغ صامت): أسبوع فشل /ratios يكتب فيه
+    # apply_computed_ratios أساس "provider" فوق الوسم والقيمة ما زالت None — فالمرجع revenueBasisSuspect
+    sus = fin.get("revenueBasisSuspect")
+    keys = (("profitMargins", "revenueGrowth") if (sus or {}).get("R") is not None else ("profitMargins",)) if sus else ()
+    tagged = set(k for k, v in basis.items() if v == "bank-revenue-basis") | set(keys)
+    still = False
+    for k in tagged:
+        if fin.get(k) is None:
+            still = True
+            basis[k] = "bank-revenue-basis"
+        elif basis.get(k) == "bank-revenue-basis":
+            basis.pop(k)
+    if tagged:
+        fin["ratiosBasis"] = basis
+    if not still:
+        fin.pop("revenueBasisSuspect", None)
+    return None
+
+
 def reject(st, field, value, reason, today):
     """حارس معقولية راسب → null موسوم (§8)"""
     st.setdefault("guardRejected", []).append(
@@ -1960,6 +2149,8 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
 
     # ── كتابة financials الموحدة + الحراس (§8) ──
     sh_seen = sh_changed = 0
+    g_tot = collections.Counter()   # عدّادات حراس §8-م
+    sh_bad = []                     # عددٌ مشكوك فيه ⇒ الحراس معطّلة عن السهم (لا تُسكت)
     for st in stocks:
         sym = st["symbol"]
         sc = scratch.get(sym) or {}
@@ -2047,7 +2238,7 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             if isinstance(sh0, (int, float)) and vi0.get("sharesCapFactor"):
                 sh0 = sh0 / vi0["sharesCapFactor"]     # على أساس السهم الحالي (§8-ق)
             partial_period_guard(st, st.get("_prevFinancials"),
-                                 eps0 if eps0 is not None else vi0.get("eps"),
+                                 eps0 if eps0 is not None else vi0.get("epsProvider", vi0.get("eps")),
                                  sh0, "profitMargins" in prov_keys, today)
         st["financialsSource"] = "sahmk (ratios+financials)"
         st["financialsUpdated"] = today
@@ -2056,8 +2247,13 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         vi = dict(st.get("valuationInputs") or {})
         if comp:
             vi.update({"eps": comp.get("eps"), "bookValue": comp.get("bookValue"),
+                       "epsProvider": comp.get("eps"), "bookValueProvider": comp.get("bookValue"),
                        "peSource": comp.get("peSource"), "beta": comp.get("beta"),
                        "companyAsOf": today})
+        else:
+            # فشل /company: الخام المخزَّن (وأول تشغيلة بعد §8-م: eps/bookValue المخزّنان خامٌ بعدُ)
+            vi.setdefault("epsProvider", vi.get("eps"))
+            vi.setdefault("bookValueProvider", vi.get("bookValue"))
         if div:
             vi["divTtm12m"], vi["divBasis"] = div
             vi["divsAsOf"] = today
@@ -2070,10 +2266,31 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         for dead in ("peRatio", "epsTtm", "forwardPe"):
             vi.pop(dead, None)
         st["valuationInputs"] = vi
+        # حراس §8-م على السجل المخزَّن كل تشغيلة (لا على الطازج وحده): eps وbookValue يُعاد حسابهما
+        # من الخام كل مرة، فلا يتراكم اشتقاقٌ فوق اشتقاق
+        g_tot[eps_guard(st, today)] += 1
+        if shares_now(st) is None and st.get("sharesHistory"):
+            sh_bad.append(st.get("symbol"))
+        g_tot["bv_" + bv_guard(st, today)] += 1
+        if bank and bank_revenue_guard(st, today):
+            g_tot["rev_reject"] += 1
+        # حقلان نائمان منذ 2026-03-13 (yfinance، fetch-liquidity-debt.sh خارج run-lab): عدد أسهم
+        # liquidityScore بائت لـ21 سهماً، ولا قارئ لهما في v3.x (قرار المالك 20-10، سابقة §8-ش)
+        st.pop("liquidityScore", None)
+        st.pop("debtHealth", None)
 
     # سطر سجل يعدّ ما كُتب (شرط ختم 20-10): قيمة المرحلة 1 في تاريخٍ يبدأ الآن، فإهمالٌ
     # صامت لأسابيع (حقل غاب أو صار نصاً) يُرى هنا، وكذلك تغيّر وحدة جماعي (تغيّرات كثيرة).
     print("  📈 sharesHistory: %d قيمة مسجّلة، %d تغيّراً في عدد الأسهم" % (sh_seen, sh_changed))
+    print("  🛡️ حراس المزوّد (§8-م): eps أُبدل %d · مُلئ %d · مراقبة %d | القيمة الدفترية أُبدلت %d · مراقبة %d"
+          " | إيراد بنك مرفوض %d" % (g_tot["replace"], g_tot["fill"], g_tot["watch"], g_tot["bv_replace"],
+                                      g_tot["bv_watch"], g_tot["rev_reject"]))
+    if sh_bad:
+        print("  🛡️ عدد أسهم مشكوك فيه (sharesHistory يخالف المجمّد ÷ k بأكثر من 25%%) ⇒ الحراس معطّلة: %s"
+              % ", ".join(sh_bad))
+    # يوم الانتقال إلى حراس المزوّد (§8-م): ختمٌ يقرؤه المغذي فيجمّد ظل القيمة ذلك اليوم
+    # (قرار المالك — الإغلاق والدخول بسبب الأرقام الجديدة لا السوق)
+    data.setdefault("providerGuardsSince", today)
     # ── حارس الانزياح الجماعي (§8): فئة ≥5 يتغير حقلها باتجاه واحد >80% ──
     drift = []
     groups = {"البنوك": [s for s in stocks if is_bank(s)]}
@@ -2806,7 +3023,8 @@ def main():
     data["priceSource"] = "sahmk-direct-v3"
     # v3.1 (§8-ق): قواعد v3 والمقام 100 بلا تغيير، على أساس سعري معدّل للإجراءات الرأسمالية
     # v3.2 (§8-ل): الاتجاه (الأسبوعي وZ وSMA200D) على عائد كلي محلي — تصحيح التنفيذ إلى نص §6-1/6-2
-    data["criteriaVersion"] = "v3.2"
+    # v3.3 (§8-م): eps/bookValue من القوائم حين يخالفها المزوّد (حراس EPS وBV)
+    data["criteriaVersion"] = "v3.3"
     # ── ختم نوع التشغيلة (شرط المحلل 2 — قاعدة الإقفال الحصرية، اعتماد 05-08ب):
     # ‏close = بعد ~15:10 الرياض في يوم تداول، أو يوم غير تداولي (أسعار الملف أسعار إقفال)
     # ‏intraday = سوق مفتوح — المغذي وسكربتا الإغلاق يرفضان العمل عليه

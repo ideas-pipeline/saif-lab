@@ -116,7 +116,9 @@ def compute_valuation(s, today_ref):
     v["dividendYield"] = round(dv / price, 6) if (price and dv and dv > 0) else (0.0 if dv == 0.0 else None)
     # حارس تقاطع pe المصدر (§3.5): فرق >10% → يعد لإنذار L1
     pe_src = vi.get("peSource")
-    if v.get("pe") and pe_src and pe_src > 0:
+    # §8-م: حين يُبدل حارس EPS قيمة المزوّد (fy-derived/fy-filled) يصير P/E على أساس آخر عمداً،
+    # فمقارنته بـpeSource تُطلق «توتّر pe» زوراً (مقيس: 0 → 17 سهماً) — الحارس للمزوّد وحده
+    if v.get("pe") and pe_src and pe_src > 0 and vi.get("epsBasis", "provider") == "provider":
         diff = abs(v["pe"] - pe_src) / pe_src * 100
         v["peSourceDiffPct"] = round(diff, 1)
     s["valuation"] = v
@@ -486,7 +488,9 @@ def entry_layer(s, regime):
 # الرأسمالية بعد 2024-03 (الجالب). لا قطع عينة: السجل الوحيد العابر لحدث عولج فردياً.
 # v3.2 (§8-ل، 20-10): الاتجاه على عائد كلي محلي (tr_local_series في الجالب) بدل عمود المزوّد
 # المختلط — نص §6-1/6-2 وملحق 24-07. بلا قطع عينة: لا إغلاق ناتج عن الانتقال.
-CRITERIA_VERSION = "v3.2"
+# v3.3 (§8-م، 20-10): eps وbookValue مشتقان من القوائم حين يخالفها المزوّد (حراس الجالب) —
+# تغيير أساس P/E وP/B لـ~48 قيمة؛ بلا قطع عينة: لا تغيّر تصنيف ولا إغلاق ناتج عن الانتقال.
+CRITERIA_VERSION = "v3.3"
 
 REVERSAL = "تحت SMA200W لكن إشارات انعكاس"
 

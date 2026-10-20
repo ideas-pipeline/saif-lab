@@ -1073,6 +1073,16 @@ function capNote(s){
   if(pd.length) out.push(`<div class="guard-note">فجوة سعرية في ${pd.map(p=>`<span class="num">${esc(p.date)}</span>`).join("، ")} قيد المراجعة: قد تكون منحة أو إجراءً رأسمالياً لم يُعدَّل بعد، فالمؤشرات الفنية التي تمتد عبرها قد تحمل حركة وهمية حتى تُحسم.</div>`);
   return out.join("");
 }
+/* §8-م: حراس بيانات المزوّد — يُقال صراحةً ما أُبدل ولماذا */
+function provNote(s){
+  const vi=s.valuationInputs||{}, fin=s.financials||{}, out=[];
+  if(vi.epsBasis==="fy-derived") out.push("ربحية السهم من المزوّد لا تتسق مع صافي الربح وعدد الأسهم، فاحتُسبت من القوائم (صافي ربح السنة الكاملة ÷ العدد الحالي)");
+  else if(vi.epsBasis==="fy-filled") out.push("ربحية السهم غائبة عند المزوّد، فاحتُسبت من القوائم (صافي ربح السنة الكاملة ÷ العدد الحالي)");
+  if(vi.bookValueBasis==="provider-capadj") out.push("القيمة الدفترية من المزوّد لم تُعدَّل للمنحة/التجزئة، فعُدّلت بمعاملها");
+  else if(vi.bookValueBasis==="fy-derived") out.push("القيمة الدفترية من المزوّد لا تتسق مع حقوق الملكية وعدد الأسهم، فاحتُسبت من القوائم");
+  if(fin.revenueBasisSuspect) out.push("إيراد البنك عند المزوّد تبدّل أساسه بين سنتين، فلا يُحتسب الهامش ولا النمو حتى يصحّحه المصدر");
+  return out.length?`<div class="guard-note">${out.join(". ")}.</div>`:"";
+}
 function impliedEpsAnnual(s){
   const vi=s.valuationInputs||{}, fin=s.financials||{};
   const ni=fin.netIncome, sh=vi.sharesOutstanding;
@@ -1101,8 +1111,11 @@ function dyFlags(s){
   const px=(s.dailyExtra||{}).lastClose||s.currentPrice;
   const f=[];
   if(y==null||y<=0) return f;
+  /* §8-م: eps مشتق من القوائم (أبدله حارس المزوّد أو ملأه) ⇒ ربح السنة الكاملة لا 12 شهراً */
+  const fyE=(s.financials||{}).fiscalYear;
+  const epsLbl=(vi.epsBasis&&vi.epsBasis!=="provider")?(fyE?`ربح ${fyE} الكامل`:"ربح آخر سنة كاملة"):"ربح 12 شهراً";
   if(eps!=null&&eps>0&&dv>eps)
-    f.push(`التوزيع أكبر من ربح 12 شهراً (تغطية ${(dv/eps).toFixed(2)}×) — قد لا يتكرر`);
+    f.push(`التوزيع أكبر من ${epsLbl} (تغطية ${(dv/eps).toFixed(2)}×) — قد لا يتكرر`);
   else if(eps==null||eps<=0)
     f.push("يوزّع بلا ربح معلن — تحقق من مصدر التوزيع");
   /* ‏(أ) خسارة السنة الكاملة — شرط *مستقل* تماماً عن eps المصدر وعن سلسلة التغطية.
@@ -1168,7 +1181,7 @@ function dyFlags(s){
     const robust=(ieB==null)||(ieB>0&&dv>ieB*COV_FLIP_MARGIN);
     if(robust){
       const yrIn=fyA?`ربح ${fyA} الكامل المعلن`:"آخر ربح سنوي كامل معلن";
-      f.push(`التوزيع داخل ربح 12 شهراً (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ieA).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
+      f.push(`التوزيع داخل ${epsLbl} (${(dv/eps).toFixed(2)}×) ويتجاوز ${yrIn} (${(dv/ieA).toFixed(2)}×) — أساسان مختلفان للربح، تحقّق قبل الاعتماد`);
     }
   }
   if(wt.sma200w&&px&&px<wt.sma200w*0.75)
@@ -1599,6 +1612,7 @@ function drawerHtml(s){
       <div class="fin-grid">${finCells(s)}</div>
       ${valUpdOf(s)?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span class="num">${esc(String(valUpdOf(s)).slice(0,16))}</span></div>`:""}
       ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
+      ${provNote(s)}
       ${((fin.periodSuspect||{}).grade==="A")?`<div class="guard-note">قوائم هذه الشركة تبدو لفترة جزئية مع أن المزوّد يسمها سنة كاملة (الإيراد نحو نصف سابقه أو أقل، ويخالفه مصدر مستقل). لذلك لا يُحتسب العائد على حقوق المساهمين والأصول ولا النمو حتى يصحّح المصدر أرقامه.</div>`:""}
       ${guard.length?`<div class="guard-note">قيم رفضها حارس المعقولية: ${guard.map(g=>`${esc(g.field)} (${esc(g.value)})`).join("، ")} — المكوّن يأخذ صفراً ولا تُستخدم قيمة مختلقة أو قديمة.</div>`:""}
     </div>
