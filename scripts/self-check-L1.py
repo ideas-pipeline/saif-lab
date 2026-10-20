@@ -157,6 +157,8 @@ for s in S:
         (rej_prov if g.get("guard") == "provider" else rej)[g.get("field")] += 1
 print("\n[3] حراس المعقولية — الرفض بالحقل: %s" % (dict(rej) or "لا رفض"))
 print("    حراس المزوّد (§8-م، خارج العتبة): %s" % (dict(rej_prov) or "لا شيء"))
+div_rej = [(s["symbol"], x["date"]) for s in S for x in (s.get("dividendRejected") or [])]
+print("    توزيعات وهمية خارج العائد (§8-ن): %d %s" % (len(div_rej), div_rej[:8]))
 if sum(rej.values()) > 40:
     warn("رفض الحراس مرتفع: %d قيمة — راجع جودة المصدر" % sum(rej.values()))
 
