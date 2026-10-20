@@ -1182,7 +1182,11 @@ def ca_resolve(sym, events, manual_items, R):
             suppressed[d0] = e_b
         plan.append((d0, float(it["factor"]), it["kind"], "manual", "M"))
         if it.get("eventDate"):
-            meta[d0] = {"eventDate": it["eventDate"]}
+            if it["eventDate"] < d0:
+                # الإسناد إلى جلسة لاحقة كسر قيد eventDate ≥ date (إعادة ختم 20-10، بند 4) — يُسقط
+                print("  ⚠️ %s: eventDate %s سبق تاريخ البند بعد إسناده %s — يُهمل" % (sym, it["eventDate"], d0))
+            else:
+                meta[d0] = {"eventDate": it["eventDate"]}
     for e in events:
         if id(e) in bound:
             continue

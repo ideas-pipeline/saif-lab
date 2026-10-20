@@ -105,13 +105,30 @@ price_map = {s["symbol"]: s.get("currentPrice") for s in data.get("stocks", [])}
 # أساس السعر الحالي (entryPriceAdj = الدخول × معاملات ما بعد الدخول حتى نهاية الفترة)
 cap_map = {s["symbol"]: (s.get("capActions") or []) for s in data.get("stocks", []) if s.get("symbol")}
 
-def cap_k(symbol, entry_date, end_date):
-    # يوم الحدث الاقتصادي (eventDate، وإلا date): سعر الدخول اسمي يومه — §8-ك
+def cap_k(symbol, entry_day, end_date, provider_basis, fetched_at):
+    """معامل يضع سعر الدخول على أساس سعر المقارنة (الحالي، أو closePrice الاسمي يوم الإغلاق).
+    لكل حدث: هل المقارنة على الأساس الجديد؟ وهل سعر الدخول عليه؟ ×f إن كانت المقارنة جديدة
+    والدخول قديماً، و÷f في العكس (حدث بعد الإغلاق وقد عدّله المزوّد في سعر الدخول).
+    - الدخول الاسمي (manual-fallback / same-day-close): جديد إن كان الحدث الاقتصادي ≤ يوم الدخول.
+    - إغلاق المزوّد التاريخي (sahmk-close / cache): حدثٌ لا يعدّله المزوّد (بلا eventDate) جديدٌ
+      إن كانت جلسة الدخول ≥ تاريخه؛ وبند وصلة (eventDate) عدّل المزوّد أسعاره رجوعاً حتى date،
+      فالدخول عليه جديد إن كان بعد الحدث، أو جُلب بعد الحدث وجلسته ≥ date (إعادة ختم 20-10، شرط 1:
+      مدخل 1120 بإغلاق 70.93 المعدّل أصلاً كان يُضرب مرة ثانية فيُظهر +33.6% بدل −11%)."""
     k = 1.0
     for a in cap_map.get(symbol, []):
-        t = a.get("eventDate") or a.get("date", "")
-        if t > entry_date and (not end_date or t <= end_date):
+        d = a.get("date", "")
+        ev = a.get("eventDate") or d
+        cmp_new = (not end_date) or ev <= end_date
+        if not provider_basis:
+            entry_new = ev <= entry_day
+        elif a.get("eventDate"):
+            entry_new = ev <= entry_day or (bool(fetched_at) and fetched_at >= ev and entry_day >= d)
+        else:
+            entry_new = d <= entry_day
+        if cmp_new and not entry_new:
             k *= a["factor"]
+        elif entry_new and not cmp_new:
+            k /= a["factor"]
     return k
 
 # ── 1-ب) measurement v3 (2026-08-03): عائد تاسي للفترة المطابقة لكل مدخل ──
@@ -184,6 +201,7 @@ for s in stocks_config:
     # سلسلة سعر الدخول: sahmk-close → cache → manual-fallback (لا Yahoo)
     entry_price, source, divs = manual, "manual-fallback", 0
     entry_day = entry_date    # جلسة سعر الدخول الفعلية — معاملات §8-ق تُحسب بعدها
+    fetched_at = ""           # متى جُلب إغلاق المزوّد (أساسه يومها) — §8-ك
     if entry_date == today and current is not None:
         entry_price, source = current, "same-day-close"
     elif entry_date:
@@ -203,6 +221,7 @@ for s in stocks_config:
             # سعر الدخول = إغلاق أول جلسة ≥ entryDate: مدخل يوم غير تداولي وحدثٌ في الجلسة
             # التالية سعره بعد الحدث أصلاً — فالمقارنة بالجلسة لا بالتاريخ (ختم 20-10، شرط 5)
             entry_day = (cache.get(skey) or {}).get("tradingDay") or entry_date
+            fetched_at = (cache.get(skey) or {}).get("fetchedAt") or ""
             dkey = "D|" + key + "|" + div_until
             if dkey in cache:
                 divs = cache[dkey]
@@ -240,7 +259,8 @@ for s in stocks_config:
     lines.append(f'    entryPrice:    {entry_price},      // {source} | يدوي أصلي: {manual}')
     lines.append(f'    entrySource:   "{source}",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)')
     lines.append(f"    divsSince:     {divs},")
-    _k = cap_k(symbol, entry_day, close_date if (status == "closed" and close_date) else None) if entry_date else 1.0
+    _k = (cap_k(symbol, entry_day, close_date if (status == "closed" and close_date) else None,
+                source in ("sahmk-close", "cache"), fetched_at) if entry_date else 1.0)
     if abs(_k - 1) > 1e-9:
         lines.append(f"    entryPriceAdj: {round(entry_price * _k, 4)},   // §8-ق × {round(_k, 6)}")
     if s.get("dataFault"):

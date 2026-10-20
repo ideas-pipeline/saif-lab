@@ -761,6 +761,78 @@ f1080 = [e for e in cfgw["stocks"] if e["symbol"] == "1080" and e.get("track") =
 check("قرار المالك: مدخلا 1080 (08-19 و08-20) موسومان dataFault بوصلة المزوّد",
       len(f1080) == 2 and all((e.get("dataFault") or {}).get("kind") == "provider-splice" for e in f1080))
 
+# ══ إعادة ختم 20-10 (شرط 1): صفحة الدقة بحسب أساس سعر الدخول ══
+def acc_run(cfg_stocks, cache_obj, st_list):
+    d = tempfile.mkdtemp()
+    try:
+        P = {k: os.path.join(d, k) for k in ("s.json", "c.json", "p.html", "cache.json", "t.json")}
+        json.dump({"runType": "close", "lastUpdated": "2026-10-20 16:00", "stocks": st_list}, open(P["s.json"], "w"))
+        json.dump({"stocks": cfg_stocks}, open(P["c.json"], "w"))
+        json.dump(cache_obj, open(P["cache.json"], "w"))
+        open(P["p.html"], "w").write('<script>\nconst WATCHLIST = [\n];\nconst META = {updatedAt: "x"};\n</script>\n')
+        json.dump({"data": []}, open(P["t.json"], "w"))
+        env = {k: v for k, v in os.environ.items() if not k.startswith("SAHMK")}
+        env.update(STOCKS_JSON=P["s.json"], CONFIG_JSON=P["c.json"], HTML_FILE=P["p.html"],
+                   CACHE_FILE=P["cache.json"], TASI_HISTORY=P["t.json"])
+        subprocess.run(["bash", os.path.join(ROOT, "scripts", "update-watchlist-accuracy.sh")], env=env,
+                       capture_output=True, text=True)
+        return open(P["p.html"]).read().split("\n  {\n")[1:]
+    finally:
+        shutil.rmtree(d)
+
+
+today_s = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
+cap1120 = [{"date": "2023-11-27", "eventDate": "2026-04-21", "factor": 0.666667}]
+st_c = [dict(st1120, capActions=cap1120)]
+e_leg = {"symbol": "1120", "name": "ر", "entryPrice": 106.6, "entryDate": "2026-04-02", "track": "legacy"}
+k_div = "D|1120|2026-04-02|" + today_s
+b = acc_run([e_leg], {"S|1120|2026-04-02": {"close": 70.93, "tradingDay": "2026-04-02", "fetchedAt": "2026-08-01"},
+                      k_div: 0}, st_c)
+check("الدقة/الكاش: إغلاق المزوّد 70.93 معدّل أصلاً (جُلب بعد الحدث) ⇒ بلا entryPriceAdj (لا +33.6%)",
+      "entryPrice:    70.93" in b[0] and "entryPriceAdj" not in b[0])
+b = acc_run([e_leg], {"S|1120|2026-04-02": {"close": 106.6, "tradingDay": "2026-04-02", "fetchedAt": "2026-04-05"},
+                      k_div: 0}, st_c)
+check("الدقة/الكاش: إغلاق جُلب قبل الحدث (اسمي 106.6) ⇒ entryPriceAdj 71.0667", "entryPriceAdj: 71.0667," in b[0])
+e_old = {"symbol": "1120", "name": "ر", "entryPrice": 90.0, "entryDate": "2023-10-01", "track": "legacy"}
+b = acc_run([e_old], {"S|1120|2023-10-01": {"close": 90.0, "tradingDay": "2023-10-01", "fetchedAt": "2026-08-01"},
+                      "D|1120|2023-10-01|" + today_s: 0}, st_c)
+check("الدقة/الكاش: دخول قبل الوصلة (المزوّد لم يعدّل ما قبلها) ⇒ ×2/3 = 60.0", "entryPriceAdj: 60.0," in b[0])
+e_cl = dict(e_leg, status="closed", closeDate="2026-04-10", closePrice=104.0, closeReason="score_below_50")
+b = acc_run([e_cl], {"S|1120|2026-04-02": {"close": 70.93, "tradingDay": "2026-04-02", "fetchedAt": "2026-08-01"},
+                     "D|1120|2026-04-02|2026-04-10": 0}, st_c)
+check("الدقة: أُغلق قبل الحدث بسعر اسمي ودخوله معدّل لدى المزوّد ⇒ ÷2/3 = 106.3949",
+      "entryPriceAdj: 106.3949," in b[0])
+
+# meta بعد الإسناد، وeventDate يسبق التاريخ المسنَد ⇒ يُهمل
+man_s = [{"date": "2023-11-26", "eventDate": "2026-04-21", "factor": 2 / 3, "kind": "bonus", "source": "s"}]
+(_, ap_s, _, _), out_s = quiet(m.ca_plan_apply, "1120", [], man_s,
+                               [r for r in Rsp_ if r[0] not in ("2023-11-26",)])
+check("بند بتاريخ ليس جلسة ⇒ يُسند إلى 11-27 ويحمل eventDate (meta مفتاحه التاريخ المسنَد)",
+      ap_s and ap_s[0]["date"] == "2023-11-27" and ap_s[0].get("eventDate") == "2026-04-21")
+man_b = [{"date": "2023-11-26", "eventDate": "2023-11-26", "factor": 2 / 3, "kind": "bonus", "source": "s"}]
+(_, ap_b, _, _), out_b = quiet(m.ca_plan_apply, "1120", [], man_b, [r for r in Rsp_ if r[0] != "2023-11-26"])
+check("eventDate يسبق التاريخ بعد الإسناد ⇒ يُهمل بإنذار", ap_b and "eventDate" not in ap_b[0] and "يُهمل" in out_b)
+
+# sharesCapFactor وca_shares_watch على eventDate لا date
+tmpd = tempfile.mkdtemp()
+try:
+    cdir = os.path.join(tmpd, "candles")
+    os.makedirs(cdir)
+    for s_, R in universe(SP2=Rsp_).items():
+        m.save_candles(cdir, s_, R)
+    json.dump({"SP2": [{"date": "2023-11-27", "eventDate": "2026-09-15", "factor": 2 / 3, "kind": "bonus",
+                        "source": "s"}]}, open(os.path.join(tmpd, "corporate-actions.json"), "w"))
+    st_sp = {"symbol": "SP2", "valuationInputs": {"sharesOutstanding": 4e9, "sharesAsOf": "2026-08-06"}}
+    quiet(m.fetch_daily_and_derive, Api(), [st_sp], collections.defaultdict(int), cdir, tasi, "stamp", DATES[-1])
+    check("sharesCapFactor على eventDate (09-15 بعد اللقطة 08-06) ⇒ 2/3، لا 1 بتاريخ الوصلة",
+          abs(st_sp["valuationInputs"].get("sharesCapFactor", 1) - 0.666667) < 1e-6)
+finally:
+    shutil.rmtree(tmpd)
+st_wv = {"symbol": "SP2", "sharesHistory": [{"date": "2026-10-20", "lastSeen": "2026-10-20", "shares": 6e9}],
+         "valuationInputs": {"sharesOutstanding": 4e9}}
+dv, outv = quiet(m.ca_shares_watch, st_wv, Rsp_, [{"date": "2023-11-27", "eventDate": "2026-09-15", "factor": 2 / 3}])
+check("ca_shares_watch على eventDate: 4 ⇐ 6 مليار يفسّره البند ⇒ لا سطر", dv is None and not outv)
+
 # JS: صفحة الدقة (entryPriceAdj وdataFault)، وimpliedEpsAlt، وisV3sc
 js = subprocess.run(["node", os.path.join(HERE, "test_capadj_ui.js")], capture_output=True, text=True)
 print(js.stdout.rstrip())
