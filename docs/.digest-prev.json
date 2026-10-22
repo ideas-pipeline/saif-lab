@@ -1,13 +1,12 @@
 {
- "at": "2026-10-21",
+ "at": "2026-10-22",
  "counts": {
-  "hold": 30,
-  "filtered": 164,
-  "strong_sell": 1,
+  "hold": 24,
+  "filtered": 171,
   "unrated": 49,
   "sell": 2,
-  "buy": 1,
-  "strong_buy": 1
+  "buy_wait": 1,
+  "buy": 1
  },
  "universe": 248,
  "buyFamily": [
@@ -28,7 +27,6 @@
  "reversalMembers": [
   "2180",
   "2282",
-  "2381",
   "7201"
  ],
  "regimeLog": [
@@ -62,6 +60,10 @@
   },
   {
    "date": "2026-10-21",
+   "regime": "هابط"
+  },
+  {
+   "date": "2026-10-22",
    "regime": "هابط"
   }
  ]
