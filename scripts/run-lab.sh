@@ -7,12 +7,12 @@
 #   3) ترتيب الخط: جالب ← محرك ← مغذٍ/إغلاقات ← L1 على الملف ذاته
 #
 # الاستخدام:  run-lab.sh [daily|weekly|universe|divcal]
-# الجدولة المقترحة (crontab — توقيت السيرفر الرياض):
-#   50 16 * * 0-3  /srv/ideas/lab-mirror/scripts/run-lab.sh daily    >> /srv/ideas/lab-runs.log 2>&1
-#   50 16 * * 4    /srv/ideas/lab-mirror/scripts/run-lab.sh weekly   >> /srv/ideas/lab-runs.log 2>&1
+# الجدولة الفعلية (crontab root على الخادم، توقيت الرياض — قُرئت 23-10):
+#   20 16 * * 0-3  /srv/ideas/lab-mirror/scripts/run-lab.sh daily    >> /srv/ideas/lab-runs.log 2>&1
+#   20 16 * * 4    /srv/ideas/lab-mirror/scripts/run-lab.sh weekly   >> /srv/ideas/lab-runs.log 2>&1
 #   30 17 1 * *    /srv/ideas/lab-mirror/scripts/run-lab.sh universe >> /srv/ideas/lab-runs.log 2>&1
-#   (ملاحظة 09-10: الإيداعات تنزل فعلياً ~16:35 الرياض، فالكرون الفعلي على الخادم أبكر
-#    من المكتوب أعلاه ولم يُقرأ من المستودع — يُصحَّح هنا متى قرأه المالك.)
+#   20 12 * * 5    /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   >> /srv/ideas/lab-runs.log 2>&1
+#   20 12 * * 6    /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   >> /srv/ideas/lab-runs.log 2>&1
 #
 # الخميس على مرحلتين (قرار المالك 09-10 — 5 من 10 خميسات ضاعت منذ أغسطس):
 #   كان الخميس يراهن على التشغيلة الثقيلة وحدها، وحين تتعثّر يضيع اليوم حتى الأسعار.
@@ -207,7 +207,8 @@ case "$MODE" in
     publish universe
     ;;
   divcal)   # مفكرة الويكند الخفيفة (طلب المالك 21-08): كتلتا المفكرة حصراً ثم البناء والنشر.
-            # كرونا المالك المقترحان (توقيت السيرفر الرياض):
+            # كرونا المالك (توقيت السيرفر الرياض) — مفعّلان في crontab root منذ 23-10 بقرار المالك
+            # (لم يُضافا عند إنشاء الوضع في 21-08، فلم تعمل المفكرة في الويكند حتى ذلك اليوم):
             #   20 12 * * 5  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # الجمعة 12:20
             #   20 12 * * 6  /srv/ideas/lab-mirror/scripts/run-lab.sh divcal   # السبت 12:20
     fetch --divcal-only
