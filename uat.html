@@ -330,6 +330,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .t-neutral{color:var(--text3); background:rgba(125,170,225,0.08)}
 .tchip .tdot{width:5px; height:5px; border-radius:50%; background:currentColor}
 .col-p3{display:table-cell} .col-p2{display:table-cell}
+.d5n{color:var(--text3); font-size:.85em}   /* §8-ص: عدد السنوات حين < 5 */
 @media(max-width:1279px){ .col-p3{display:none} }
 @media(max-width:1023px){ .col-p2{display:none} }
 @media(max-width:767px){ table.scr{display:none} }
@@ -1194,7 +1195,9 @@ function dyFlags(s){
   return f;
 }
 /* §8-ص: متوسط التوزيعات لخمس سنوات — الكتلة أسبوعية (dividend5y) والعائد على سعر اليوم.
-   وسوم المحلل للعرض فقط، أعلاها أولويةً بحدّ اثنين: التغطية ثم التناقص ثم الاستثنائي */
+   وسوم المحلل للعرض فقط، أعلاها أولويةً بحدّ اثنين: التغطية ثم الخفض ثم التناقص ثم الاستثنائي.
+   ختم الناقد: «متناقص» يشترط أول سنة موجبة (سلسلة أصفار لا تتناقص — 93 سهماً لا توزع)، و«خفض» حين
+   آخر 12 شهراً أقل من المتوسط ÷ 2.5 (نفس عتبة بوابة المراجعة في الجالب) */
 const d5Of=s=>{const b=s.dividend5y, p=priceOf(s); return b&&b.avg!=null&&p>0?b.avg/p*100:null;};
 function d5Years(b){return Object.keys(b.perYear||{}).sort().map(k=>b.perYear[k]).filter(v=>v!=null);}
 function d5Flags(s){
@@ -1202,7 +1205,9 @@ function d5Flags(s){
   const f=[], ni=(s.financials||{}).netIncome, eps=impliedEpsAnnual(s), ys=d5Years(b);
   if(typeof ni==="number"&&ni<=0) f.push("الشركة خاسرة في آخر سنة");
   else if(eps!=null&&b.avg>eps) f.push("المتوسط يفوق ربح السهم في آخر سنة");
-  if(b.n>=3&&ys.every((v,i)=>i===0||v<=ys[i-1])&&ys[ys.length-1]<=0.8*ys[0]) f.push("متناقص سنة بعد سنة");
+  const ttm=(s.valuationInputs||{}).divTtm12m;
+  if(b.avg>0&&typeof ttm==="number"&&ttm*2.5<b.avg) f.push(ttm>0?"آخر 12 شهراً أقل بكثير من المتوسط — خفض التوزيع":"لم يوزّع في آخر 12 شهراً");
+  if(b.n>=3&&ys[0]>0&&ys.every((v,i)=>i===0||v<=ys[i-1])&&ys[ys.length-1]<=0.8*ys[0]) f.push("متناقص سنة بعد سنة");
   const so=[...ys].sort((a,b2)=>a-b2), md=so.length%2?so[(so.length-1)/2]:(so[so.length/2-1]+so[so.length/2])/2;
   if(md>0&&Math.max(...ys)>=2*md) f.push("يتضمن توزيعاً استثنائياً");
   return f.slice(0,2);
@@ -1212,7 +1217,8 @@ function d5Cell(s){
   if(y==null) return "—";
   const f=d5Flags(s);
   const warn=f.length?` <span class="dy-warn" data-tip="${esc(f.join(" · "))}" tabindex="0">⚠️</span>`:"";
-  return `${fmt(y,1)}%${warn}`;
+  const n=s.dividend5y.n, nTag=n<5?` <span class="d5n" tabindex="0" data-tip="متوسط ${n===2?"سنتين":n+" سنوات"} فقط — بقية الخمس غير متوفرة">(${n})</span>`:"";
+  return `${fmt(y,1)}%${nTag}${warn}`;
 }
 function dyCell(s){
   const y=dyOf(s);
@@ -1813,7 +1819,8 @@ function finCells(s){
       if((b5.flags||{}).preSeamAdjusted) notes.push("معدّل لمنح سابقة");
       if((b5.flags||{}).fyFallback) notes.push("سنة مالية مستنتجة");
       d5=f5.map(w=>`⚠️ ${esc(w)}`).join("<br>")+(f5.length?"<br>":"")
-        +`متوسط ${b5.n} سنوات مالية (${b5.window[0]}–${b5.window[1]})`
+        +`متوسط ${b5.n===2?"سنتين ماليتين":b5.n+" سنوات مالية"} (${b5.window[0]}–${b5.window[1]})`
+        +(b5.n<5?` — ${5-b5.n===1?"سنة":5-b5.n===2?"سنتان":(5-b5.n)+" سنوات"} غير متوفرة`:"")
         +(b5.nPaid<b5.n?` · وزّع في ${b5.nPaid} من ${b5.n}`:"")
         +(notes.length?` · ${notes.join(" · ")}`:"")
         +"<br>للعرض فقط — لا يدخل تقييم سيف";

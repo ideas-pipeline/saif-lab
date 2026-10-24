@@ -1860,7 +1860,11 @@ def d5_parse(hist, cur_year):
     for h in hist or []:
         e = h.get("eligibility_date") or h.get("due_date") or h.get("date")
         v = h.get("value") if h.get("value") is not None else h.get("amount")
-        if not (isinstance(e, str) and len(e) >= 10 and _num(v) and v > 0):
+        if not (isinstance(e, str) and _num(v) and v > 0 and re.match(r"\d{4}-\d{2}-\d{2}$", e[:10])):
+            continue                # تاريخ غير ISO يُهمل الصف ولا يُسقط التشغيلة (ختم الناقد §8-ص، ش2)
+        try:
+            datetime.strptime(e[:10], "%Y-%m-%d")
+        except ValueError:
             continue
         fy = h.get("fiscal_year")
         fy = int(fy) if isinstance(fy, (str, int)) and str(fy).isdigit() and 1990 <= int(fy) <= cur_year else None
@@ -1880,7 +1884,9 @@ def d5_fallback_fy(e, period):
 
 def d5_dedup(rows):
     """المكرر (e، v4) صف واحد يُفضَّل ذو fy وperiod؛ والمتضارب (e، fy، period نفسها بقيمتين) يبقى أحدث إعلان،
-    وبالتساوي ⇒ سنته غير محسومة؛ والمزاح (fy، period غير ANNUAL/None، قيمة واحدة، ≤10 أيام) يبقى الأقدم.
+    وبالتساوي ⇒ سنته غير محسومة؛ والمزاح (قيمة واحدة، ≤10 أيام، و(fy، period نفسها غير ANNUAL/None) أو أحدهما
+    بلا وسم fy أو period) صف واحد: الموسوم إن وُجد وإلا الأقدم (3092: 1.0 بأحقيتي 2024-08-15 و08-18 بلا وسم
+    — توزيع واحد بشهادة الشموع، ختم الناقد §8-ص، ش3).
     يعيد (صفوف، سنوات غير محسومة، عدد المتضارب)."""
     best = {}
     for r in rows:
@@ -1904,14 +1910,24 @@ def d5_dedup(rows):
             else:
                 drop.update(ix[:-1])
     rows = [r for i, r in enumerate(rows) if i not in drop]
+    def lab(r):
+        return r["fy"] is not None and r["period"] is not None
+
+    def shifted(k, r):
+        if round(k["v"], 4) != round(r["v"], 4):
+            return False
+        if (datetime.strptime(r["e"], "%Y-%m-%d") - datetime.strptime(k["e"], "%Y-%m-%d")).days > 10:
+            return False
+        if not lab(k) or not lab(r):
+            return True
+        return k["fy"] == r["fy"] and k["period"] == r["period"] and r["period"] != "ANNUAL"
     keep = []
     for r in rows:
-        if r["period"] not in (None, "ANNUAL") and r["fy"] is not None and any(
-                k["fy"] == r["fy"] and k["period"] == r["period"] and round(k["v"], 4) == round(r["v"], 4)
-                and (datetime.strptime(r["e"], "%Y-%m-%d") - datetime.strptime(k["e"], "%Y-%m-%d")).days <= 10
-                for k in keep):
-            continue
-        keep.append(r)
+        j = next((x for x, k in enumerate(keep) if shifted(k, r)), None)
+        if j is None:
+            keep.append(r)
+        elif lab(r) and not lab(keep[j]):
+            keep[j] = r
     return keep, unresolved, conflicts
 
 
@@ -1963,7 +1979,7 @@ def d5_levels(pre, ms):
       المالية إن أجمعت، وإلا None."""
     K, stop, bad = 1.0, False, 0
     lv = [None] * len(pre)
-    pend = []
+    pend, changes = [], []
     for i, m in enumerate(ms):
         if stop:
             continue
@@ -1991,6 +2007,7 @@ def d5_levels(pre, ms):
             if abs(r / f - 1) <= 0.045:
                 K *= f
                 lv[i] = K
+                changes.append((i, f))
             else:
                 stop = True
             continue
@@ -2000,13 +2017,17 @@ def d5_levels(pre, ms):
         newer = next((lv[k] for k in range(i - 1, -1, -1) if isinstance(lv[k], float)), 1.0)
         # بلا جار أقدم محسوم (ذيل السلسلة، أو سهم بلا خطوات مزوّد أصلاً) لا دليل على تغيّر المستوى ⇒ الأحدث
         # (توضيح حالة لم تحددها المواصفة — سهم بلا أي خطوة يبقى على K = 1 أي المبلغ الاسمي × ما بعده)
-        older = next((lv[k] for k in range(i + 1, len(lv)) if isinstance(lv[k], float)), newer)
+        older = next((lv[k] for k in range(i + 1, len(lv)) if isinstance(lv[k], float)), None)
+        if older is None:
+            if stop:
+                continue        # المسح توقف أقدم منه: تغيّرُ مستوى في موضع مجهول ⇒ غير محسوم (ختم الناقد §8-ص، 7)
+            older = newer
         if abs(newer - older) < 1e-9:
             lv[i] = newer
             continue
         same = {round(lv[k], 9) for k in range(len(pre)) if isinstance(lv[k], float) and pre[k]["fy"] == pre[i]["fy"]}
         lv[i] = same.pop() if len(same) == 1 else None
-    return [x if isinstance(x, float) else None for x in lv], bad
+    return [x if isinstance(x, float) else None for x in lv], bad, changes
 
 
 def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
@@ -2036,10 +2057,13 @@ def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
     dates = [x[0] for x in rows_px]
     # ما قبل الوصلة: مستوى المنح المخفية K لكل صف بمسح المستويات (المبلغ = الاسمي × ما بعده × K)
     pre_ix = sorted((i for i, r in enumerate(rows) if r["e"] < TR_TC), key=lambda i: rows[i]["e"], reverse=True)
-    lvls, bad = d5_levels([rows[i] for i in pre_ix], [d5_m(rows_px, dates, rows[i], caps) for i in pre_ix])
+    lvls, bad, chg = d5_levels([rows[i] for i in pre_ix], [d5_m(rows_px, dates, rows[i], caps) for i in pre_ix])
     K_of = dict(zip(pre_ix, lvls))
     if bad:
         flags["providerStepBad"] = bad
+    # كل منحة مخفية مقبولة (تاريخ الصف الذي بدأ عنده المستوى، والمعامل) — تُطبع في السجل للمطابقة مع سجل
+    # المنح الفعلي (ختم الناقد §8-ص، ش6): الدليل عليها تأكيد صفين، لا المطابقة مع المعاملات وحدها
+    levels = [[rows[pre_ix[i]]["e"], round(f, 4)] for i, f in chg]
     per = collections.defaultdict(float)
     have = collections.defaultdict(int)      # صفوف السنة
     kept = collections.defaultdict(int)      # صفوف السنة المقبولة
@@ -2063,6 +2087,7 @@ def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
                 flags["preSeamAdjusted"] = flags.get("preSeamAdjusted", 0) + 1
             d = r["v"] * ca_factor_after_event(caps, r["e"]) * k_
             if div_event_check(rows_px, dates, r["e"], d, [])[2]:
+                flags["preSeamRejected"] = flags.get("preSeamRejected", 0) + 1
                 continue
         per[F] += d
         kept[F] += 1
@@ -2072,7 +2097,7 @@ def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
     trunc_before = None
     if raw_n >= D5_LIMIT and oldest and oldest >= "%d-01-01" % win[0]:
         flags["truncated"] = True
-        trunc_before = int(oldest[:4])
+        trunc_before = int(oldest[:4]) + 1      # سنة أقدم صف نفسها قد تكون ناقصة ⇒ غير محسومة
     per_year = {}
     for F in win:
         eligible = pre_window or listing <= "%d-06-30" % F or have[F] > 0
@@ -2086,7 +2111,8 @@ def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
     n = len(vals)
     return {"window": [win[0], win[-1]], "perYear": per_year,
             "avg": round(sum(vals) / n, 4) if n >= 2 else None, "n": n,
-            "nPaid": sum(1 for v in vals if v > 0), "flags": flags, "asOf": today}
+            "nPaid": sum(1 for v in vals if v > 0), "flags": flags, "asOf": today,
+            **({"levels": levels} if levels else {})}
 
 
 def d5_fallback_rate(all_hist, cur_year):
@@ -2473,11 +2499,15 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
     sh_bad = []                     # عددٌ مشكوك فيه ⇒ الحراس معطّلة عن السهم (لا تُسكت)
     # §8-ص: بوابة السنة المالية المستنتجة على التشغيلة كلها، ثم كتلة dividend5y لكل سهم
     d5_today = datetime.now(RIYADH).strftime("%Y-%m-%d")
-    d5_rate, d5_tot = d5_fallback_rate([sc_.get("divHist") for sc_ in scratch.values() if sc_.get("divHist")],
-                                       int(d5_today[:4]))
-    d5_fb_ok = d5_rate is None or d5_rate >= 0.90
+    try:
+        d5_rate, d5_tot = d5_fallback_rate([sc_.get("divHist") for sc_ in scratch.values() if sc_.get("divHist")],
+                                           int(d5_today[:4]))
+    except Exception as ex:      # ميزة عرض لا تُسقط التشغيلة الأسبوعية (ختم الناقد §8-ص، ش2)
+        print("  ⚠️ §8-ص: بوابة السنة المستنتجة فشلت (%s) — البديل معطّل" % type(ex).__name__)
+        d5_rate, d5_tot = None, 0
+    d5_fb_ok = d5_rate is not None and d5_rate >= 0.90     # بلا fiscal_year إطلاقاً ⇒ لا تحقق ⇒ معطّل
     d5_cnt = collections.Counter()
-    d5_review = []
+    d5_review, d5_levels_log = [], []
     for st in stocks:
         sym = st["symbol"]
         sc = scratch.get(sym) or {}
@@ -2505,14 +2535,21 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         if sc.get("divHist") is not None and sym in _DIV_ROWS:
             # بلا أسعار التشغيلة (_DIV_ROWS) لا يُعاد الحساب، وتبقى الكتلة القديمة بختمها
             r5, c5 = _DIV_ROWS[sym]
-            blk = dividend5y(sc["divHist"], r5, c5, st.get("dividendRejected"), d5_today, d5_fb_ok)
+            try:
+                blk = dividend5y(sc["divHist"], r5, c5, st.get("dividendRejected"), d5_today, d5_fb_ok)
+            except Exception as ex:   # ميزة عرض لا تُسقط التشغيلة: تبقى الكتلة القديمة (ختم الناقد §8-ص، ش2)
+                print("  ⚠️ §8-ص: %s فشل حسابه (%s: %s) — الكتلة القديمة باقية" % (sym, type(ex).__name__, ex))
+                blk = None
+                d5_cnt["error"] += 1
             if blk:
                 st["dividend5y"] = blk
                 d5_cnt["shown" if blk["avg"] is not None else "short"] += 1
                 # بوابة المراجعة (إلزام المحلل 24-10): متوسط ÷ TTM > 2.5 أو عائد خمسي > 10% ⇒ يُطبع للفحص
                 px_ = (st.get("dailyExtra") or {}).get("lastClose") or st.get("currentPrice")
                 ttm_ = (st.get("valuationInputs") or {}).get("divTtm12m")
-                if blk["avg"] and ((_num(ttm_) and ttm_ > 0 and blk["avg"] / ttm_ > 2.5)
+                for lv_ in blk.get("levels") or []:
+                    d5_levels_log.append("%s %s ×%s" % (sym, lv_[0], lv_[1]))
+                if blk["avg"] and ((_num(ttm_) and (ttm_ == 0 or blk["avg"] / ttm_ > 2.5))
                                    or (_num(px_) and px_ > 0 and blk["avg"] / px_ > 0.10)):
                     d5_review.append("%s %s ttm=%s %s" % (sym, blk["perYear"], ttm_, blk["flags"] or ""))
                 for f_ in blk["flags"]:
@@ -2637,10 +2674,12 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
           " | إيراد بنك مرفوض %d" % (g_tot["replace"], g_tot["fill"], g_tot["watch"], g_tot["bv_replace"],
                                       g_tot["bv_watch"], g_tot["rev_reject"]))
     print("  💵 متوسط التوزيع الخمسي (§8-ص، عرض فقط): معروض %d · أقل من سنتين %d | سنة مستنتجة %d · منحة مخفية %d · خطوة مزوّد شاذة %d"
-          " · متضارب %d · مقطوع %d | بوابة السنة المستنتجة %s (%d صفاً)%s"
+          " · متضارب %d · مقطوع %d · خطأ %d | بوابة السنة المستنتجة %s (%d صفاً)%s"
           % (d5_cnt["shown"], d5_cnt["short"], d5_cnt["fyFallback"], d5_cnt["preSeamAdjusted"], d5_cnt["providerStepBad"], d5_cnt["conflict"],
-             d5_cnt["truncated"], ("%.1f%%" % (d5_rate * 100)) if d5_rate is not None else "—", d5_tot,
+             d5_cnt["truncated"], d5_cnt["error"], ("%.1f%%" % (d5_rate * 100)) if d5_rate is not None else "—", d5_tot,
              "" if d5_fb_ok else " ⇒ معطّلة (< 90%)"))
+    if d5_levels_log:
+        print("  🔎 منح مخفية قبل الوصلة (المتوسط الخمسي، طابِقها مع سجل المنح الفعلي): %s" % " · ".join(d5_levels_log))
     for x_ in d5_review:
         print("  🔍 مراجعة المتوسط الخمسي (متوسط ÷ 12 شهراً > 2.5 أو > 10%%): %s" % x_)
     if sh_bad:
