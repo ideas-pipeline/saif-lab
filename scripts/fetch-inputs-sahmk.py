@@ -1925,7 +1925,10 @@ def d5_window(rows, today):
     return list(range(fc - 4, fc + 1))
 
 
-D5_BONUS = (10 / 11, 5 / 6, 4 / 5, 3 / 4, 2 / 3, 1 / 2)   # معامل منحة واحد؛ حاصل منحتين ينشأ بالتسلسل عبر مستويين
+# نسب المنح الشائعة «x لكل y» ⇒ y/(x+y) (اعتماد المحلل 24-10 بعد الراجحي 3:5 = 0.625). بلا تجزئة 10:1: لا تجزئة
+# في السوق بين 2019 و2023، فـm قرب 0.1 خطوة تالفة. حاصل منحتين ينشأ بالتسلسل عبر مستويين
+D5_BONUS = (10 / 11, 5 / 6, 4 / 5, 10 / 13, 3 / 4, 5 / 7, 2 / 3, 5 / 8, 3 / 5, 4 / 7, 1 / 2, 1 / 3)
+D5_PLATEAU = 4                                     # صفوف الهضبة القصوى للتقريب (الصفان المؤكِّدان ضمنها)
 
 
 def d5_m(rows_px, dates, r, caps):
@@ -1953,8 +1956,9 @@ def d5_levels(pre, ms):
     """مسح المستويات من الأحدث إلى الأقدم (مواصفة المحلل المعدّلة 24-10). pre: صفوف ما قبل TR_TC تنازلياً،
     ms: m لكل صف أو None. يعيد (مستوى K لكل صف أو None = غير محسوم، عدد الخطوات الشاذة).
     - m ≥ 0.955K ⇒ على المستوى؛ وارتفاع (> 1.045K) يؤكده الأقدم التالي ⇒ يتوقف المسح (تخفيض رأس مال؟).
-    - m < 0.955K ⇒ مستوى جديد فقط إن أكده الأقدم التالي ذو الخطوة، ونسبة وسيطهما ÷ K تطابق معامل منحة
-      واحداً ضمن ±4.5% (وإلا يتوقف المسح)؛ والانخفاض المعزول شاذّ يأخذ K.
+    - m < 0.955K ⇒ مستوى جديد فقط إن أكده الأقدم التالي ذو الخطوة؛ ثم الهضبة: يُضم كل أقدم تالٍ ذي خطوة
+      ضمن [0.955، 1.045] × وسيط الصفين حتى 4 صفوف، ونسبة وسيط الهضبة ÷ K تطابق أقرب معامل منحة ضمن ±4.5%
+      (وإلا يتوقف المسح)؛ والانخفاض المعزول شاذّ يأخذ K.
     - الصف بلا خطوة: مستوى جاريه المحسومين إن تساويا (وبلا جار أقدم ⇒ الأحدث)، وإلا مستوى صفوف سنته
       المالية إن أجمعت، وإلا None."""
     K, stop, bad = 1.0, False, 0
@@ -1975,7 +1979,14 @@ def d5_levels(pre, ms):
             lv[i] = K
             continue
         if nxt is not None and nxt < 0.955 * K:
-            r = statistics.median([m, nxt]) / K
+            older = [ms[k] for k in range(i + 1, len(ms)) if ms[k] is not None]   # older[0] = nxt
+            plat = [m, nxt]
+            mid = statistics.median(plat)
+            for x in older[1:]:
+                if len(plat) >= D5_PLATEAU or not (0.955 * mid <= x <= 1.045 * mid):
+                    break
+                plat.append(x)
+            r = statistics.median(plat) / K
             f = min(D5_BONUS, key=lambda b: abs(r / b - 1))
             if abs(r / f - 1) <= 0.045:
                 K *= f
@@ -2466,6 +2477,7 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
                                        int(d5_today[:4]))
     d5_fb_ok = d5_rate is None or d5_rate >= 0.90
     d5_cnt = collections.Counter()
+    d5_review = []
     for st in stocks:
         sym = st["symbol"]
         sc = scratch.get(sym) or {}
@@ -2497,6 +2509,12 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
             if blk:
                 st["dividend5y"] = blk
                 d5_cnt["shown" if blk["avg"] is not None else "short"] += 1
+                # بوابة المراجعة (إلزام المحلل 24-10): متوسط ÷ TTM > 2.5 أو عائد خمسي > 10% ⇒ يُطبع للفحص
+                px_ = (st.get("dailyExtra") or {}).get("lastClose") or st.get("currentPrice")
+                ttm_ = (st.get("valuationInputs") or {}).get("divTtm12m")
+                if blk["avg"] and ((_num(ttm_) and ttm_ > 0 and blk["avg"] / ttm_ > 2.5)
+                                   or (_num(px_) and px_ > 0 and blk["avg"] / px_ > 0.10)):
+                    d5_review.append("%s %s ttm=%s %s" % (sym, blk["perYear"], ttm_, blk["flags"] or ""))
                 for f_ in blk["flags"]:
                     d5_cnt[f_] += 1
         if not p and not rat:
@@ -2623,6 +2641,8 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
           % (d5_cnt["shown"], d5_cnt["short"], d5_cnt["fyFallback"], d5_cnt["preSeamAdjusted"], d5_cnt["providerStepBad"], d5_cnt["conflict"],
              d5_cnt["truncated"], ("%.1f%%" % (d5_rate * 100)) if d5_rate is not None else "—", d5_tot,
              "" if d5_fb_ok else " ⇒ معطّلة (< 90%)"))
+    for x_ in d5_review:
+        print("  🔍 مراجعة المتوسط الخمسي (متوسط ÷ 12 شهراً > 2.5 أو > 10%%): %s" % x_)
     if sh_bad:
         print("  🛡️ عدد أسهم مشكوك فيه (sharesHistory يخالف المجمّد ÷ k بأكثر من 25%%) ⇒ الحراس معطّلة: %s"
               % ", ".join(sh_bad))
