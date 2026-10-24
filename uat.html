@@ -1810,7 +1810,7 @@ function finCells(s){
     if(b5&&b5.avg!=null){
       t5=`${fmt(y5,1)}% · ${fmt(b5.avg)} ريال`;
       const notes=[];
-      if((b5.flags||{}).preSeamImplied) notes.push("معدّل لمنح سابقة");
+      if((b5.flags||{}).preSeamAdjusted) notes.push("معدّل لمنح سابقة");
       if((b5.flags||{}).fyFallback) notes.push("سنة مالية مستنتجة");
       d5=f5.map(w=>`⚠️ ${esc(w)}`).join("<br>")+(f5.length?"<br>":"")
         +`متوسط ${b5.n} سنوات مالية (${b5.window[0]}–${b5.window[1]})`

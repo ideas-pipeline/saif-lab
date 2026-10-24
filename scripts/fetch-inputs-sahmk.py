@@ -1925,33 +1925,77 @@ def d5_window(rows, today):
     return list(range(fc - 4, fc + 1))
 
 
-def d5_pre_seam(rows_px, dates, r, caps):
-    """صف قبل TR_TC: يُحمل على أساس السهم الحالي بخطوة عامل المزوّد. يعيد (D_cur، الحالة) والحالة
-    ok | implied | unverified. m = مبلغ الخطوة ÷ (المبلغ الاسمي × معامل ما بعده)."""
+D5_BONUS = (10 / 11, 5 / 6, 4 / 5, 3 / 4, 2 / 3, 1 / 2)   # معامل منحة واحد؛ حاصل منحتين ينشأ بالتسلسل عبر مستويين
+
+
+def d5_m(rows_px, dates, r, caps):
+    """m = مبلغ خطوة عامل المزوّد عند الاستبعاد ÷ (المبلغ الاسمي × معامل ما بعده). None إن لم تغطّه الشموع
+    أو لا خطوة (≤ 0.1%). الخطوة للكشف وحده ولا تدخل المبلغ (تعديل المحلل 24-10)."""
     n = len(rows_px)
     j = next((i for i, d in enumerate(dates) if d > r["e"]), n)
-    kpost = ca_factor_after_event(caps, r["e"])
-    if j <= 0 or j >= n or not rows_px[j - 1][1]:
-        return r["v"] * kpost, "unverified"
-    c_cur = rows_px[j - 1][1]
+    if j <= 1 or j >= n or not rows_px[j - 1][1]:
+        return None
 
     def p(i):
         a, c = rows_px[i][2], rows_px[i][1]
         return a / c if (a and c) else None
     step = 1.0
     for t in range(max(j - 1, 1), min(j + 3, n)):
-        a, b = p(t), p(t - 1)
-        if a and b:
-            step = max(step, a / b)
+        x, y = p(t), p(t - 1)
+        if x and y:
+            step = max(step, x / y)
     if step <= 1.001:
-        return r["v"] * kpost, "unverified"
-    yp = 1 - 1 / step
-    m = yp * c_cur / (r["v"] * kpost)
-    if D5_M_OK[0] <= m <= D5_M_OK[1]:
-        return r["v"] * kpost, "ok"
-    if D5_M_IMPL <= m < D5_M_OK[0]:
-        return yp * c_cur, "implied"
-    return r["v"] * kpost, "unverified"
+        return None
+    return (1 - 1 / step) * rows_px[j - 1][1] / (r["v"] * ca_factor_after_event(caps, r["e"]))
+
+
+def d5_levels(pre, ms):
+    """مسح المستويات من الأحدث إلى الأقدم (مواصفة المحلل المعدّلة 24-10). pre: صفوف ما قبل TR_TC تنازلياً،
+    ms: m لكل صف أو None. يعيد (مستوى K لكل صف أو None = غير محسوم، عدد الخطوات الشاذة).
+    - m ≥ 0.955K ⇒ على المستوى؛ وارتفاع (> 1.045K) يؤكده الأقدم التالي ⇒ يتوقف المسح (تخفيض رأس مال؟).
+    - m < 0.955K ⇒ مستوى جديد فقط إن أكده الأقدم التالي ذو الخطوة، ونسبة وسيطهما ÷ K تطابق معامل منحة
+      واحداً ضمن ±4.5% (وإلا يتوقف المسح)؛ والانخفاض المعزول شاذّ يأخذ K.
+    - الصف بلا خطوة: مستوى جاريه المحسومين إن تساويا (وبلا جار أقدم ⇒ الأحدث)، وإلا مستوى صفوف سنته
+      المالية إن أجمعت، وإلا None."""
+    K, stop, bad = 1.0, False, 0
+    lv = [None] * len(pre)
+    pend = []
+    for i, m in enumerate(ms):
+        if stop:
+            continue
+        if m is None:
+            lv[i] = "?"
+            pend.append(i)
+            continue
+        nxt = next((ms[k] for k in range(i + 1, len(ms)) if ms[k] is not None), None)
+        if m >= 0.955 * K:
+            if m > 1.045 * K and nxt is not None and nxt > 1.045 * K:
+                stop = True
+                continue
+            lv[i] = K
+            continue
+        if nxt is not None and nxt < 0.955 * K:
+            r = statistics.median([m, nxt]) / K
+            f = min(D5_BONUS, key=lambda b: abs(r / b - 1))
+            if abs(r / f - 1) <= 0.045:
+                K *= f
+                lv[i] = K
+            else:
+                stop = True
+            continue
+        lv[i] = K
+        bad += 1
+    for i in pend:
+        newer = next((lv[k] for k in range(i - 1, -1, -1) if isinstance(lv[k], float)), 1.0)
+        # بلا جار أقدم محسوم (ذيل السلسلة، أو سهم بلا خطوات مزوّد أصلاً) لا دليل على تغيّر المستوى ⇒ الأحدث
+        # (توضيح حالة لم تحددها المواصفة — سهم بلا أي خطوة يبقى على K = 1 أي المبلغ الاسمي × ما بعده)
+        older = next((lv[k] for k in range(i + 1, len(lv)) if isinstance(lv[k], float)), newer)
+        if abs(newer - older) < 1e-9:
+            lv[i] = newer
+            continue
+        same = {round(lv[k], 9) for k in range(len(pre)) if isinstance(lv[k], float) and pre[k]["fy"] == pre[i]["fy"]}
+        lv[i] = same.pop() if len(same) == 1 else None
+    return [x if isinstance(x, float) else None for x in lv], bad
 
 
 def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
@@ -1979,12 +2023,12 @@ def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
     rows = [r for r in rows if r["e"] >= listing or pre_window]
     rej = set((x["date"], round(x["amount"], 4)) for x in rejected or [])
     dates = [x[0] for x in rows_px]
-    # ما قبل الوصلة: حالة كل صف، ثم غير المتحقق بحسب وجود منحة مخفية في السهم
-    st_ = {}
-    for i, r in enumerate(rows):
-        if r["e"] < TR_TC:
-            st_[i] = d5_pre_seam(rows_px, dates, r, caps)
-    any_impl = any(v[1] == "implied" for v in st_.values())
+    # ما قبل الوصلة: مستوى المنح المخفية K لكل صف بمسح المستويات (المبلغ = الاسمي × ما بعده × K)
+    pre_ix = sorted((i for i, r in enumerate(rows) if r["e"] < TR_TC), key=lambda i: rows[i]["e"], reverse=True)
+    lvls, bad = d5_levels([rows[i] for i in pre_ix], [d5_m(rows_px, dates, rows[i], caps) for i in pre_ix])
+    K_of = dict(zip(pre_ix, lvls))
+    if bad:
+        flags["providerStepBad"] = bad
     per = collections.defaultdict(float)
     have = collections.defaultdict(int)      # صفوف السنة
     kept = collections.defaultdict(int)      # صفوف السنة المقبولة
@@ -2000,11 +2044,13 @@ def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
                 continue
             d = r["v"] * ca_factor_after_event(caps, r["e"])
         else:
-            d, how = st_[i]
-            if how == "implied":
-                flags["preSeamImplied"] = flags.get("preSeamImplied", 0) + 1
-            elif how == "unverified" and any_impl:
+            k_ = K_of[i]
+            if k_ is None:
+                unresolved.add(F)       # المسح توقف أو صف بلا خطوة لم يُحسم ⇒ سنته غير محسومة لا صفر
                 continue
+            if k_ < 1:
+                flags["preSeamAdjusted"] = flags.get("preSeamAdjusted", 0) + 1
+            d = r["v"] * ca_factor_after_event(caps, r["e"]) * k_
             if div_event_check(rows_px, dates, r["e"], d, [])[2]:
                 continue
         per[F] += d
@@ -2572,9 +2618,9 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
     print("  🛡️ حراس المزوّد (§8-م): eps أُبدل %d · مُلئ %d · مراقبة %d | القيمة الدفترية أُبدلت %d · مراقبة %d"
           " | إيراد بنك مرفوض %d" % (g_tot["replace"], g_tot["fill"], g_tot["watch"], g_tot["bv_replace"],
                                       g_tot["bv_watch"], g_tot["rev_reject"]))
-    print("  💵 متوسط التوزيع الخمسي (§8-ص، عرض فقط): معروض %d · أقل من سنتين %d | سنة مستنتجة %d · منحة مخفية %d"
+    print("  💵 متوسط التوزيع الخمسي (§8-ص، عرض فقط): معروض %d · أقل من سنتين %d | سنة مستنتجة %d · منحة مخفية %d · خطوة مزوّد شاذة %d"
           " · متضارب %d · مقطوع %d | بوابة السنة المستنتجة %s (%d صفاً)%s"
-          % (d5_cnt["shown"], d5_cnt["short"], d5_cnt["fyFallback"], d5_cnt["preSeamImplied"], d5_cnt["conflict"],
+          % (d5_cnt["shown"], d5_cnt["short"], d5_cnt["fyFallback"], d5_cnt["preSeamAdjusted"], d5_cnt["providerStepBad"], d5_cnt["conflict"],
              d5_cnt["truncated"], ("%.1f%%" % (d5_rate * 100)) if d5_rate is not None else "—", d5_tot,
              "" if d5_fb_ok else " ⇒ معطّلة (< 90%)"))
     if sh_bad:
