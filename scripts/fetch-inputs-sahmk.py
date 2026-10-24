@@ -1844,6 +1844,205 @@ def div_rejected(rows, div_events, caps):
     return out
 
 
+# ═══════════ متوسط التوزيعات لخمس سنوات (§8-ص، طلب المالك 24-10 — عرض فقط، لا يدخل النقاط) ═══════════
+# مواصفة المحلل المختومة 24-10: السنة المالية من fiscal_year لا سنة الأحقية (3060: 1.55 لا 1.80)، وأحدث خمس
+# سنوات مغلقة، والمبلغ على أساس السهم الحالي. مبالغ /dividends اسمية (قيس 24-10: 2222 FY2021 = 0.3518 قبل
+# منحتي 2022 و2023)، فما قبل TR_TC يُتحقق منه بخطوة عامل المزوّد (منحة مخفية قبل الوصلة ليست في capActions).
+D5_FINAL = ("H2", "Q4", "ANNUAL")
+D5_FIRST_CANDLE = "2019-07-15"     # أول شمعة ≤ هذا ⇒ مدرج قبل أي نافذة ممكنة (المخزن يبدأ 2019-06-23)
+D5_M_OK, D5_M_IMPL = (0.955, 1.045), 0.30
+D5_LIMIT = 50
+
+
+def d5_parse(hist, cur_year):
+    """صفوف history ⇒ [{e، v، fy، period، ann}] بعد التحليل (fy نص 4 أرقام بين 1990 والسنة الجارية، وإلا None)."""
+    out = []
+    for h in hist or []:
+        e = h.get("eligibility_date") or h.get("due_date") or h.get("date")
+        v = h.get("value") if h.get("value") is not None else h.get("amount")
+        if not (isinstance(e, str) and len(e) >= 10 and _num(v) and v > 0):
+            continue
+        fy = h.get("fiscal_year")
+        fy = int(fy) if isinstance(fy, (str, int)) and str(fy).isdigit() and 1990 <= int(fy) <= cur_year else None
+        per = h.get("period")
+        per = str(per).upper() if per else None
+        out.append({"e": e[:10], "v": float(v), "fy": fy, "period": per, "ann": str(h.get("announcement_date") or "")})
+    return out
+
+
+def d5_fallback_fy(e, period):
+    """السنة المالية المستنتجة حين يغيب fiscal_year: النهائي (H2/Q4/ANNUAL/None) بأحقية حتى مايو لسنة سابقة."""
+    y, mth = int(e[:4]), int(e[5:7])
+    if period in D5_FINAL or period is None:
+        return y - 1 if mth <= 5 else y
+    return y
+
+
+def d5_dedup(rows):
+    """المكرر (e، v4) صف واحد يُفضَّل ذو fy وperiod؛ والمتضارب (e، fy، period نفسها بقيمتين) يبقى أحدث إعلان،
+    وبالتساوي ⇒ سنته غير محسومة؛ والمزاح (fy، period غير ANNUAL/None، قيمة واحدة، ≤10 أيام) يبقى الأقدم.
+    يعيد (صفوف، سنوات غير محسومة، عدد المتضارب)."""
+    best = {}
+    for r in rows:
+        k = (r["e"], round(r["v"], 4))
+        q = (r["fy"] is not None) + (r["period"] is not None)
+        if k not in best or q > best[k][0]:
+            best[k] = (q, r)
+    rows = sorted((x[1] for x in best.values()), key=lambda r: r["e"])
+    unresolved, conflicts, drop = set(), 0, set()
+    grp = collections.defaultdict(list)
+    for i, r in enumerate(rows):
+        if r["fy"] is not None and r["period"] is not None:
+            grp[(r["e"], r["fy"], r["period"])].append(i)
+    for (e, fy, per), ix in grp.items():
+        if len({round(rows[i]["v"], 4) for i in ix}) > 1:
+            conflicts += 1
+            ix = sorted(ix, key=lambda i: rows[i]["ann"])
+            if rows[ix[-1]]["ann"] == rows[ix[-2]]["ann"]:
+                unresolved.add(fy)
+                drop.update(ix)
+            else:
+                drop.update(ix[:-1])
+    rows = [r for i, r in enumerate(rows) if i not in drop]
+    keep = []
+    for r in rows:
+        if r["period"] not in (None, "ANNUAL") and r["fy"] is not None and any(
+                k["fy"] == r["fy"] and k["period"] == r["period"] and round(k["v"], 4) == round(r["v"], 4)
+                and (datetime.strptime(r["e"], "%Y-%m-%d") - datetime.strptime(k["e"], "%Y-%m-%d")).days <= 10
+                for k in keep):
+            continue
+        keep.append(r)
+    return keep, unresolved, conflicts
+
+
+def d5_window(rows, today):
+    """أحدث خمس سنوات مالية مغلقة. F مغلقة إن كان اليوم ≥ (F+1)-07-31 أو لها صف نهائي (H2/Q4/ANNUAL).
+    السنة الجارية لا تدخل أبداً."""
+    y = int(today[:4])
+    fc = y - 1
+    if not (today >= "%d-07-31" % y or any(r["fy"] == fc and r["period"] in D5_FINAL for r in rows)):
+        fc = y - 2
+    return list(range(fc - 4, fc + 1))
+
+
+def d5_pre_seam(rows_px, dates, r, caps):
+    """صف قبل TR_TC: يُحمل على أساس السهم الحالي بخطوة عامل المزوّد. يعيد (D_cur، الحالة) والحالة
+    ok | implied | unverified. m = مبلغ الخطوة ÷ (المبلغ الاسمي × معامل ما بعده)."""
+    n = len(rows_px)
+    j = next((i for i, d in enumerate(dates) if d > r["e"]), n)
+    kpost = ca_factor_after_event(caps, r["e"])
+    if j <= 0 or j >= n or not rows_px[j - 1][1]:
+        return r["v"] * kpost, "unverified"
+    c_cur = rows_px[j - 1][1]
+
+    def p(i):
+        a, c = rows_px[i][2], rows_px[i][1]
+        return a / c if (a and c) else None
+    step = 1.0
+    for t in range(max(j - 1, 1), min(j + 3, n)):
+        a, b = p(t), p(t - 1)
+        if a and b:
+            step = max(step, a / b)
+    if step <= 1.001:
+        return r["v"] * kpost, "unverified"
+    yp = 1 - 1 / step
+    m = yp * c_cur / (r["v"] * kpost)
+    if D5_M_OK[0] <= m <= D5_M_OK[1]:
+        return r["v"] * kpost, "ok"
+    if D5_M_IMPL <= m < D5_M_OK[0]:
+        return yp * c_cur, "implied"
+    return r["v"] * kpost, "unverified"
+
+
+def dividend5y(hist, rows_px, caps, rejected, today, fallback_ok=True):
+    """كتلة dividend5y من سجل /dividends الخام. rows_px: صفوف الأسعار بعد apply_capactions (من _DIV_ROWS).
+    للعرض فقط — المحرك لا يقرؤها. يعيد dict أو None إن لم تتوفر الأسعار."""
+    if not rows_px:
+        return None
+    cur_year = int(today[:4])
+    raw_n = len(hist or [])
+    rows = d5_parse(hist, cur_year)
+    rows, unresolved, conflicts = d5_dedup(rows)
+    flags = {}
+    if conflicts:
+        flags["conflict"] = conflicts
+    fb = 0
+    for r in rows:
+        if r["fy"] is None:
+            r["fy"] = d5_fallback_fy(r["e"], r["period"])
+            r["fb"] = True
+            if not fallback_ok:
+                unresolved.add(r["fy"])
+    win = d5_window(rows, today)
+    listing = rows_px[0][0]
+    pre_window = listing <= D5_FIRST_CANDLE
+    rows = [r for r in rows if r["e"] >= listing or pre_window]
+    rej = set((x["date"], round(x["amount"], 4)) for x in rejected or [])
+    dates = [x[0] for x in rows_px]
+    # ما قبل الوصلة: حالة كل صف، ثم غير المتحقق بحسب وجود منحة مخفية في السهم
+    st_ = {}
+    for i, r in enumerate(rows):
+        if r["e"] < TR_TC:
+            st_[i] = d5_pre_seam(rows_px, dates, r, caps)
+    any_impl = any(v[1] == "implied" for v in st_.values())
+    per = collections.defaultdict(float)
+    have = collections.defaultdict(int)      # صفوف السنة
+    kept = collections.defaultdict(int)      # صفوف السنة المقبولة
+    for i, r in enumerate(rows):
+        F = r["fy"]
+        if F not in win:
+            continue
+        have[F] += 1
+        if r.get("fb"):
+            fb += 1
+        if r["e"] >= TR_TC:
+            if (r["e"], round(r["v"], 4)) in rej:
+                continue
+            d = r["v"] * ca_factor_after_event(caps, r["e"])
+        else:
+            d, how = st_[i]
+            if how == "implied":
+                flags["preSeamImplied"] = flags.get("preSeamImplied", 0) + 1
+            elif how == "unverified" and any_impl:
+                continue
+            if div_event_check(rows_px, dates, r["e"], d, [])[2]:
+                continue
+        per[F] += d
+        kept[F] += 1
+    if fb:
+        flags["fyFallback"] = fb
+    oldest = min((r["e"] for r in rows), default=None)
+    trunc_before = None
+    if raw_n >= D5_LIMIT and oldest and oldest >= "%d-01-01" % win[0]:
+        flags["truncated"] = True
+        trunc_before = int(oldest[:4])
+    per_year = {}
+    for F in win:
+        eligible = pre_window or listing <= "%d-06-30" % F or have[F] > 0
+        if not eligible:
+            continue
+        if F in unresolved or (trunc_before is not None and F < trunc_before) or (have[F] and not kept[F]):
+            per_year[str(F)] = None
+            continue
+        per_year[str(F)] = round(per[F], 4) if kept[F] else 0.0
+    vals = [v for v in per_year.values() if v is not None]
+    n = len(vals)
+    return {"window": [win[0], win[-1]], "perYear": per_year,
+            "avg": round(sum(vals) / n, 4) if n >= 2 else None, "n": n,
+            "nPaid": sum(1 for v in vals if v > 0), "flags": flags, "asOf": today}
+
+
+def d5_fallback_rate(all_hist, cur_year):
+    """بوابة البديل: نسبة تطابق السنة المستنتجة مع fiscal_year المعروفة عبر كل الأسهم (≥ 90% ⇒ يُعتمد)."""
+    tot = ok = 0
+    for hist in all_hist:
+        for r in d5_parse(hist, cur_year):
+            if r["fy"] is not None:
+                tot += 1
+                ok += d5_fallback_fy(r["e"], r["period"]) == r["fy"]
+    return (ok / tot if tot else None), tot
+
+
 def tr_local_series(rows, div_events, caps, tc=TR_TC):
     """سلسلة العائد الكلي: close (بعد apply_capactions) × عوامل التوزيعات. يعيد (pairs، log).
     - من tc فصاعداً، لكل توزيع في dividendEvents (تاريخ الأحقية e، المبلغ الاسمي D): جلسة الاستبعاد =
@@ -2144,6 +2343,7 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
         # هذه الأحقيات، فقصّها على 1095 يوماً كان سيُسقط توزيع 2023-10-31 مثلاً ويغيّر السلسلة بصمت
         d1095 = min((now - timedelta(days=1095)).strftime("%Y-%m-%d"), TR_TC)
         scratch[sym]["divEvents"] = sorted({(e, round(v, 4)) for e, v in rows if d1095 <= e <= today})
+        scratch[sym]["divHist"] = list(rows_of(dv, "history", "data"))     # §8-ص: الخام بحقوله كلها
         return True, None
 
     ENDPOINTS = (("ratios", "نسب مالية", "ratios_ok", "ratios_fail", do_ratios),
@@ -2214,6 +2414,12 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
     sh_seen = sh_changed = 0
     g_tot = collections.Counter()   # عدّادات حراس §8-م
     sh_bad = []                     # عددٌ مشكوك فيه ⇒ الحراس معطّلة عن السهم (لا تُسكت)
+    # §8-ص: بوابة السنة المالية المستنتجة على التشغيلة كلها، ثم كتلة dividend5y لكل سهم
+    d5_today = datetime.now(RIYADH).strftime("%Y-%m-%d")
+    d5_rate, d5_tot = d5_fallback_rate([sc_.get("divHist") for sc_ in scratch.values() if sc_.get("divHist")],
+                                       int(d5_today[:4]))
+    d5_fb_ok = d5_rate is None or d5_rate >= 0.90
+    d5_cnt = collections.Counter()
     for st in stocks:
         sym = st["symbol"]
         sc = scratch.get(sym) or {}
@@ -2238,6 +2444,15 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
                     print("  🚫 %s توزيع %s (%s) خارج العائد: %s" % (sym, x["date"], x["amount"], x["why"]))
             else:
                 st.pop("dividendRejected", None)
+        if sc.get("divHist") is not None and sym in _DIV_ROWS:
+            # بلا أسعار التشغيلة (_DIV_ROWS) لا يُعاد الحساب، وتبقى الكتلة القديمة بختمها
+            r5, c5 = _DIV_ROWS[sym]
+            blk = dividend5y(sc["divHist"], r5, c5, st.get("dividendRejected"), d5_today, d5_fb_ok)
+            if blk:
+                st["dividend5y"] = blk
+                d5_cnt["shown" if blk["avg"] is not None else "short"] += 1
+                for f_ in blk["flags"]:
+                    d5_cnt[f_] += 1
         if not p and not rat:
             continue   # فشل كلا المصدرين — الكتلة القديمة تبقى بختمها (لا ختم زور)
         bank = is_bank(st)
@@ -2357,6 +2572,11 @@ def fetch_fundamentals(api, data, stocks, counters, today, full_universe):
     print("  🛡️ حراس المزوّد (§8-م): eps أُبدل %d · مُلئ %d · مراقبة %d | القيمة الدفترية أُبدلت %d · مراقبة %d"
           " | إيراد بنك مرفوض %d" % (g_tot["replace"], g_tot["fill"], g_tot["watch"], g_tot["bv_replace"],
                                       g_tot["bv_watch"], g_tot["rev_reject"]))
+    print("  💵 متوسط التوزيع الخمسي (§8-ص، عرض فقط): معروض %d · أقل من سنتين %d | سنة مستنتجة %d · منحة مخفية %d"
+          " · متضارب %d · مقطوع %d | بوابة السنة المستنتجة %s (%d صفاً)%s"
+          % (d5_cnt["shown"], d5_cnt["short"], d5_cnt["fyFallback"], d5_cnt["preSeamImplied"], d5_cnt["conflict"],
+             d5_cnt["truncated"], ("%.1f%%" % (d5_rate * 100)) if d5_rate is not None else "—", d5_tot,
+             "" if d5_fb_ok else " ⇒ معطّلة (< 90%)"))
     if sh_bad:
         print("  🛡️ عدد أسهم مشكوك فيه (sharesHistory يخالف المجمّد ÷ k بأكثر من 25%%) ⇒ الحراس معطّلة: %s"
               % ", ".join(sh_bad))

@@ -895,7 +895,7 @@ function applyFilters(list,opts){
 const SORTERS={
   score:s=>scoreOf(s)??-1, name:s=>s.name||"", price:s=>priceOf(s)??-1,
   chg:s=>chgOf(s)??-999, roe:s=>roeOf(s)??-999, pe:s=>peOf(s)??1e9,
-  pb:s=>pbOf(s)??1e9, rs6:s=>rs6Of(s)??-999, dy:s=>dyOf(s)??-1
+  pb:s=>pbOf(s)??1e9, rs6:s=>rs6Of(s)??-999, dy:s=>dyOf(s)??-1, dy5:s=>d5Of(s)??-1
 };
 function sortBy(list,key,dir){
   const f=SORTERS[key]||SORTERS.score;
@@ -1026,7 +1026,10 @@ const COLS=[
      الأجهزة اللوحية رأسياً. والعمود صار يحمل تحذيرات سلامة لا رقماً مرجعياً،
      فيظهر كلما ظهر الجدول. (العدد عند 768px: 7 أعمدة بدل 6.) */
   {key:"dy",     label:"عائد التوزيعات", sortable:true,
-   tip:"ما وُزّع نقداً فعلاً خلال 12 شهراً ÷ سعر السهم اليوم — يتحرك مع السعر"}
+   tip:"ما وُزّع نقداً فعلاً خلال 12 شهراً ÷ سعر السهم اليوم — يتحرك مع السعر"},
+  /* §8-ص (طلب المالك 24-10): عرض فقط، لا يدخل النقاط. عمود 12 شهراً أعلاه باقٍ كما هو */
+  {key:"dy5",    label:"متوسط 5 سنوات", sortable:true, p:"col-p2",
+   tip:"متوسط ما وُزّع سنوياً في آخر 5 سنوات مالية مكتملة ÷ سعر السهم اليوم — للعرض، لا يدخل تقييم سيف"}
 ];
 const COL_DY=COLS.find(c=>c.key==="dy");   /* لا فهرس صلب يكسر بصمت عند إعادة الترتيب */
 /* وسوم العائد — حكم المحلل 03-10: العتبة المطلقة (8%) خطأ فئة هنا، لأن 8% لحدث
@@ -1190,6 +1193,27 @@ function dyFlags(s){
   if(!f.length&&y>=DY_EXTREME_PCT) f.push("عائد استثنائي — تحقق من سببه");
   return f;
 }
+/* §8-ص: متوسط التوزيعات لخمس سنوات — الكتلة أسبوعية (dividend5y) والعائد على سعر اليوم.
+   وسوم المحلل للعرض فقط، أعلاها أولويةً بحدّ اثنين: التغطية ثم التناقص ثم الاستثنائي */
+const d5Of=s=>{const b=s.dividend5y, p=priceOf(s); return b&&b.avg!=null&&p>0?b.avg/p*100:null;};
+function d5Years(b){return Object.keys(b.perYear||{}).sort().map(k=>b.perYear[k]).filter(v=>v!=null);}
+function d5Flags(s){
+  const b=s.dividend5y; if(!b||b.avg==null) return [];
+  const f=[], ni=(s.financials||{}).netIncome, eps=impliedEpsAnnual(s), ys=d5Years(b);
+  if(typeof ni==="number"&&ni<=0) f.push("الشركة خاسرة في آخر سنة");
+  else if(eps!=null&&b.avg>eps) f.push("المتوسط يفوق ربح السهم في آخر سنة");
+  if(b.n>=3&&ys.every((v,i)=>i===0||v<=ys[i-1])&&ys[ys.length-1]<=0.8*ys[0]) f.push("متناقص سنة بعد سنة");
+  const so=[...ys].sort((a,b2)=>a-b2), md=so.length%2?so[(so.length-1)/2]:(so[so.length/2-1]+so[so.length/2])/2;
+  if(md>0&&Math.max(...ys)>=2*md) f.push("يتضمن توزيعاً استثنائياً");
+  return f.slice(0,2);
+}
+function d5Cell(s){
+  const y=d5Of(s);
+  if(y==null) return "—";
+  const f=d5Flags(s);
+  const warn=f.length?` <span class="dy-warn" data-tip="${esc(f.join(" · "))}" tabindex="0">⚠️</span>`:"";
+  return `${fmt(y,1)}%${warn}`;
+}
 function dyCell(s){
   const y=dyOf(s);
   if(y==null) return "—";
@@ -1343,6 +1367,7 @@ function renderBody(){
       <td class="num col-p3">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}</td>
       <td class="num col-p3">${rs6Of(s)!=null?(rs6Of(s)>0?"+":"")+fmt(rs6Of(s),1)+"%":"—"}</td>
       <td class="num ${colCls(COL_DY)}">${dyCell(s)}</td>
+      <td class="num col-p2">${d5Cell(s)}</td>
     </tr>`).join("");
   const cards=list.map(s=>`
     <div class="mcard" data-sym="${s.symbol}" role="button" tabindex="0">
@@ -1779,6 +1804,22 @@ function finCells(s){
     ? dyWarn.map(w=>`⚠️ ${esc(w)}`).join("<br>")+`<br>${dyDescBase}`
     : dyDescBase;
   out+=cell("عائد التوزيعات"+frzMark(s,"dividendYield"), dyTxt, dyWarn.length?"amber":"", dyDesc);
+  {
+    const b5=s.dividend5y, y5=d5Of(s), f5=d5Flags(s);
+    let t5="—", d5="يُحسب من سجل التوزيعات في الجلب الأسبوعي";
+    if(b5&&b5.avg!=null){
+      t5=`${fmt(y5,1)}% · ${fmt(b5.avg)} ريال`;
+      const notes=[];
+      if((b5.flags||{}).preSeamImplied) notes.push("معدّل لمنح سابقة");
+      if((b5.flags||{}).fyFallback) notes.push("سنة مالية مستنتجة");
+      d5=f5.map(w=>`⚠️ ${esc(w)}`).join("<br>")+(f5.length?"<br>":"")
+        +`متوسط ${b5.n} سنوات مالية (${b5.window[0]}–${b5.window[1]})`
+        +(b5.nPaid<b5.n?` · وزّع في ${b5.nPaid} من ${b5.n}`:"")
+        +(notes.length?` · ${notes.join(" · ")}`:"")
+        +"<br>للعرض فقط — لا يدخل تقييم سيف";
+    } else if(b5) d5="أقل من سنتين ماليتين مكتملتين في سجل التوزيعات";
+    out+=cell("متوسط التوزيع 5 سنوات", t5, f5.length?"amber":"", d5);
+  }
   if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
   else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);
   if(!isBank&&ocf!=null) out+=cell("النقد التشغيلي OCF",
