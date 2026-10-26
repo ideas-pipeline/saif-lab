@@ -422,8 +422,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -17.87,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -5.86
+   "tasiRet": -9.76,
+   "excessNet": -4.8
   },
   {
    "symbol": "2050",
@@ -483,8 +483,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -19.3,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -7.3
+   "tasiRet": -9.76,
+   "excessNet": -8.56
   },
   {
    "symbol": "3080",
@@ -509,8 +509,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -14.32,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -2.31
+   "tasiRet": -9.76,
+   "excessNet": -2.81
   },
   {
    "symbol": "6010",
@@ -535,8 +535,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -23.29,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -11.29
+   "tasiRet": -9.76,
+   "excessNet": -11.43
   },
   {
    "symbol": "4012",
@@ -561,8 +561,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -18.51,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -6.5
+   "tasiRet": -9.76,
+   "excessNet": -7.01
   },
   {
    "symbol": "3010",
@@ -587,8 +587,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -16.11,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -4.11
+   "tasiRet": -9.76,
+   "excessNet": -6.16
   },
   {
    "symbol": "3005",
@@ -613,8 +613,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -30.26,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -18.25
+   "tasiRet": -9.76,
+   "excessNet": -15.86
   },
   {
    "symbol": "3030",
@@ -639,8 +639,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -15.19,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -3.19
+   "tasiRet": -9.76,
+   "excessNet": -3.54
   },
   {
    "symbol": "4323",
@@ -663,10 +663,10 @@
    "peAtEntry": 8.85,
    "peSectorMedianAtEntry": 11.99,
    "tasiAtEntry": 10817.01,
-   "maePct": -16.3,
+   "maePct": -16.64,
    "status": "open",
-   "tasiRet": -12.74,
-   "excessNet": -4.29
+   "tasiRet": -9.76,
+   "excessNet": -7.63
   },
   {
    "symbol": "1303",
@@ -1118,8 +1118,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -14.56,
    "status": "open",
-   "tasiRet": -12.8,
-   "excessNet": -2.46
+   "tasiRet": -9.81,
+   "excessNet": -2.02
   },
   {
    "symbol": "4260",
@@ -1177,8 +1177,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -7.23,
    "status": "open",
-   "tasiRet": -12.8,
-   "excessNet": 4.87
+   "tasiRet": -9.81,
+   "excessNet": 4.33
   },
   {
    "symbol": "1180",
@@ -1800,8 +1800,8 @@
    "tasiAtEntry": 11032.91,
    "maePct": -35.41,
    "status": "open",
-   "tasiRet": -14.45,
-   "excessNet": -21.45
+   "tasiRet": -11.52,
+   "excessNet": -23.7
   },
   {
    "symbol": "3040",
@@ -1940,8 +1940,8 @@
    "tasiAtEntry": 11007.27,
    "maePct": -18.39,
    "status": "open",
-   "tasiRet": -14.25,
-   "excessNet": -4.57
+   "tasiRet": -11.32,
+   "excessNet": -6.07
   },
   {
    "symbol": "6014",
@@ -2134,8 +2134,8 @@
    "tasiAtEntry": 10123.62,
    "maePct": -7.48,
    "status": "open",
-   "tasiRet": -6.77,
-   "excessNet": -0.77
+   "tasiRet": -3.57,
+   "excessNet": -0.37
   },
   {
    "symbol": "1080",
@@ -2184,8 +2184,8 @@
    "tasiAtEntry": 9952.06,
    "maePct": -16.62,
    "status": "open",
-   "tasiRet": -5.16,
-   "excessNet": -11.51
+   "tasiRet": -1.91,
+   "excessNet": -10.9
   },
   {
    "symbol": "1060",
@@ -2303,6 +2303,28 @@
    "trendBasisAtEntry": "tr-local-v1",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.1,
+   "status": "open",
+   "maePct": 0.0
+  },
+  {
+   "symbol": "2222",
+   "name": "أرامكو السعودية",
+   "sector": "Energy",
+   "type": "buy",
+   "entryPrice": 25.6,
+   "entryDate": "2026-10-26",
+   "track": "auto",
+   "category": "buy_wait",
+   "engineClass": "conditional_buy",
+   "scoreAtEntry": 65,
+   "timingAtEntry": "مقبول",
+   "regimeAtEntry": "هابط",
+   "aboveSmaAtEntry": true,
+   "scoreScaleAtEntry": "criteria-v3",
+   "priceBasisAtEntry": "capadj-v1",
+   "trendBasisAtEntry": "tr-local-v1",
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 1.07,
    "status": "open",
    "maePct": 0.0
   }
