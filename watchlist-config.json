@@ -422,8 +422,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -17.87,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -4.8
+   "tasiRet": -7.68,
+   "excessNet": -6.31
   },
   {
    "symbol": "2050",
@@ -483,8 +483,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -19.3,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -8.56
+   "tasiRet": -7.68,
+   "excessNet": -8.77
   },
   {
    "symbol": "3080",
@@ -509,8 +509,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -14.32,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -2.81
+   "tasiRet": -7.68,
+   "excessNet": 2.7
   },
   {
    "symbol": "6010",
@@ -535,8 +535,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -23.29,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -11.43
+   "tasiRet": -7.68,
+   "excessNet": -10.44
   },
   {
    "symbol": "4012",
@@ -561,8 +561,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -18.51,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -7.01
+   "tasiRet": -7.68,
+   "excessNet": -1.64
   },
   {
    "symbol": "3010",
@@ -585,10 +585,10 @@
    "peAtEntry": 10.41,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -16.11,
+   "maePct": -19.04,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -6.16
+   "tasiRet": -7.68,
+   "excessNet": -12.12
   },
   {
    "symbol": "3005",
@@ -613,8 +613,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -30.26,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -15.86
+   "tasiRet": -7.68,
+   "excessNet": -15.68
   },
   {
    "symbol": "3030",
@@ -639,8 +639,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -15.19,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -3.54
+   "tasiRet": -7.68,
+   "excessNet": -5.27
   },
   {
    "symbol": "4323",
@@ -665,8 +665,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -16.64,
    "status": "open",
-   "tasiRet": -9.76,
-   "excessNet": -7.63
+   "tasiRet": -7.68,
+   "excessNet": -6.93
   },
   {
    "symbol": "1303",
@@ -1118,8 +1118,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -14.56,
    "status": "open",
-   "tasiRet": -9.81,
-   "excessNet": -2.02
+   "tasiRet": -7.73,
+   "excessNet": -5.22
   },
   {
    "symbol": "4260",
@@ -1177,8 +1177,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -7.23,
    "status": "open",
-   "tasiRet": -9.81,
-   "excessNet": 4.33
+   "tasiRet": -7.73,
+   "excessNet": 3.14
   },
   {
    "symbol": "1180",
@@ -1800,8 +1800,8 @@
    "tasiAtEntry": 11032.91,
    "maePct": -35.41,
    "status": "open",
-   "tasiRet": -11.52,
-   "excessNet": -23.7
+   "tasiRet": -9.48,
+   "excessNet": -24.39
   },
   {
    "symbol": "3040",
@@ -1940,8 +1940,8 @@
    "tasiAtEntry": 11007.27,
    "maePct": -18.39,
    "status": "open",
-   "tasiRet": -11.32,
-   "excessNet": -6.07
+   "tasiRet": -9.27,
+   "excessNet": -5.48
   },
   {
    "symbol": "6014",
@@ -2134,8 +2134,8 @@
    "tasiAtEntry": 10123.62,
    "maePct": -7.48,
    "status": "open",
-   "tasiRet": -3.57,
-   "excessNet": -0.37
+   "tasiRet": -1.35,
+   "excessNet": 3.49
   },
   {
    "symbol": "1080",
@@ -2184,8 +2184,8 @@
    "tasiAtEntry": 9952.06,
    "maePct": -16.62,
    "status": "open",
-   "tasiRet": -1.91,
-   "excessNet": -10.9
+   "tasiRet": 0.35,
+   "excessNet": -10.27
   },
   {
    "symbol": "1060",
@@ -2325,6 +2325,51 @@
    "trendBasisAtEntry": "tr-local-v1",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.07,
+   "status": "open",
+   "maePct": 0.0,
+   "twinNote": "تخرّج لمطبق بتاريخه"
+  },
+  {
+   "symbol": "2020",
+   "name": "سابك للمغذيات الزراعية",
+   "sector": "Materials",
+   "type": "buy",
+   "entryPrice": 116.4,
+   "entryDate": "2026-10-27",
+   "track": "auto",
+   "category": "buy_wait",
+   "engineClass": "conditional_buy",
+   "scoreAtEntry": 66,
+   "timingAtEntry": "مقبول",
+   "regimeAtEntry": "هابط",
+   "aboveSmaAtEntry": true,
+   "scoreScaleAtEntry": "criteria-v3",
+   "priceBasisAtEntry": "capadj-v1",
+   "trendBasisAtEntry": "tr-local-v1",
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 0.97,
+   "status": "open",
+   "maePct": 0.0
+  },
+  {
+   "symbol": "2222",
+   "name": "أرامكو السعودية",
+   "sector": "Energy",
+   "type": "buy",
+   "entryPrice": 26.08,
+   "entryDate": "2026-10-27",
+   "track": "auto",
+   "category": "buy",
+   "engineClass": "buy",
+   "scoreAtEntry": 69,
+   "timingAtEntry": "ممتاز",
+   "regimeAtEntry": "هابط",
+   "aboveSmaAtEntry": true,
+   "scoreScaleAtEntry": "criteria-v3",
+   "priceBasisAtEntry": "capadj-v1",
+   "trendBasisAtEntry": "tr-local-v1",
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 1.11,
    "status": "open",
    "maePct": 0.0
   }
