@@ -464,7 +464,7 @@
    ══════════════════════════════════════════════════════ */
 const CONFIG = {
   entryDate:   "2025-03-13",
-  updatedAt:   "2026-10-29T16:25:52+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
+  updatedAt:   "2026-10-29T16:53:00+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
 };
 
 /*
@@ -635,6 +635,10 @@ const WATCHLIST = [
     tasiRet:       -8.23,
     periodDays:    84,
     regimeAtEntry: "هابط",
+    status:        "closed",
+    closeDate:     "2026-10-29",
+    closePrice:    27.22,
+    closeReason:   "score_below_50",
     entryDate:     "2026-08-06",
     track:         "auto",
     category:      "buy",
@@ -2402,6 +2406,10 @@ const WATCHLIST = [
     tasiRet:       -2.0,
     periodDays:    10,
     regimeAtEntry: "هابط",
+    status:        "closed",
+    closeDate:     "2026-10-29",
+    closePrice:    27.22,
+    closeReason:   "score_below_50",
     entryDate:     "2026-10-19",
     track:         "auto",
     category:      "buy_wait",
@@ -2624,8 +2632,8 @@ const WATCHLIST = [
     name:          "بنك الرياض",
     sector:        "Financials",
     type:          "buy",          // "buy" | "sell"
-    entryPrice:    19.6,      // sahmk-close | يدوي أصلي: 19.6
-    entrySource:   "sahmk-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    entryPrice:    19.6,      // cache | يدوي أصلي: 19.6
+    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
     divsSince:     0.0,
     tasiRet:       -1.02,
     periodDays:    1,
@@ -2635,6 +2643,23 @@ const WATCHLIST = [
     category:      "buy_wait",
     maePct: -1.53,
     currentPrice:  19.3,           // ✅ confirmed 2026-10-29
+  },
+  {
+    symbol:        "1030",
+    name:          "البنك السعودي للاستثمار",
+    sector:        "Financials",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    11.24,      // same-day-close | يدوي أصلي: 11.24
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
+    entryDate:     "2026-10-29",
+    track:         "auto",
+    category:      "buy_wait",
+    maePct: 0.0,
+    currentPrice:  11.24,           // ✅ confirmed 2026-10-29
   },
 ];
 

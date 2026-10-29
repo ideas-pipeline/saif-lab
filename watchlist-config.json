@@ -179,8 +179,11 @@
    "regimeAtEntry": "هابط",
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
-   "status": "open",
-   "maePct": -21.04
+   "status": "closed",
+   "maePct": -21.04,
+   "closeDate": "2026-10-29",
+   "closePrice": 27.22,
+   "closeReason": "score_below_50"
   },
   {
    "symbol": "2380",
@@ -2105,9 +2108,12 @@
    "scoreScaleAtEntry": "criteria-v3",
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.73,
-   "status": "open",
+   "status": "closed",
    "twinNote": "سبقه مدخل مطبق مفتوح بتاريخه",
-   "maePct": -21.23
+   "maePct": -21.23,
+   "closeDate": "2026-10-29",
+   "closePrice": 27.22,
+   "closeReason": "score_below_50"
   },
   {
    "symbol": "2150",
@@ -2394,6 +2400,28 @@
    "volTrendAtEntry": 0.98,
    "status": "open",
    "maePct": -1.53
+  },
+  {
+   "symbol": "1030",
+   "name": "البنك السعودي للاستثمار",
+   "sector": "Financials",
+   "type": "buy",
+   "entryPrice": 11.24,
+   "entryDate": "2026-10-29",
+   "track": "auto",
+   "category": "buy_wait",
+   "engineClass": "hold",
+   "scoreAtEntry": 67,
+   "timingAtEntry": "انتظر",
+   "regimeAtEntry": "هابط",
+   "aboveSmaAtEntry": true,
+   "scoreScaleAtEntry": "criteria-v3",
+   "priceBasisAtEntry": "capadj-v1",
+   "trendBasisAtEntry": "tr-local-v1",
+   "viaReversalAtEntry": false,
+   "volTrendAtEntry": 1.15,
+   "status": "open",
+   "maePct": 0.0
   }
  ]
 }
