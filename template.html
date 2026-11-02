@@ -287,7 +287,7 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .co-t{min-width:0}
 .co .nm{display:block; font-weight:600; font-size:13.5px}
 .co .mt{display:block; font-size:11px; color:var(--text3); margin-top:1px}
-/* §8-ق التصنيف الشرعي — معلومة في سطر «الرمز · القطاع» لا شارة رابعة (مراجعة UX 02-11).
+/* §8-هـ التصنيف الشرعي — معلومة في سطر «الرمز · القطاع» لا شارة رابعة (مراجعة UX 02-11).
    الشارات المعبّأة بالأخضر/الكهرماني/الأحمر كانت تتطابق حرفياً مع «قوي» (.b-strong) و«دخول
    تدريجي» (.t-yellow) والهبوط، فتُقرأ حكماً استثمارياً — والمنصة أطفأت أحمر التوقيت للسبب نفسه
    (.t-red) وجعلت سبب الاستبعاد سطراً خفيفاً لا شارة (.ex-why). فالنص محايد (text2: 7.28 على bg ·
@@ -732,30 +732,54 @@ async function loadData(){
   /* الإنتاج: البيانات مضمّنة وقت البناء (build.py) — لا طلب شبكة ولا اعتماد على الكاش */
   return __STOCKS_DATA__;
 }
-/* §8-ق التصنيف الشرعي (قرار المالك 02-11) — للعرض فقط. ملف مستقل sharia.json لا يدخل
+/* §8-هـ التصنيف الشرعي (قرار المالك 02-11) — للعرض فقط. ملف مستقل sharia.json لا يدخل
    stocks-data.json ولا محرك التقييم ولا أي فرز أو فلتر أو عدّاد. المصدر: دراسة مركز المقاصد
    السنوية (د. محمد العصيمي)؛ مبلغ التطهير بالريال لكل سهم. البنوك خارج الدراسة.
    أي خلل في الملف ⇒ «—» ولا تتأثر الصفحة. */
 async function loadSharia(){
-  /* الإنتاج: مضمّن وقت البناء (build.py) من sharia.json — للعرض فقط (§8-ق) */
-  return __SHARIA_DATA__;
+  /* الإنتاج: مضمّن وقت البناء (build.py) من sharia.json — للعرض فقط (§8-هـ).
+     try: باني آخر يستبدل مرساة البيانات وحدها (stocks-push.sh المعلّق) يترك هذه حرفية،
+     فتكون ReferenceError تُسقط الصفحة كلها في boot — هنا تسقط إلى {} فتعرض «—» فقط */
+  try{ return __SHARIA_DATA__; }catch(e){ return {}; }
 }
 let SHARIA={};
 const SHR_LBL={pure:"نقية", mixed:"مختلطة", non:"غير متوافقة", public:"جائزة (قطاع عام)"};
+/* مبلغ التطهير محسوب على عدد أسهم قوائم سنة الدراسة («بناء على أحدث قوائم مالية سنوية
+   منشورة» — المنهجية فقرة 23). فإن تغيّر عدد الأسهم بعدها (منحة، تخفيض، حقوق) قيل ذلك صراحةً
+   بجانب المبلغ — ختم الناقد 02-11: 6040 تخفيض ×5.12 بعد قوائم 2025، فالمعروض خُمس الواجب.
+   لا إعادة حساب: الرقم رقم المصدر كما هو. */
+function shariaCapChg(s, study){
+  if(!/^\d{4}$/.test(String(study||""))) return null;
+  const cut=`${study}-12-31`;
+  const a=(s.capActions||[]).find(a=>String(a.eventDate||a.date||"")>cut);
+  return a?{date:String(a.eventDate||a.date), kind:a.kind}:null;
+}
+function shariaCapTxt(x){
+  if(!x.capChg) return "";
+  const k=(typeof CAP_KIND!=="undefined"&&CAP_KIND[x.capChg.kind])||"إجراء رأسمالي";
+  return `تغيّر عدد الأسهم بعد قوائم ${x.study} (${k} ${x.capChg.date}) — المبلغ محسوب على أسهم تلك القوائم وقد لا يطابق السهم اليوم`;
+}
 function shariaOf(s){
   const st=(SHARIA&&SHARIA.stocks)||null, m=(SHARIA&&SHARIA.meta)||{};
   const r=st&&Object.prototype.hasOwnProperty.call(st,String(s.symbol))?st[String(s.symbol)]:null;
-  if(r&&Object.prototype.hasOwnProperty.call(SHR_LBL,r.c))
-    return {c:r.c, label:SHR_LBL[r.c], p:typeof r.p==="number"&&isFinite(r.p)?r.p:null, study:m.study, loaded:true};
+  if(r&&Object.prototype.hasOwnProperty.call(SHR_LBL,r.c)){
+    const p=typeof r.p==="number"&&isFinite(r.p)?r.p:null;
+    return {c:r.c, label:SHR_LBL[r.c], p, study:m.study, loaded:true,
+            capChg:p!=null?shariaCapChg(s,m.study):null};
+  }
   return {c:null, label:"—", p:null, study:m.study, loaded:!!st,
           bank:secOf(s)==="Financials"&&/bank|بنك|مصرف/i.test(s.industry||"")};
 }
 function shariaNote(x){
   if(x.c) return `${x.label}${x.p!=null?` · التطهير ${x.p.toFixed(2)} ريال للسهم`:""}`
+    +(x.capChg?` (⚠️ ${shariaCapTxt(x)})`:"")
     +(x.c==="public"?" · شركات القطاع العام: راجع منهجية المقاصد (فقرة 18)":"")
+    +(x.c==="non"&&x.p!=null?" · «لا تلازم بين تصنيف الشركة ومبلغ تطهيرها» (المنهجية، فقرة 15)":"")
     +` — المصدر: دراسة مركز المقاصد لقوائم ${x.study||"—"} · للعرض فقط، لا يدخل تقييم سيف`;
   if(!x.loaded) return "التصنيف الشرعي غير متوفر حالياً";
-  if(x.bank) return "البنوك خارج دراسة المقاصد؛ لكل بنك هيئته الشرعية";
+  /* نص المنهجية: «ما عدا البنوك التي لها هيئاتها الشرعية الخاصة». لا نعلّل ولا نزكّي —
+     المنهجية نفسها تصنّف «البنوك التجارية التقليدية» محرمة النشاط (فقرة 14) دون أن تسمّيها */
+  if(x.bank) return "البنوك خارج نطاق دراسة المقاصد";
   return `غير مشمول في دراسة المقاصد لقوائم ${x.study||"—"}`;
 }
 function shariaBadge(s){
@@ -1883,9 +1907,11 @@ function finCells(s){
   {
     const x=shariaOf(s);
     /* الوصف لا يعيد القيمة (كان التلميح كاملاً فيكرر «مختلطة · التطهير…» تحتها ويجعل الخلية الأطول) */
-    const d=x.c?(x.p!=null?"مبلغ التطهير لكل سهم · ":"")+(x.c==="public"?"شركات القطاع العام: راجع منهجية المقاصد (فقرة 18) · ":"")
+    const d=x.c?(x.capChg?`⚠️ ${shariaCapTxt(x)} · `:"")
+      +(x.p!=null?"مبلغ التطهير لكل سهم · ":"")+(x.c==="public"?"شركات القطاع العام: راجع منهجية المقاصد (فقرة 18) · ":"")
+      +(x.c==="non"&&x.p!=null?"«لا تلازم بين تصنيف الشركة ومبلغ تطهيرها» (المنهجية، فقرة 15) · ":"")
       +`المصدر: دراسة مركز المقاصد لقوائم ${x.study||"—"} · للعرض فقط، لا يدخل تقييم سيف`:shariaNote(x);
-    out+=cell("التصنيف الشرعي", x.c?`${esc(x.label)}${x.p!=null?` · تطهير ${x.p.toFixed(2)} ريال`:""}`:"—", "", esc(d));
+    out+=cell("التصنيف الشرعي", x.c?`${esc(x.label)}${x.p!=null?` · تطهير ${x.p.toFixed(2)} ريال${x.capChg?" ⚠️":""}`:""}`:"—", x.capChg?"amber":"", esc(d));
   }
   if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
   else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);

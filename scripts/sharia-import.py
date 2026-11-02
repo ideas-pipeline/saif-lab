@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""استيراد التصنيف الشرعي (§8-ق) — للعرض فقط، لا يدخل أي حساب.
+"""استيراد التصنيف الشرعي (§8-هـ) — للعرض فقط، لا يدخل أي حساب.
 
 المصدر: الدراسة السنوية لمركز المقاصد (إشراف د. محمد بن سعود العصيمي) لقوائم الشركات
 المالية السنوية المدققة — ملف PDF واحد في السنة (عادةً أغسطس). لكل شركة: الرأي الشرعي
@@ -14,10 +14,11 @@
   pdftotext -layout study.pdf study.txt
   python3 scripts/sharia-import.py --txt study.txt --study 2025 \
       --url https://almaqased.net/wp-content/uploads/2026/financial-statements-study-2025.pdf \
-      [--check-json final_2025.json] [--data stocks-data.json] [--out sharia.json] [--dry]
+      --check-json final_2025.json [--data stocks-data.json] [--out sharia.json] [--dry]
 
-  --check-json: استخراج طرف ثالث (github.com/anqorithm/naqa-api/sources) للمطابقة فقط؛
-  أي اختلاف فوق 2% يوقف الكتابة.
+  --check-json: استخراج طرف ثالث (github.com/anqorithm/naqa-api/sources) للمطابقة — إلزامي
+  ما لم يُمرَّر --no-check. أي اختلاف يوقف الكتابة ما لم يُراجَع في الـPDF ويُقبل بـ--accept.
+  مع --data: تغطية أسهم المنصة غير البنكية دون 80% توقف الكتابة (رموز تغيّرت؟).
 """
 import argparse
 import datetime
@@ -32,10 +33,11 @@ LABELS = (("غير متوافقة", "non"), ("مختلطة", "mixed"), ("نقي�
           ("راجع المنهجية", "public"))
 JSON_LABELS = {"نقية": "pure", "مختلطة": "mixed", "غير متوافقة": "non"}
 BIDI = re.compile("[‎‏‪-‮⁦-⁩]")
-ROW = re.compile(r"(?<![\d.])(\d{4})\s+(\d{1,4})\s*$")       # «… الرمز التسلسل» آخر السطر
-AMT = re.compile(r"(?<![\d.])(\d{1,2}\.\d{2})(?![\d.])")
+# أرقام لاتينية حصراً (re.ASCII): «\d» وحدها تطابق الهندية «٢٢٢٢» فتُكتب مفاتيح لا تطابق
+# أي سهم (ختم الناقد 02-11؛ والدراسة فيها «فقرة ١٨» أصلاً)
+ROW = re.compile(r"(?<![\d.])(\d{4})\s+(\d{1,4})\s*$", re.ASCII)   # «… الرمز التسلسل» آخر السطر
+AMT = re.compile(r"(?<![\d.])(\d{1,2}\.\d{2})(?![\d.])", re.ASCII)
 MAX_P = 5.0        # ريال/سهم — أعلى من هذا خطأ استخراج لا تطهير
-MAX_MISMATCH = 0.02
 
 
 def norm(line):
@@ -56,6 +58,8 @@ def parse_rows(text):
         first = (head.split() or [""])[0]
         market = {"رئيسي": "main", "موازي": "nomu"}.get(first)
         if market is None:
+            if labs and amts:              # شكل صف جدول بسوق غير معروف: خطأ لا تخطٍّ صامت
+                errs.append("%s: صف بسوق غير معروف «%s»" % (m.group(1), first))
             continue                       # ليس صف جدول (نص منهجية فيه رقم)
         code, seq = m.group(1), int(m.group(2))
         if len(amts) != 1 or len(labs) != 1:
@@ -107,7 +111,11 @@ def main():
     ap.add_argument("--txt", required=True, help="ناتج pdftotext -layout لدراسة المقاصد")
     ap.add_argument("--study", required=True, type=int, help="سنة القوائم المالية المدروسة (مثل 2025)")
     ap.add_argument("--url", required=True, help="رابط ملف الدراسة الرسمي (يُعرض مع كل تصنيف)")
-    ap.add_argument("--check-json", default="", help="استخراج طرف ثالث للمطابقة (اختياري)")
+    ap.add_argument("--check-json", default="", help="استخراج طرف ثالث للمطابقة (إلزامي ما لم يُمرَّر --no-check)")
+    ap.add_argument("--no-check", action="store_true", help="تخطي المطابقة صراحةً (حين لا مرجع لسنة جديدة)")
+    ap.add_argument("--accept", default="", help="رموز اختلافٍ رُوجعت في الـPDF بالعين وتُقبل، مفصولة بفواصل")
+    ap.add_argument("--min-cover", type=float, default=0.8,
+                    help="أدنى تغطية لأسهم المنصة غير البنكية مع --data (افتراضي 0.8)")
     ap.add_argument("--data", default="", help="stocks-data.json لتقرير التغطية فقط (قراءة)")
     ap.add_argument("--out", default=os.path.join(root, "sharia.json"))
     ap.add_argument("--dry", action="store_true", help="تحقق وتقرير بلا كتابة")
@@ -126,14 +134,19 @@ def main():
     print("📗 الدراسة %d: %d شركة — %s" % (a.study, len(rows),
           " · ".join("%s %d" % (k, v) for k, v in sorted(cnt.items()))))
 
+    # تصنيف شرعي: صف واحد خاطئ كثير — كل اختلاف يوقف الكتابة ما لم يُراجَع ويُقبل بالاسم
+    if not a.check_json and not a.no_check:
+        sys.exit("⛔ المطابقة إلزامية: مرّر --check-json أو --no-check صراحةً")
     if a.check_json:
         bad, n = cross_check(rows, a.check_json)
-        share = len(bad) / max(n, 1)
-        print("🔁 المطابقة مع المرجع: %d اختلاف من %d (%.1f%%)" % (len(bad), n, 100 * share))
-        for b in bad[:10]:
+        acc = {c.strip() for c in a.accept.split(",") if c.strip()}
+        left = [b for b in bad if b.split(":")[0] not in acc]
+        print("🔁 المطابقة مع المرجع: %d اختلاف من %d (مقبول بعد مراجعة: %d)"
+              % (len(bad), n, len(bad) - len(left)))
+        for b in bad[:20]:
             print("   · " + b)
-        if share > MAX_MISMATCH:
-            sys.exit("⛔ الاختلاف فوق %d%% — لا كتابة" % int(100 * MAX_MISMATCH))
+        if left:
+            sys.exit("⛔ %d اختلافاً بلا مراجعة — راجعها في الـPDF ثم --accept — لا كتابة" % len(left))
 
     if a.data:
         d = json.load(io.open(a.data, encoding="utf-8"))
@@ -141,6 +154,13 @@ def main():
         miss = [s for s in syms if s not in rows]
         print("🧭 التغطية: %d من %d سهماً في المنصة؛ خارج الدراسة: %s"
               % (len(syms) - len(miss), len(syms), " ".join(miss) or "لا شيء"))
+        banks = {str(s.get("symbol")) for s in d.get("stocks", [])
+                 if s.get("sector") == "Financials" and re.search("bank|بنك|مصرف", s.get("industry") or "", re.I)}
+        nb = [s for s in syms if s not in banks]
+        cover = sum(s in rows for s in nb) / max(len(nb), 1)
+        if cover < a.min_cover:
+            sys.exit("⛔ التغطية %.0f%% من غير البنوك دون %.0f%% — رموز تغيّرت؟ لا كتابة"
+                     % (100 * cover, 100 * a.min_cover))
 
     out = {"meta": {"source": "مركز المقاصد — د. محمد بن سعود العصيمي",
                     "study": a.study, "url": a.url,

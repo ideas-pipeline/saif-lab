@@ -12,8 +12,10 @@ n = len(json.loads(data).get("stocks", []))
 
 
 def load_sharia():
-    """§8-ق: التصنيف الشرعي — للعرض فقط. ملف مستقل لا يدخل stocks-data.json ولا التقييم.
-    أي خلل فيه (غياب، JSON تالف، مخطط غير متوقع) ⇒ "{}" فتعرض الصفحة «—» ولا يتوقف البناء."""
+    """§8-هـ: التصنيف الشرعي — للعرض فقط. ملف مستقل لا يدخل stocks-data.json ولا التقييم.
+    أي خلل فيه (غياب، JSON تالف، مخطط غير متوقع) ⇒ "{}" فتعرض الصفحة «—» ولا يتوقف البناء.
+    يُضمَّن من الملف ما يخص أسهم المنصة وحدها، بحقلين {c,p} لا غير (ختم الناقد 02-11:
+    أقل إعادة نشر للدراسة، ولا حقل غير متوقع يصل إلى <script>)."""
     path = os.path.join(d, "sharia.json")
     if not os.path.exists(path):
         return "{}", "غير موجود"
@@ -21,18 +23,22 @@ def load_sharia():
         sh = json.loads(open(path, encoding="utf-8").read())
         st = sh["stocks"]
         ok = isinstance(st, dict) and all(
-            k.isdigit() and len(k) == 4 and isinstance(v, dict)
+            isinstance(k, str) and k.isascii() and k.isdigit() and len(k) == 4 and isinstance(v, dict)
             and v.get("c") in ("pure", "mixed", "non", "public")
             and isinstance(v.get("p"), (int, float)) and not isinstance(v.get("p"), bool)
             and 0 <= v["p"] <= 5
             for k, v in st.items())
         if not ok or not isinstance(sh.get("meta"), dict):
             raise ValueError("مخطط غير متوقع")
-        # إعادة التسلسل من الكائن المُتحقَّق — لا نص خام من الملف داخل <script>
+        syms = {str(s.get("symbol")) for s in json.loads(data).get("stocks", [])}
+        keep = {k: {"c": v["c"], "p": v["p"]} for k, v in sorted(st.items()) if k in syms}
         meta = {k: sh["meta"][k] for k in ("source", "study", "url", "imported", "unit")
-                if isinstance(sh["meta"].get(k), (str, int))}
-        out = json.dumps({"meta": meta, "stocks": st}, ensure_ascii=False, separators=(",", ":"))
-        return out.replace("</", "<\\/"), "%d شركة" % len(st)
+                if isinstance(sh["meta"].get(k), (str, int)) and not isinstance(sh["meta"].get(k), bool)}
+        out = json.dumps({"meta": meta, "stocks": keep}, ensure_ascii=False, separators=(",", ":"))
+        if "__STOCKS_DATA__" in out or "__SHARIA_DATA__" in out:
+            raise ValueError("مرساة بناء داخل الملف")
+        # «<» كله لا «</» وحده: «<!--<script» يُدخل المحلل حالة تبتلع </script> الحقيقي
+        return out.replace("<", "\\u003c"), "%d سهماً من %d في الدراسة" % (len(keep), len(st))
     except Exception as e:  # noqa: BLE001 — العرض لا يُسقط البناء
         print("⚠️ sharia.json غير صالح (%s) — يُعرض «—»" % e)
         return "{}", "غير صالح"
@@ -48,7 +54,7 @@ def build(tpl_name, out_name, label):
     tpl = open(path, encoding="utf-8").read()
     if tpl.count("__STOCKS_DATA__") != 1:
         raise SystemExit("خطأ: __STOCKS_DATA__ يجب أن يظهر مرة واحدة في %s" % tpl_name)
-    # الشرعي أولاً: مخرجه مُتحقَّق ومحصور، فلا يمكن أن يحمل مرساة البيانات
+    # الشرعي أولاً، ومخرجه مرفوض إن حمل أي مرساة (load_sharia) — فلا تتسرّب إليه البيانات
     has_sh = "__SHARIA_DATA__" in tpl
     if tpl.count("__SHARIA_DATA__") > 1:
         raise SystemExit("خطأ: __SHARIA_DATA__ مكرر في %s" % tpl_name)

@@ -1,4 +1,4 @@
-// §8-ق: وسم التصنيف الشرعي في الواجهة — بلا jsdom، يستخرج من uat.html نفسه.
+// §8-هـ: وسم التصنيف الشرعي في الواجهة — بلا jsdom، يستخرج من uat.html نفسه.
 // الاستخدام: node tests/test_sharia_ui.js
 const fs = require("fs");
 const path = require("path");
@@ -29,7 +29,8 @@ ok(F.shariaBadge(st("2222")).includes(">جائزة<") && F.shariaNote(F.shariaOf
    "أرامكو: «جائزة» مختصرة، والتفصيل (القطاع العام، فقرة 18) في التلميح");
 ok(F.shariaBadge(st("1201")).includes("shr-non") && F.shariaBadge(st("1201")).includes(">غير متوافقة<"), "غير متوافقة");
 x = F.shariaOf(bank);
-ok(x.c === null && x.label === "—" && F.shariaNote(x).startsWith("البنوك خارج دراسة المقاصد"), "البنك: «—» مع تفسير الهيئات");
+ok(x.c === null && x.label === "—" && F.shariaNote(x) === "البنوك خارج نطاق دراسة المقاصد",
+   "البنك: «—» و«خارج نطاق الدراسة» بلا تعليل يُقرأ تزكية (ختم الناقد)");
 x = F.shariaOf(st("2210"));
 ok(x.c === null && F.shariaNote(x) === "غير مشمول في دراسة المقاصد لقوائم 2025", "غير المشمول: «—» مع السنة");
 
@@ -42,15 +43,33 @@ ok(F.shariaOf(st("3005")).c === null && F.shariaOf(st("3060")).p === null, "تص
 F.set({ stocks: {}, meta: {} });
 ok(F.shariaOf({ symbol: "toString", sector: "x" }).c === null && F.shariaOf({ symbol: "__proto__", sector: "x" }).c === null,
    "مفاتيح النموذج الأولي لا تُقرأ تصنيفاً");
-F.set({ stocks: { "9999": { c: "pure", p: 0.1 } }, meta: { study: 2025 } });
-ok(!F.shariaBadge(st("9999")).includes("<script") && F.shariaBadge({ symbol: "9999", sector: "x" }).includes("data-tip=\""),
-   "الوسم يمر عبر esc");
+F.set({ stocks: { "9999": { c: "pure", p: 0.1 } }, meta: { study: '2025"><img src=x onerror=alert(1)>' } });
+const bx = F.shariaBadge({ symbol: "9999", sector: "x" });
+ok(!bx.includes("<img") && bx.includes("&lt;img") && (bx.match(/"/g) || []).length === 8,
+   "الوسم يمر عبر esc (meta.study خبيث لا يكسر السمة)");
+
+// تغيّر عدد الأسهم بعد سنة الدراسة (ختم الناقد 02-11، المانع 1)
+F.set(SH);
+const cap = (sym, acts) => ({ symbol: sym, sector: "Materials", industry: "", capActions: acts });
+x = F.shariaOf(cap("6040", [{ date: "2026-09-27", factor: 5.12, kind: "capital-reduction" }]));
+ok(x.capChg && x.capChg.date === "2026-09-27" && F.shariaNote(x).includes("تغيّر عدد الأسهم بعد قوائم 2025")
+   && F.shariaNote(x).includes("2026-09-27"), "6040 تخفيض 2026-09-27 ⇒ تنبيه بجانب المبلغ");
+x = F.shariaOf(cap("7202", [{ date: "2026-10-06", factor: 0.5, kind: "bonus" }]));
+ok(!!x.capChg, "7202 منحة 2026-10-06 ⇒ تنبيه");
+x = F.shariaOf(cap("2200", [{ date: "2025-06-01", eventDate: "2026-02-01", kind: "bonus" }]));
+ok(x.capChg && x.capChg.date === "2026-02-01", "التاريخ المعتمد eventDate||date");
+x = F.shariaOf(cap("3005", [{ date: "2025-12-31", kind: "bonus" }]));
+ok(x.capChg === null && !F.shariaNote(x).includes("تغيّر عدد الأسهم"), "إجراء في سنة الدراسة نفسها ⇒ لا تنبيه");
+ok(F.shariaOf(st("3005")).capChg === null, "بلا إجراءات ⇒ لا تنبيه");
+x = F.shariaOf(cap("2082", []));
+ok(F.shariaNote(x).includes("«لا تلازم بين تصنيف الشركة ومبلغ تطهيرها»"), "غير متوافقة مع مبلغ ⇒ نص الفقرة 15 حرفياً");
 
 // المواضع: الجدول، بطاقة الجوال، رأس الدرج، خلية الدرج — ولا أثر في الفرز أو الفلاتر
 ok(uat.includes('${esc(secAr(s))}${shariaBadge(s)}</span></span></td>'), "صف الجدول");
 ok(uat.includes('${esc(secAr(s))}${shariaBadge(s)}</div></div>'), "بطاقة الجوال");
 ok(uat.includes('${esc(s.industry)}`:""}${shariaBadge(s)}</div>'), "رأس الدرج");
-ok(uat.includes('cell("التصنيف الشرعي"'), "خلية الدرج");
+ok(uat.includes('cell("التصنيف الشرعي", x.c?`${esc(x.label)}${x.p!=null?` · تطهير ${x.p.toFixed(2)} ريال${x.capChg?" ⚠️":""}`:""}`:"—", x.capChg?"amber":""'),
+   "خلية الدرج: «تطهير x.xx ريال» (لا نسبة)، و⚠️ كهرماني عند تغيّر عدد الأسهم");
 const sa = uat.indexOf("const SORTERS={");
 ok(sa > 0 && !/sharia|SHARIA/.test(uat.slice(sa, uat.indexOf("};", sa))), "لا مفتاح ترتيب شرعي (SORTERS)");
 const fa = uat.indexOf("function applyFilters("), fb = uat.indexOf("function sortList(");

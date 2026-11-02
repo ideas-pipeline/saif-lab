@@ -49,8 +49,10 @@ def transform(s):
   try{ const r=await fetch("sharia.json",{cache:"no-cache"}); return r.ok?await r.json():{}; }
   catch(e){ return {}; }
 }''', '''async function loadSharia(){
-  /* الإنتاج: مضمّن وقت البناء (build.py) من sharia.json — للعرض فقط (§8-ق) */
-  return __SHARIA_DATA__;
+  /* الإنتاج: مضمّن وقت البناء (build.py) من sharia.json — للعرض فقط (§8-هـ).
+     try: باني آخر يستبدل مرساة البيانات وحدها (stocks-push.sh المعلّق) يترك هذه حرفية،
+     فتكون ReferenceError تُسقط الصفحة كلها في boot — هنا تسقط إلى {} فتعرض «—» فقط */
+  try{ return __SHARIA_DATA__; }catch(e){ return {}; }
 }''', "loadSharia")
 
     # (2) إزالة وسوم التطوير

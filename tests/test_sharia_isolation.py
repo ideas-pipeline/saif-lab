@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""§8-ق التصنيف الشرعي — اختبارات العزل والمستورد والبناء.
+"""§8-هـ التصنيف الشرعي — اختبارات العزل والمستورد والبناء.
 
 المبدأ (قرار المالك 02-11): للعرض فقط. لا يقرأه محرك التقييم ولا الجلب ولا أي حساب.
 الاستخدام: python3 tests/test_sharia_isolation.py
@@ -38,13 +38,16 @@ def load_importer():
 
 
 print("(أ) لا مرجع للتصنيف الشرعي في الحساب")
-CALC = ["scripts/scoring-engine.py", "scripts/fetch-inputs-sahmk.py", "scripts/self-check-L1.py",
-        "scripts/compute-valuation.py", "scripts/fetch-valuation-inputs.py", "scripts/lab-digest.py",
-        "scripts/lab-watch.py", "scripts/fetch-news.py", "scripts/run-lab.sh"]
+# كل سكربتات scripts/ (لا قائمة يدوية تفوتها ملفات — ختم الناقد 02-11) ما عدا المستورد
+# ومولّد القالب، وهما وحدهما المعنيان بالشرعي
+import glob
+OWN = {"sharia-import.py", "make-template.py"}
+CALC = sorted(os.path.relpath(f, ROOT) for f in glob.glob(os.path.join(ROOT, "scripts", "*"))
+              if os.path.isfile(f) and os.path.basename(f) not in OWN)
+ok(len(CALC) >= 30 and "scripts/scoring-engine.py" in CALC, "فُحص %d سكربتاً" % len(CALC))
 pat = re.compile(r"sharia|shariah|شرعي|تطهير", re.I)
-for f in CALC:
-    src = io.open(os.path.join(ROOT, f), encoding="utf-8").read()
-    ok(not pat.search(src), "%s لا يذكر sharia/الشرعي/التطهير" % f)
+hits = [f for f in CALC if pat.search(io.open(os.path.join(ROOT, f), encoding="utf-8", errors="replace").read())]
+ok(not hits, "لا سكربت حساب أو جلب أو نشر يذكر sharia/الشرعي/التطهير %s" % (hits or ""))
 data = json.load(io.open(os.path.join(ROOT, "stocks-data.json"), encoding="utf-8"))
 ok(not any(k.lower().startswith("sharia") for s in data.get("stocks", []) for k in s)
    and "sharia" not in data, "stocks-data.json لا يحمل حقلاً شرعياً (الملف مستقل)")
@@ -103,13 +106,20 @@ rc, out = build_with(json.dumps({"meta": {}, "stocks": {"2222": {"c": "halal", "
 ok(rc == 0 and "const A={};" in out, "تصنيف خارج القائمة ⇒ {}")
 rc, out = build_with(json.dumps({"meta": {}, "stocks": {"2222": {"c": "pure", "p": 99}}}))
 ok(rc == 0 and "const A={};" in out, "مبلغ تطهير خارج النطاق ⇒ {}")
-rc, out = build_with(json.dumps({"meta": {"source": "x</script><b>", "study": 2025},
+rc, out = build_with(json.dumps({"meta": {"source": "x</script><!--<script>", "study": 2025},
                                  "stocks": {"2222": {"c": "public", "p": 0.05}}}, ensure_ascii=False))
-ok(rc == 0 and '"2222":{"c":"public","p":0.05}' in out and "</script><b>" not in out,
-   "صالح ⇒ مضمَّن، و«</» مُهرَّب داخل <script>")
-rc, out = build_with(json.dumps({"meta": {"evil": "__STOCKS_DATA__"}, "stocks": {}}))
-ok(rc == 0 and out.count('{"stocks":[{"symbol":"2222"}]}') == 1,
-   "حقول meta غير المعروفة تُسقط (لا مرساة بيانات تتسرّب)")
+ok(rc == 0 and '"2222":{"c":"public","p":0.05}' in out and "<!--" not in out and out.count("<") == 2,
+   "صالح ⇒ مضمَّن، و«<» كله مُهرَّب (\\u003c) — لا «</script>» ولا «<!--<script»")
+rc, out = build_with(json.dumps({"meta": {"evil": "x", "study": 2025},
+                                 "stocks": {"2222": {"c": "pure", "p": 0.05, "x": "<!--<script>"},
+                                            "3005": {"c": "pure", "p": 0}}}))
+ok(rc == 0 and '"stocks":{"2222":{"c":"pure","p":0.05}}' in out and "evil" not in out,
+   "يُضمَّن {c,p} لأسهم المنصة وحدها؛ الحقول الإضافية وغير المعروفة تُسقط")
+rc, out = build_with(json.dumps({"meta": {"source": "__STOCKS_DATA__"}, "stocks": {}}))
+ok(rc == 0 and "const A={};" in out and out.count('{"stocks":[{"symbol":"2222"}]}') == 1,
+   "مرساة بناء داخل الملف ⇒ {} (لا تتسرّب البيانات)")
+rc, out = build_with(json.dumps({"meta": {}, "stocks": {"٢٢٢٢": {"c": "pure", "p": 0.05}}}, ensure_ascii=False))
+ok(rc == 0 and "const A={};" in out, "رمز بأرقام هندية ⇒ {}")
 tpl = io.open(os.path.join(ROOT, "template.html"), encoding="utf-8").read()
 ok(tpl.count("__SHARIA_DATA__") == 1, "template.html فيه المرساة مرة واحدة")
 ok("__SHARIA_DATA__" not in io.open(os.path.join(ROOT, "template-classic.html"), encoding="utf-8").read(),
@@ -140,7 +150,11 @@ _, errs = M.parse_rows(GOOD.replace("0.05 الطاقة", "7.50 الطاقة"))
 ok(any("خارج النطاق" in e for e in errs), "مبلغ تطهير > 5 ريال ⇒ خطأ")
 ok(M.parse_rows("مختلطة مختلطة نقية")[0] == {}, "سطر بلا «الرمز التسلسل» في آخره ليس صف جدول")
 r1, _ = M.parse_rows("رئيسي 0.10 الطاقة غير متوافقة شركة ز ز 4084 1")
-ok(r1["4084"]["c"] == "non", "«غير متوافقة» تُطابق قبل غيرها")
+ok(r1["4084"]["c"] == "non", "«غير متوافقة» تُقرأ تصنيفاً واحداً")
+r1, e1 = M.parse_rows("رئيسي 0.10 الطاقة نقية شركة ز ز ٤٠٨٤ ١")
+ok(r1 == {} and e1 == [], "رمز بأرقام هندية لا يُقرأ صفاً (re.ASCII)")
+_, e1 = M.parse_rows(GOOD + "\nنمو 0.02 الطاقة نقية شركة ع ع 9700 4")
+ok(any("سوق غير معروف" in e for e in e1), "صف جدول بسوق مجهول ⇒ خطأ لا تخطٍّ صامت")
 
 tmpd = tempfile.mkdtemp(prefix="shr-imp-")
 try:
@@ -162,13 +176,33 @@ try:
     txt = os.path.join(tmpd, "s.txt")
     open(txt, "w", encoding="utf-8").write(GOOD)
     out = os.path.join(tmpd, "o.json")
-    r = subprocess.run([sys.executable, "-B", os.path.join(ROOT, "scripts", "sharia-import.py"),
-                        "--txt", txt, "--study", "2025", "--url", "https://almaqased.net/x.pdf",
-                        "--out", out], capture_output=True, text=True)
-    ok(r.returncode != 0 and not os.path.exists(out), "أقل من 200 صف ⇒ لا كتابة")
-    r = subprocess.run([sys.executable, "-B", os.path.join(ROOT, "scripts", "sharia-import.py"),
-                        "--txt", txt, "--study", "2025", "--url", "https://evil.example/x.pdf",
-                        "--out", out], capture_output=True, text=True)
+    IMP = [sys.executable, "-B", os.path.join(ROOT, "scripts", "sharia-import.py")]
+    r = subprocess.run(IMP + ["--txt", txt, "--study", "2025", "--url", "https://almaqased.net/x.pdf",
+                              "--no-check", "--out", out], capture_output=True, text=True)
+    ok(r.returncode != 0 and "صفاً فقط" in r.stdout + r.stderr and not os.path.exists(out), "أقل من 200 صف ⇒ لا كتابة")
+    big = os.path.join(tmpd, "big.txt")
+    open(big, "w", encoding="utf-8").write("\n".join(
+        "رئيسي 0.01 الطاقة نقية شركة س س %d %d" % (5000 + i, i + 1) for i in range(220)))
+    base = IMP + ["--txt", big, "--study", "2025", "--url", "https://almaqased.net/x.pdf", "--out", out]
+    r = subprocess.run(base, capture_output=True, text=True)
+    ok(r.returncode != 0 and "إلزامية" in r.stdout + r.stderr and not os.path.exists(out),
+       "بلا --check-json ولا --no-check ⇒ رفض")
+    bigref = os.path.join(tmpd, "bigref.json")
+    refrows = [{"code": str(5000 + i), "sharia_opinion": "نقية", "purification": "0.01"} for i in range(220)]
+    refrows[7]["sharia_opinion"] = "مختلطة"
+    json.dump({"stocks": refrows}, open(bigref, "w"), ensure_ascii=False)
+    r = subprocess.run(base + ["--check-json", bigref], capture_output=True, text=True)
+    ok(r.returncode != 0 and not os.path.exists(out), "اختلاف واحد (0.5%) بلا مراجعة ⇒ لا كتابة")
+    r = subprocess.run(base + ["--check-json", bigref, "--accept", "5007"], capture_output=True, text=True)
+    ok(r.returncode == 0 and os.path.exists(out), "الاختلاف نفسه بعد --accept 5007 ⇒ يُكتب")
+    os.remove(out)
+    dd = os.path.join(tmpd, "d.json")
+    json.dump({"stocks": [{"symbol": str(6000 + i), "sector": "Energy"} for i in range(10)]}, open(dd, "w"))
+    r = subprocess.run(base + ["--no-check", "--data", dd], capture_output=True, text=True)
+    ok(r.returncode != 0 and "التغطية" in r.stdout + r.stderr and not os.path.exists(out),
+       "تغطية أسهم المنصة 0% ⇒ لا كتابة")
+    r = subprocess.run(IMP + ["--txt", txt, "--study", "2025", "--url", "https://evil.example/x.pdf",
+                              "--no-check", "--out", out], capture_output=True, text=True)
     ok(r.returncode != 0 and not os.path.exists(out), "رابط من غير almaqased.net ⇒ رفض")
 finally:
     shutil.rmtree(tmpd, ignore_errors=True)
