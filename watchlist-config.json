@@ -56,7 +56,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -23.0,
+   "maePct": -24.31,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -201,7 +201,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -4.47,
+   "maePct": -5.09,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -355,7 +355,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -0.96
+   "maePct": -1.61
   },
   {
    "symbol": "4291",
@@ -425,8 +425,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -17.87,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": -5.96
+   "tasiRet": -8.64,
+   "excessNet": -6.78
   },
   {
    "symbol": "2050",
@@ -486,8 +486,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -19.3,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": -8.15
+   "tasiRet": -8.64,
+   "excessNet": -7.48
   },
   {
    "symbol": "3080",
@@ -512,8 +512,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -14.32,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": 0.41
+   "tasiRet": -8.64,
+   "excessNet": 0.42
   },
   {
    "symbol": "6010",
@@ -538,8 +538,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -23.29,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": -11.42
+   "tasiRet": -8.64,
+   "excessNet": -11.91
   },
   {
    "symbol": "4012",
@@ -564,8 +564,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -18.51,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": -4.74
+   "tasiRet": -8.64,
+   "excessNet": -5.44
   },
   {
    "symbol": "3010",
@@ -588,10 +588,10 @@
    "peAtEntry": 10.41,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -19.49,
+   "maePct": -19.58,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": -11.24
+   "tasiRet": -8.64,
+   "excessNet": -11.76
   },
   {
    "symbol": "3005",
@@ -616,8 +616,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -30.26,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": -14.67
+   "tasiRet": -8.64,
+   "excessNet": -15.24
   },
   {
    "symbol": "3030",
@@ -642,8 +642,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -15.19,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": -5.75
+   "tasiRet": -8.64,
+   "excessNet": -6.6
   },
   {
    "symbol": "4323",
@@ -668,8 +668,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -16.64,
    "status": "open",
-   "tasiRet": -9.05,
-   "excessNet": 1.37
+   "tasiRet": -8.64,
+   "excessNet": 1.94
   },
   {
    "symbol": "1303",
@@ -961,7 +961,7 @@
    "aboveSmaAtEntry": true,
    "scoreScaleAtEntry": "criteria-v3",
    "status": "open",
-   "maePct": -24.81
+   "maePct": -26.08
   },
   {
    "symbol": "2020",
@@ -1121,8 +1121,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -14.56,
    "status": "open",
-   "tasiRet": -9.1,
-   "excessNet": 2.26
+   "tasiRet": -8.69,
+   "excessNet": 1.59
   },
   {
    "symbol": "4260",
@@ -1180,8 +1180,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -7.23,
    "status": "open",
-   "tasiRet": -9.1,
-   "excessNet": 2.21
+   "tasiRet": -8.69,
+   "excessNet": 2.5
   },
   {
    "symbol": "1180",
@@ -1803,8 +1803,8 @@
    "tasiAtEntry": 11032.91,
    "maePct": -35.41,
    "status": "open",
-   "tasiRet": -10.83,
-   "excessNet": -20.91
+   "tasiRet": -10.42,
+   "excessNet": -22.01
   },
   {
    "symbol": "3040",
@@ -1943,8 +1943,8 @@
    "tasiAtEntry": 11007.27,
    "maePct": -18.39,
    "status": "open",
-   "tasiRet": -10.62,
-   "excessNet": -4.78
+   "tasiRet": -10.22,
+   "excessNet": -6.25
   },
   {
    "symbol": "6014",
@@ -2140,8 +2140,8 @@
    "tasiAtEntry": 10123.62,
    "maePct": -7.48,
    "status": "open",
-   "tasiRet": -2.82,
-   "excessNet": -0.3
+   "tasiRet": -2.38,
+   "excessNet": -0.91
   },
   {
    "symbol": "1080",
@@ -2190,8 +2190,8 @@
    "tasiAtEntry": 9952.06,
    "maePct": -16.62,
    "status": "open",
-   "tasiRet": -1.14,
-   "excessNet": -11.73
+   "tasiRet": -0.7,
+   "excessNet": -15.05
   },
   {
    "symbol": "1060",
