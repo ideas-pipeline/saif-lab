@@ -287,13 +287,23 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .co-t{min-width:0}
 .co .nm{display:block; font-weight:600; font-size:13.5px}
 .co .mt{display:block; font-size:11px; color:var(--text3); margin-top:1px}
-/* §8-ق التصنيف الشرعي — وسم معلوماتي صغير بجانب القطاع، لا حكم تقييم */
-.shr{display:inline-block; font-size:10.5px; font-weight:600; line-height:16px; padding:0 6px;
-  border-radius:5px; margin-inline-start:4px; white-space:nowrap; cursor:help; vertical-align:baseline}
-.shr-pure,.shr-public{color:var(--green); background:var(--green-dim)}
-.shr-mixed{color:var(--amber); background:var(--amber-dim)}
-.shr-non{color:var(--red); background:var(--red-dim)}
-.shr-na{color:var(--text3); background:rgba(125,170,225,0.08)}
+/* §8-ق التصنيف الشرعي — معلومة في سطر «الرمز · القطاع» لا شارة رابعة (مراجعة UX 02-11).
+   الشارات المعبّأة بالأخضر/الكهرماني/الأحمر كانت تتطابق حرفياً مع «قوي» (.b-strong) و«دخول
+   تدريجي» (.t-yellow) والهبوط، فتُقرأ حكماً استثمارياً — والمنصة أطفأت أحمر التوقيت للسبب نفسه
+   (.t-red) وجعلت سبب الاستبعاد سطراً خفيفاً لا شارة (.ex-why). فالنص محايد (text2: 7.28 على bg ·
+   6.74 على surface) واللون في نقطة 6px وحدها، والتسمية النصية تحمل المعنى (لا اعتماد على اللون).
+   النقطة نفسها هي الفاصل عن القطاع (لا «·»: كان يتدلّى أول السطر حين يلتف)؛ inline-block+nowrap
+   ليلتف الوسم كتلةً واحدة إن ضاق العمود (768–1279: 26 صفاً من 248 ينزل وسمها سطراً
+   ثانياً، وأغلبها صفوف 78px أصلاً فلا يزيد ارتفاعها — مقيس). «—» (البنوك/غير المشمول) بحلقة مفرغة. */
+.shr{display:inline-block; white-space:nowrap; cursor:help; color:var(--text2); font-weight:600;
+  margin-inline-start:7px}
+.shr-d{display:inline-block; width:6px; height:6px; border-radius:50%; margin-inline-end:4px;
+  vertical-align:middle; position:relative; top:-1px; background:currentColor}
+.shr-pure .shr-d,.shr-public .shr-d{color:var(--band-good)}
+.shr-mixed .shr-d{color:var(--amber)}
+.shr-non .shr-d{color:var(--red)}
+.shr-na{color:var(--text3); font-weight:400}
+.shr-na .shr-d{background:transparent; box-shadow:inset 0 0 0 1.2px currentColor}
 .chg-up{color:var(--green)} .chg-dn{color:var(--red)} .chg-flat{color:var(--text3)}
 .dy-warn{cursor:help; font-size:10px}
 .b-dy{color:var(--accent); background:var(--accent-dim)}
@@ -751,7 +761,7 @@ function shariaNote(x){
 function shariaBadge(s){
   const x=shariaOf(s);
   /* الوسم مختصر («جائزة» لأرامكو)، والتفصيل في التلميح والدرج */
-  return `<span class="shr shr-${x.c||"na"}" data-tip="${esc(shariaNote(x))}">${esc(x.c==="public"?"جائزة":x.label)}</span>`;
+  return `<span class="shr shr-${x.c||"na"}" data-tip="${esc(shariaNote(x))}"><i class="shr-d" aria-hidden="true"></i>${esc(x.c==="public"?"جائزة":x.label)}</span>`;
 }
 async function boot(){
   skeleton();
@@ -1872,7 +1882,10 @@ function finCells(s){
   }
   {
     const x=shariaOf(s);
-    out+=cell("التصنيف الشرعي", x.c?`${esc(x.label)}${x.p!=null?` · تطهير ${x.p.toFixed(2)} ريال`:""}`:"—", "", esc(shariaNote(x)));
+    /* الوصف لا يعيد القيمة (كان التلميح كاملاً فيكرر «مختلطة · التطهير…» تحتها ويجعل الخلية الأطول) */
+    const d=x.c?(x.p!=null?"مبلغ التطهير لكل سهم · ":"")+(x.c==="public"?"شركات القطاع العام: راجع منهجية المقاصد (فقرة 18) · ":"")
+      +`المصدر: دراسة مركز المقاصد لقوائم ${x.study||"—"} · للعرض فقط، لا يدخل تقييم سيف`:shariaNote(x);
+    out+=cell("التصنيف الشرعي", x.c?`${esc(x.label)}${x.p!=null?` · تطهير ${x.p.toFixed(2)} ريال`:""}`:"—", "", esc(d));
   }
   if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
   else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);
