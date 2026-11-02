@@ -45,6 +45,15 @@ def transform(s):
   /* الإنتاج: البيانات مضمّنة وقت البناء (build.py) — لا طلب شبكة ولا اعتماد على الكاش */
   return __STOCKS_DATA__;
 }''', "loadData")
+    s = swap(s, '''async function loadSharia(){
+  try{ const r=await fetch("sharia.json",{cache:"no-cache"}); return r.ok?await r.json():{}; }
+  catch(e){ return {}; }
+}''', '''async function loadSharia(){
+  /* الإنتاج: مضمّن وقت البناء (build.py) من sharia.json — للعرض فقط (§8-هـ).
+     try: باني آخر يستبدل مرساة البيانات وحدها (stocks-push.sh المعلّق) يترك هذه حرفية،
+     فتكون ReferenceError تُسقط الصفحة كلها في boot — هنا تسقط إلى {} فتعرض «—» فقط */
+  try{ return __SHARIA_DATA__; }catch(e){ return {}; }
+}''', "loadSharia")
 
     # (2) إزالة وسوم التطوير
     s = swap(s, '<meta name="robots" content="noindex">\n', '', "robots")
@@ -91,6 +100,8 @@ def main():
             sys.exit("⛔ تسرّب وسم تطوير للقالب (%s)" % why)
     if out.count("__STOCKS_DATA__") != 1:
         sys.exit("⛔ __STOCKS_DATA__ يجب أن يظهر مرة واحدة في القالب")
+    if out.count("__SHARIA_DATA__") != 1:
+        sys.exit("⛔ __SHARIA_DATA__ يجب أن يظهر مرة واحدة في القالب")
 
     if args.check:
         cur = io.open(args.out, encoding="utf-8").read() if os.path.exists(args.out) else ""

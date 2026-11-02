@@ -287,6 +287,23 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .co-t{min-width:0}
 .co .nm{display:block; font-weight:600; font-size:13.5px}
 .co .mt{display:block; font-size:11px; color:var(--text3); margin-top:1px}
+/* §8-هـ التصنيف الشرعي — معلومة في سطر «الرمز · القطاع» لا شارة رابعة (مراجعة UX 02-11).
+   الشارات المعبّأة بالأخضر/الكهرماني/الأحمر كانت تتطابق حرفياً مع «قوي» (.b-strong) و«دخول
+   تدريجي» (.t-yellow) والهبوط، فتُقرأ حكماً استثمارياً — والمنصة أطفأت أحمر التوقيت للسبب نفسه
+   (.t-red) وجعلت سبب الاستبعاد سطراً خفيفاً لا شارة (.ex-why). فالنص محايد (text2: 7.28 على bg ·
+   6.74 على surface) واللون في نقطة 6px وحدها، والتسمية النصية تحمل المعنى (لا اعتماد على اللون).
+   النقطة نفسها هي الفاصل عن القطاع (لا «·»: كان يتدلّى أول السطر حين يلتف)؛ inline-block+nowrap
+   ليلتف الوسم كتلةً واحدة إن ضاق العمود (768–1279: 26 صفاً من 248 ينزل وسمها سطراً
+   ثانياً، وأغلبها صفوف 78px أصلاً فلا يزيد ارتفاعها — مقيس). «—» (البنوك/غير المشمول) بحلقة مفرغة. */
+.shr{display:inline-block; white-space:nowrap; cursor:help; color:var(--text2); font-weight:600;
+  margin-inline-start:7px}
+.shr-d{display:inline-block; width:6px; height:6px; border-radius:50%; margin-inline-end:4px;
+  vertical-align:middle; position:relative; top:-1px; background:currentColor}
+.shr-pure .shr-d,.shr-public .shr-d{color:var(--band-good)}
+.shr-mixed .shr-d{color:var(--amber)}
+.shr-non .shr-d{color:var(--red)}
+.shr-na{color:var(--text3); font-weight:400}
+.shr-na .shr-d{background:transparent; box-shadow:inset 0 0 0 1.2px currentColor}
 .chg-up{color:var(--green)} .chg-dn{color:var(--red)} .chg-flat{color:var(--text3)}
 .dy-warn{cursor:help; font-size:10px}
 .b-dy{color:var(--accent); background:var(--accent-dim)}
@@ -715,10 +732,66 @@ async function loadData(){
   /* الإنتاج: البيانات مضمّنة وقت البناء (build.py) — لا طلب شبكة ولا اعتماد على الكاش */
   return __STOCKS_DATA__;
 }
+/* §8-هـ التصنيف الشرعي (قرار المالك 02-11) — للعرض فقط. ملف مستقل sharia.json لا يدخل
+   stocks-data.json ولا محرك التقييم ولا أي فرز أو فلتر أو عدّاد. المصدر: دراسة مركز المقاصد
+   السنوية (د. محمد العصيمي)؛ مبلغ التطهير بالريال لكل سهم. البنوك خارج الدراسة.
+   أي خلل في الملف ⇒ «—» ولا تتأثر الصفحة. */
+async function loadSharia(){
+  /* الإنتاج: مضمّن وقت البناء (build.py) من sharia.json — للعرض فقط (§8-هـ).
+     try: باني آخر يستبدل مرساة البيانات وحدها (stocks-push.sh المعلّق) يترك هذه حرفية،
+     فتكون ReferenceError تُسقط الصفحة كلها في boot — هنا تسقط إلى {} فتعرض «—» فقط */
+  try{ return __SHARIA_DATA__; }catch(e){ return {}; }
+}
+let SHARIA={};
+const SHR_LBL={pure:"نقية", mixed:"مختلطة", non:"غير متوافقة", public:"جائزة (قطاع عام)"};
+/* مبلغ التطهير محسوب على عدد أسهم قوائم سنة الدراسة («بناء على أحدث قوائم مالية سنوية
+   منشورة» — المنهجية فقرة 23). فإن تغيّر عدد الأسهم بعدها (منحة، تخفيض، حقوق) قيل ذلك صراحةً
+   بجانب المبلغ — ختم الناقد 02-11: 6040 تخفيض ×5.12 بعد قوائم 2025، فالمعروض خُمس الواجب.
+   لا إعادة حساب: الرقم رقم المصدر كما هو. */
+function shariaCapChg(s, study){
+  if(!/^\d{4}$/.test(String(study||""))) return null;
+  const cut=`${study}-12-31`;
+  const a=(s.capActions||[]).find(a=>String(a.eventDate||a.date||"")>cut);
+  return a?{date:String(a.eventDate||a.date), kind:a.kind}:null;
+}
+function shariaCapTxt(x){
+  if(!x.capChg) return "";
+  const k=(typeof CAP_KIND!=="undefined"&&CAP_KIND[x.capChg.kind])||"إجراء رأسمالي";
+  return `تغيّر عدد الأسهم بعد قوائم ${x.study} (${k} ${x.capChg.date}) — المبلغ محسوب على أسهم تلك القوائم وقد لا يطابق السهم اليوم`;
+}
+function shariaOf(s){
+  const st=(SHARIA&&SHARIA.stocks)||null, m=(SHARIA&&SHARIA.meta)||{};
+  const r=st&&Object.prototype.hasOwnProperty.call(st,String(s.symbol))?st[String(s.symbol)]:null;
+  if(r&&Object.prototype.hasOwnProperty.call(SHR_LBL,r.c)){
+    const p=typeof r.p==="number"&&isFinite(r.p)?r.p:null;
+    return {c:r.c, label:SHR_LBL[r.c], p, study:m.study, loaded:true,
+            capChg:p!=null?shariaCapChg(s,m.study):null};
+  }
+  return {c:null, label:"—", p:null, study:m.study, loaded:!!st,
+          bank:secOf(s)==="Financials"&&/bank|بنك|مصرف/i.test(s.industry||"")};
+}
+function shariaNote(x){
+  if(x.c) return `${x.label}${x.p!=null?` · التطهير ${x.p.toFixed(2)} ريال للسهم`:""}`
+    +(x.capChg?` (⚠️ ${shariaCapTxt(x)})`:"")
+    +(x.c==="public"?" · شركات القطاع العام: راجع منهجية المقاصد (فقرة 18)":"")
+    +(x.c==="non"&&x.p!=null?" · «لا تلازم بين تصنيف الشركة ومبلغ تطهيرها» (المنهجية، فقرة 15)":"")
+    +` — المصدر: دراسة مركز المقاصد لقوائم ${x.study||"—"} · للعرض فقط، لا يدخل تقييم سيف`;
+  if(!x.loaded) return "التصنيف الشرعي غير متوفر حالياً";
+  /* نص المنهجية: «ما عدا البنوك التي لها هيئاتها الشرعية الخاصة». لا نعلّل ولا نزكّي —
+     المنهجية نفسها تصنّف «البنوك التجارية التقليدية» محرمة النشاط (فقرة 14) دون أن تسمّيها */
+  if(x.bank) return "البنوك خارج نطاق دراسة المقاصد";
+  return `غير مشمول في دراسة المقاصد لقوائم ${x.study||"—"}`;
+}
+function shariaBadge(s){
+  const x=shariaOf(s);
+  /* الوسم مختصر («جائزة» لأرامكو)، والتفصيل في التلميح والدرج */
+  return `<span class="shr shr-${x.c||"na"}" data-tip="${esc(shariaNote(x))}"><i class="shr-d" aria-hidden="true"></i>${esc(x.c==="public"?"جائزة":x.label)}</span>`;
+}
 async function boot(){
   skeleton();
   try{
     DATA=await loadData();
+    SHARIA=(await loadSharia())||{};
     STOCKS=(DATA.stocks||[]).filter(s=>s.symbol&&!s.delisted);
     buildSectorStats();
     renderAll();
@@ -1366,7 +1439,7 @@ function renderBody(){
   }).join("");
   const rows=list.map(s=>`
     <tr data-sym="${s.symbol}" tabindex="0">
-      <td class="co"><span class="co-bar" style="background:${rowBarColor(s)}" aria-hidden="true"></span><span class="co-t"><span class="nm">${esc(s.name)}</span><span class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}</span></span></td>
+      <td class="co"><span class="co-bar" style="background:${rowBarColor(s)}" aria-hidden="true"></span><span class="co-t"><span class="nm">${esc(s.name)}</span><span class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${shariaBadge(s)}</span></span></td>
       <td>${scoreHtml(s)}</td>
       <td>${bandHtml(s)}</td>
       <td>${timingChip(s)}</td>
@@ -1383,7 +1456,7 @@ function renderBody(){
     <div class="mcard" data-sym="${s.symbol}" role="button" tabindex="0">
       <div class="r1">
         <div><div class="nm" style="font-weight:700">${esc(s.name)}</div>
-          <div style="font-size:11px;color:var(--text3)"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}</div></div>
+          <div style="font-size:11px;color:var(--text3)"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${shariaBadge(s)}</div></div>
         <div class="pr"><div class="p num">${fmt(priceOf(s))}</div><div class="c">${chgHtml(s)}</div></div>
       </div>
       <div class="r2">
@@ -1587,7 +1660,7 @@ function drawerHtml(s){
   <div class="dr-hd">
     <div>
       <div class="nm">${esc(s.name)}</div>
-      <div class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${s.industry?` · ${esc(s.industry)}`:""}</div>
+      <div class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${s.industry?` · ${esc(s.industry)}`:""}${shariaBadge(s)}</div>
     </div>
     <div style="display:flex; gap:12px; align-items:flex-start">
       <div class="px"><div class="p num">${fmt(priceOf(s))}</div><div class="c">${chgHtml(s)}</div></div>
@@ -1830,6 +1903,15 @@ function finCells(s){
         +"<br>للعرض فقط — لا يدخل تقييم سيف";
     } else if(b5) d5="أقل من سنتين ماليتين مكتملتين في سجل التوزيعات";
     out+=cell("متوسط التوزيع 5 سنوات", t5, f5.length?"amber":"", d5);
+  }
+  {
+    const x=shariaOf(s);
+    /* الوصف لا يعيد القيمة (كان التلميح كاملاً فيكرر «مختلطة · التطهير…» تحتها ويجعل الخلية الأطول) */
+    const d=x.c?(x.capChg?`⚠️ ${shariaCapTxt(x)} · `:"")
+      +(x.p!=null?"مبلغ التطهير لكل سهم · ":"")+(x.c==="public"?"شركات القطاع العام: راجع منهجية المقاصد (فقرة 18) · ":"")
+      +(x.c==="non"&&x.p!=null?"«لا تلازم بين تصنيف الشركة ومبلغ تطهيرها» (المنهجية، فقرة 15) · ":"")
+      +`المصدر: دراسة مركز المقاصد لقوائم ${x.study||"—"} · للعرض فقط، لا يدخل تقييم سيف`:shariaNote(x);
+    out+=cell("التصنيف الشرعي", x.c?`${esc(x.label)}${x.p!=null?` · تطهير ${x.p.toFixed(2)} ريال${x.capChg?" ⚠️":""}`:""}`:"—", x.capChg?"amber":"", esc(d));
   }
   if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
   else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);
