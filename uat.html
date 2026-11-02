@@ -282,6 +282,13 @@ table.scr{width:100%; border-collapse:collapse; margin-top:4px}
 .co-t{min-width:0}
 .co .nm{display:block; font-weight:600; font-size:13.5px}
 .co .mt{display:block; font-size:11px; color:var(--text3); margin-top:1px}
+/* §8-ق التصنيف الشرعي — وسم معلوماتي صغير بجانب القطاع، لا حكم تقييم */
+.shr{display:inline-block; font-size:10.5px; font-weight:600; line-height:16px; padding:0 6px;
+  border-radius:5px; margin-inline-start:4px; white-space:nowrap; cursor:help; vertical-align:baseline}
+.shr-pure,.shr-public{color:var(--green); background:var(--green-dim)}
+.shr-mixed{color:var(--amber); background:var(--amber-dim)}
+.shr-non{color:var(--red); background:var(--red-dim)}
+.shr-na{color:var(--text3); background:rgba(125,170,225,0.08)}
 .chg-up{color:var(--green)} .chg-dn{color:var(--red)} .chg-flat{color:var(--text3)}
 .dy-warn{cursor:help; font-size:10px}
 .b-dy{color:var(--accent); background:var(--accent-dim)}
@@ -711,10 +718,42 @@ async function loadData(){
   if(!r.ok) throw new Error("HTTP "+r.status);
   return r.json();
 }
+/* §8-ق التصنيف الشرعي (قرار المالك 02-11) — للعرض فقط. ملف مستقل sharia.json لا يدخل
+   stocks-data.json ولا محرك التقييم ولا أي فرز أو فلتر أو عدّاد. المصدر: دراسة مركز المقاصد
+   السنوية (د. محمد العصيمي)؛ مبلغ التطهير بالريال لكل سهم. البنوك خارج الدراسة.
+   أي خلل في الملف ⇒ «—» ولا تتأثر الصفحة. */
+async function loadSharia(){
+  try{ const r=await fetch("sharia.json",{cache:"no-cache"}); return r.ok?await r.json():{}; }
+  catch(e){ return {}; }
+}
+let SHARIA={};
+const SHR_LBL={pure:"نقية", mixed:"مختلطة", non:"غير متوافقة", public:"جائزة (قطاع عام)"};
+function shariaOf(s){
+  const st=(SHARIA&&SHARIA.stocks)||null, m=(SHARIA&&SHARIA.meta)||{};
+  const r=st&&Object.prototype.hasOwnProperty.call(st,String(s.symbol))?st[String(s.symbol)]:null;
+  if(r&&Object.prototype.hasOwnProperty.call(SHR_LBL,r.c))
+    return {c:r.c, label:SHR_LBL[r.c], p:typeof r.p==="number"&&isFinite(r.p)?r.p:null, study:m.study, loaded:true};
+  return {c:null, label:"—", p:null, study:m.study, loaded:!!st,
+          bank:secOf(s)==="Financials"&&/bank|بنك|مصرف/i.test(s.industry||"")};
+}
+function shariaNote(x){
+  if(x.c) return `${x.label}${x.p!=null?` · التطهير ${x.p.toFixed(2)} ريال للسهم`:""}`
+    +(x.c==="public"?" · شركات القطاع العام: راجع منهجية المقاصد (فقرة 18)":"")
+    +` — المصدر: دراسة مركز المقاصد لقوائم ${x.study||"—"} · للعرض فقط، لا يدخل تقييم سيف`;
+  if(!x.loaded) return "التصنيف الشرعي غير متوفر حالياً";
+  if(x.bank) return "البنوك خارج دراسة المقاصد؛ لكل بنك هيئته الشرعية";
+  return `غير مشمول في دراسة المقاصد لقوائم ${x.study||"—"}`;
+}
+function shariaBadge(s){
+  const x=shariaOf(s);
+  /* الوسم مختصر («جائزة» لأرامكو)، والتفصيل في التلميح والدرج */
+  return `<span class="shr shr-${x.c||"na"}" data-tip="${esc(shariaNote(x))}">${esc(x.c==="public"?"جائزة":x.label)}</span>`;
+}
 async function boot(){
   skeleton();
   try{
     DATA=await loadData();
+    SHARIA=(await loadSharia())||{};
     STOCKS=(DATA.stocks||[]).filter(s=>s.symbol&&!s.delisted);
     buildSectorStats();
     renderAll();
@@ -1362,7 +1401,7 @@ function renderBody(){
   }).join("");
   const rows=list.map(s=>`
     <tr data-sym="${s.symbol}" tabindex="0">
-      <td class="co"><span class="co-bar" style="background:${rowBarColor(s)}" aria-hidden="true"></span><span class="co-t"><span class="nm">${esc(s.name)}</span><span class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}</span></span></td>
+      <td class="co"><span class="co-bar" style="background:${rowBarColor(s)}" aria-hidden="true"></span><span class="co-t"><span class="nm">${esc(s.name)}</span><span class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${shariaBadge(s)}</span></span></td>
       <td>${scoreHtml(s)}</td>
       <td>${bandHtml(s)}</td>
       <td>${timingChip(s)}</td>
@@ -1379,7 +1418,7 @@ function renderBody(){
     <div class="mcard" data-sym="${s.symbol}" role="button" tabindex="0">
       <div class="r1">
         <div><div class="nm" style="font-weight:700">${esc(s.name)}</div>
-          <div style="font-size:11px;color:var(--text3)"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}</div></div>
+          <div style="font-size:11px;color:var(--text3)"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${shariaBadge(s)}</div></div>
         <div class="pr"><div class="p num">${fmt(priceOf(s))}</div><div class="c">${chgHtml(s)}</div></div>
       </div>
       <div class="r2">
@@ -1583,7 +1622,7 @@ function drawerHtml(s){
   <div class="dr-hd">
     <div>
       <div class="nm">${esc(s.name)}</div>
-      <div class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${s.industry?` · ${esc(s.industry)}`:""}</div>
+      <div class="mt"><span class="num">${s.symbol}</span> · ${esc(secAr(s))}${s.industry?` · ${esc(s.industry)}`:""}${shariaBadge(s)}</div>
     </div>
     <div style="display:flex; gap:12px; align-items:flex-start">
       <div class="px"><div class="p num">${fmt(priceOf(s))}</div><div class="c">${chgHtml(s)}</div></div>
@@ -1826,6 +1865,10 @@ function finCells(s){
         +"<br>للعرض فقط — لا يدخل تقييم سيف";
     } else if(b5) d5="أقل من سنتين ماليتين مكتملتين في سجل التوزيعات";
     out+=cell("متوسط التوزيع 5 سنوات", t5, f5.length?"amber":"", d5);
+  }
+  {
+    const x=shariaOf(s);
+    out+=cell("التصنيف الشرعي", x.c?`${esc(x.label)}${x.p!=null?` · تطهير ${x.p.toFixed(2)} ريال`:""}`:"—", "", esc(shariaNote(x)));
   }
   if(isBank) out+=cell("ملكية/أصول", fin.equityAssets!=null?fmt(fin.equityAssets,1)+"%":"—", "", FIN_DESC.equityAssets);
   else if(!isFinSector) out+=cell("دين/ملكية", fin.debtToEquity!=null?fmt(fin.debtToEquity,1)+"%":"—", "", FIN_DESC.debtEquity);
