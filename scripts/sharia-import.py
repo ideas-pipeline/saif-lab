@@ -70,9 +70,11 @@ def parse_rows(text):
             continue
         out[code] = {"c": labs[0], "p": p, "m": market}
         seqs.append(seq)
-    if seqs and sorted(seqs) != list(range(1, len(seqs) + 1)):
-        errs.append("التسلسل غير متصل (%d صفاً، أعلى تسلسل %d) — صفوف ضائعة في الاستخراج"
-                    % (len(seqs), max(seqs)))
+    # فجوة في التسلسل = صف ضاع في الاستخراج. أما التكرار فمن الدراسة نفسها (2025: الرقم 367
+    # لشركتين مختلفتين، 9610 و1201) فلا يُفشل؛ تفرّد الرمز هو الحارس.
+    if seqs and set(seqs) != set(range(1, max(seqs) + 1)):
+        gaps = sorted(set(range(1, max(seqs) + 1)) - set(seqs))
+        errs.append("فجوات في التسلسل %s — صفوف ضائعة في الاستخراج" % gaps[:10])
     return out, errs
 
 
