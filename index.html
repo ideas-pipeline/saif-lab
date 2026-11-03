@@ -101,8 +101,17 @@ a{color:var(--accent); text-decoration:none}
 .sc-ring-v{position:absolute; font-weight:700; line-height:1}
 .p-best svg{flex-shrink:0}
 .p-best .tchip{margin-top:3px}
-.regime-line{grid-column:1/-1; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); padding:2px 2px 0; flex-wrap:wrap}
+.regime-line{display:flex; align-items:center; gap:4px 8px; font-size:12px; color:var(--text2); padding:6px 22px 6px; flex-wrap:wrap}
+.regime-line:empty{display:none}
 .regime-line b{color:var(--text); font-weight:600}
+/* §8-و سطر تاسي (طلب المالك 03-11): الإغلاق والتغير بالنقاط والنسبة بخط عريض بارز.
+   السهم ▲/▼ يحمل الاتجاه فلا يعتمد على اللون وحده */
+.tasi-close{display:inline-flex; align-items:baseline; gap:2px 7px; flex-wrap:wrap; font-size:15px; color:var(--text)}
+.tasi-close .tv{font-weight:700; font-size:16px}
+.tasi-close .tc{font-weight:700}
+.tasi-close .td{font-size:11px; color:var(--text3); font-weight:400}
+.view-note{font-size:11.5px; color:var(--text3); padding:9px 14px; margin:0 0 10px;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm)}
 /* نقطة الانكسار رُفعت 1023 → 1279 (ختم 04-10): الشبكة السداسية كانت تبدأ من
    1024 فيبقى عمود الاسم عند 83px — وهو الرقم نفسه الذي سُمّي حالةَ العطب. */
 @media(max-width:1279px) and (min-width:768px){ .pulse{grid-template-columns:repeat(3,1fr)} .p-best{grid-column:1/-1} }
@@ -114,8 +123,8 @@ a{color:var(--accent); text-decoration:none}
   .p-tile .v{font-size:17px} .p-tile .s{display:none} .p-tile .k{font-size:10.5px; white-space:nowrap}
   .p-best{flex:0 0 auto; min-width:250px; padding:9px 12px; gap:10px}
   .p-best svg{display:none} .p-best .sc{font-size:19px}
-  .regime-line{flex:0 0 100%; order:9; font-size:11px; white-space:nowrap; overflow-x:auto; flex-wrap:nowrap; padding-bottom:6px; scrollbar-width:none}
-  .regime-line::-webkit-scrollbar{display:none}
+  /* يلتف سطرين بدل تمرير خفي: الإغلاق صفٌّ أول كامل، والوضع والاتساع والنصيحة تحته — لا معلومة خارج الشاشة */
+  .regime-line{font-size:11px; padding:4px 14px 6px}
 }
 
 /* ═══ مفكرة التوزيعات ═══ */
@@ -182,6 +191,8 @@ a{color:var(--accent); text-decoration:none}
 .view-tab.on{color:var(--text); font-weight:600; border-bottom-color:var(--accent)}
 .view-tab.on .c{color:var(--accent)}
 @media(max-width:640px){ .views{padding:10px 14px 0} }
+/* تسعة تبويبات (§8-و): عند 1024 كان الشريط 1046px فيُقص «قائمتي» تحت التلاشي — حشوة أضيق تُدخلها كلها */
+@media(min-width:768px) and (max-width:1279px){ .view-tab{padding:9px 11px 11px} }
 
 /* ═══ Command bar ═══ */
 .cmd{
@@ -223,6 +234,9 @@ a{color:var(--accent); text-decoration:none}
 .cmd-btn.set{color:var(--accent); border-color:rgba(56,189,248,0.35)}
 .cmd .count{margin-right:auto; font-size:12.5px; color:var(--text3)}
 .cmd .count b{color:var(--text2); font-weight:600}
+.cmd.cal-off .search,.cmd.cal-off select,.cmd.cal-off .cmd-btn{opacity:.4; cursor:not-allowed}
+.cmd.cal-off .search input{cursor:not-allowed}
+body.cal-view .fchips,body.cal-view .adv,body.cal-view .fab{display:none}
 @media(max-width:767px){
   .cmd{padding:10px 14px}
   .cmd .desktop-only{display:none}
@@ -579,6 +593,7 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
 <div id="staleBanner" style="display:none;margin:12px 20px 0;background:rgba(251,191,74,0.12);border:1px solid rgba(251,191,74,0.42);border-radius:10px;padding:9px 14px;color:var(--amber);font-size:12.5px;line-height:1.7;text-align:center"></div>
 
 <section class="pulse" id="pulse" aria-label="نبض سيف"></section>
+<div class="regime-line" id="regime" role="region" aria-label="مؤشر السوق"></div>
 
 <div class="views-wrap" id="viewsWrap"><nav class="views" id="views" aria-label="عروض ذكية"></nav></div>
 
@@ -870,17 +885,19 @@ function renderPulse(){
       ${sparkline(d30,86,38,up?"#34D399":"#F87171")}
     </div>`;
   }
-  const divCount=(DATA.upcomingDividends||[]).filter(d=>(d.eligDate&&d.eligDate>=todayStr())||(d.distDate&&d.distDate>=todayStr())).length;
+  const divCount=divEventsCount();
   $("pulse").innerHTML=`
     <div class="p-tile" data-goto="market"><span class="k">الشركات المحللة</span><span class="v num">${STOCKS.length}</span><span class="s">منها ${ratedList.length} مقيّمة</span></div>
     <div class="p-tile" data-goto="top" data-min="80"><span class="k">فرص قوية ‎80+‎</span><span class="v num" style="color:var(--band-strong)">${strong.length}</span><span class="s">جودة عالية</span></div>
     <div class="p-tile" data-goto="entry"><span class="k">فرص دخول</span><span class="v num" style="color:var(--green)">${entryOps.length}</span><span class="s">جودة ‎65+‎ وتوقيت مناسب</span></div>
     <div class="p-tile" data-goto="reversal"><span class="k">انعكاس مبكر</span><span class="v num" style="color:var(--amber)">${revs.length}</span><span class="s">تحت المتوسط بإشارات تعافٍ</span></div>
-    <div class="p-tile" data-goto="dividends"><span class="k">مفكرة التوزيعات</span><span class="v num" style="color:var(--accent)">${divCount}</span><span class="s">حدثاً قادماً في النافذة</span></div>
-    ${bestHtml}
-    <div class="regime-line">${esc(rg.icon||"")} السوق: <b>${esc(rg.regime||"—")}</b> · تاسي <b class="num">${fmt(rg.indexValue,0)}</b>
-      <span class="num ${rg.changePct>=0?"chg-up":"chg-dn"}">${rg.changePct!=null?(rg.changePct>=0?"+":"")+rg.changePct+"%":""}</span>
-      · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}</div>`;
+    <div class="p-tile" data-goto="dividends"><span class="k">مفكرة التوزيعات</span><span class="v num" style="color:var(--accent)">${divCount}</span><span class="s">${evPhrase(divCount)} في النافذة</span></div>
+    ${bestHtml}`;
+  /* §8-و مراجعة UX: السطر عنصر شقيق للنبض لا ابن له — على الجوال النبض شريط تمرير
+     أفقي، فكان السطر عنصره الأخير خارج الشاشة (x≈−874 عند 390) ولا يُرى الإغلاق إلا بالتمرير */
+  $("regime").innerHTML=`${tasiCloseHtml(rg)}
+      · ${esc(rg.icon||"")} السوق: <b>${esc(rg.regime||"—")}</b>
+      · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}`;
   $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>{
     /* الحدّ يُمرَّر إلى setView فتتولّى الملكية: إسقاط فلتر البلاطة السابقة
        ثم وضع فلتر هذه إن كان لها. والشريحة القابلة للإزالة تظهر كما كانت. */
@@ -891,21 +908,73 @@ function renderPulse(){
           pb.addEventListener("keydown",e=>{if(e.key==="Enter")openDrawer(pb.dataset.sym);}); }
 }
 
-/* ─── Smart Views ─── */
+/* ─── §8-و سطر تاسي (طلب المالك 03-11): «أغلق X ▼ N نقطة (−p%)» بخط عريض ───
+   المصدر marketRegime (الجلب اليومي بعد الإغلاق): change بالنقاط وchangePct بالنسبة.
+   احتياط: change غائب ⇒ indexValue − prevClose؛ وكلاهما غائب ⇒ النسبة وحدها. عرض فقط. */
+function tasiChange(rg){
+  const r=rg||{};
+  const pts=typeof r.change==="number"?r.change
+    :(typeof r.indexValue==="number"&&typeof r.prevClose==="number"?+(r.indexValue-r.prevClose).toFixed(2):null);
+  const pct=typeof r.changePct==="number"?r.changePct
+    :(pts!=null&&r.prevClose?+(pts/r.prevClose*100).toFixed(2):null);
+  return {pts, pct};
+}
+function tasiCloseHtml(rg){
+  const r=rg||{}, {pts,pct}=tasiChange(r);
+  if(typeof r.indexValue!=="number") return `تاسي <b>—</b>`;
+  const dir=(pts!=null?pts:pct)||0, cls=dir>0?"chg-up":dir<0?"chg-dn":"chg-flat";
+  const f2=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const arr=dir>0?"▲":dir<0?"▼":"■";
+  /* الرقم وحده في .num (عزل LTR)؛ كلمة «نقطة» خارجه كي لا تنقلب مع الرقم */
+  const ptsTxt=pts!=null?`<span class="num">${f2(Math.abs(pts))}</span> نقطة`:"";
+  /* منزلتان ثابتتان (9,876.10 لا 9,876.1)، والإشارة من الاتجاه نفسه فلا «▼ … (0%)»،
+     و«-» كما في الجدول لا «−» */
+  const pctTxt=pct!=null?`${dir>0?"+":dir<0?"-":""}${f2(Math.abs(pct))}%`:"";
+  const sr=dir>0?"ارتفع":dir<0?"انخفض":"بلا تغير";
+  /* نص قارئ الشاشة قبل الأرقام فيُقرأ «انخفض 6.72 نقطة» جملةً، والسهم مخفي عنه */
+  const chg=(ptsTxt||pctTxt)?`<span class="tc ${cls}"><span aria-hidden="true">${arr}</span><span class="sr-only">${sr}</span> ${ptsTxt}${ptsTxt&&pctTxt?" ":""}${pctTxt?`<span class="num">(${pctTxt})</span>`:""}</span>`:"";
+  return `<span class="tasi-close">تاسي أغلق <b class="tv num">${f2(r.indexValue)}</b>${chg}${r.date?`<span class="td num">${esc(r.date)}</span>`:""}</span>`;
+}
+/* آخر جلسة: تاريخ marketRegime، وسهم لم يتداول فيها لا يظهر بتغيّر قديم في «الأعلى ارتفاعاً/انخفاضاً».
+   ختم الناقد 03-11: dailyChange يأتي من جلب السعر، فتاريخه priceUpdatedAt لا dailyExtra.lastDate —
+   8190 كان شموعه اليوم وسعره وتغيّره من 2026-09-10 فظهر «مرتفعاً اليوم». الشرطان معاً؛
+   و«>=» لا «===» لأن تشغيلة ما بعد منتصف الليل تختم السعر بتاريخ اليوم التالي لجلسته. */
+const sessionDate=()=>((DATA&&DATA.marketRegime)||{}).date||"";
+const inSession=s=>{ const sd=sessionDate(); if(!sd) return true;
+  return (s.dailyExtra||{}).lastDate===sd && String(s.priceUpdatedAt||"").slice(0,10)>=sd; };
+/* تمييز العدد (مراجعة UX): «10 أحداث» لا «10 حدثاً» — 3–10 جمعٌ مجرور، و11–99 مفردٌ منصوب */
+const evPhrase=n=>{ const m=n%100; return n===0?"أحداث قادمة":n===1?"حدث قادم":n===2?"حدثان قادمان"
+  :(m>=3&&m<=10)?"أحداث قادمة":(m>=11&&m<=99)?"حدثاً قادماً":"حدث قادم"; };
+/* مصدر واحد لعدّ أحداث المفكرة: شرط صفوف divCalendarHtml نفسه (رمز وقيمة موجبة وتاريخ قادم) */
+const divEventOk=d=>!!d.sym&&typeof d.value==="number"&&d.value>0
+  &&((d.eligDate&&d.eligDate>=todayStr())||(d.distDate&&d.distDate>=todayStr()));
+const divEventsCount=()=>(DATA.upcomingDividends||[]).filter(divEventOk).length;
+
+/* ─── Smart Views ───
+   §8-و (طلب المالك 03-11): «الأعلى ارتفاعاً» و«الأكثر انخفاضاً» (آخر جلسة) و«الأعلى عائداً»
+   — ارتفاعاً/انخفاضاً بعد «السوق» (حركة الجلسة)، و«الأعلى عائداً» ملاصق لـ«مفكرة التوزيعات»
+   (مراجعة UX: عائلة التوزيعات متجاورة، وفي موضع تبويب التوزيعات القديم نفسه). و«التوزيعات» صار «مفكرة التوزيعات» وحدها بلا جدول (calendarOnly) —
+   جدول الشركات بالعائد انتقل إلى «الأعلى عائداً» مع ملاحظته ومفتاح «المقيَّمة فقط». */
 const VIEWS=[
   {id:"market", label:"السوق", fn:s=>true},
+  {id:"gainers", label:"الأعلى ارتفاعاً", fn:s=>chgOf(s)!=null&&chgOf(s)>0&&inSession(s), sort:{key:"chg",dir:-1}, session:true,
+   empty:"لم يرتفع أي سهم في آخر جلسة"},
+  {id:"losers", label:"الأكثر انخفاضاً", fn:s=>chgOf(s)!=null&&chgOf(s)<0&&inSession(s), sort:{key:"chg",dir:1}, session:true,
+   empty:"لم ينخفض أي سهم في آخر جلسة"},
   {id:"top", label:"الأعلى تقييماً", fn:s=>rated(s), sort:{key:"score",dir:-1}},
   {id:"entry", label:"فرص الدخول", fn:s=>rated(s)&&isc(s).total>=65&&timingState(s)==="green"},
   {id:"reversal", label:"انعكاس مبكر", fn:s=>isc(s).viaReversal===true||isc(s).filterReason==="تحت SMA200W لكن إشارات انعكاس"},
-  {id:"dividends", label:"التوزيعات", fn:s=>(dyOf(s)||0)>0, sort:{key:"dy",dir:-1}},
+  {id:"yield", label:"الأعلى عائداً", fn:s=>(dyOf(s)||0)>0, sort:{key:"dy",dir:-1}},
+  {id:"dividends", label:"مفكرة التوزيعات", fn:s=>false, calendarOnly:true, count:()=>divEventsCount()},
   {id:"mine", label:"قائمتي", fn:s=>(DATA.portfolioSymbols||[]).includes(s.symbol)}
 ];
 function renderViews(){
   $("views").innerHTML=VIEWS.map(v=>{
-    const n=STOCKS.filter(v.fn).length;
+    const n=v.count?v.count():STOCKS.filter(v.fn).length;
     return `<button class="view-tab ${state.view===v.id?"on":""}" data-v="${v.id}">${v.label}<span class="c num">${n}</span></button>`;
   }).join("");
   $("views").querySelectorAll(".view-tab").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
+  if(typeof updateViewsScrollHint==="function") updateViewsScrollHint();
 }
 function setView(id, tileMin){
   /* فلتر البلاطة ملكُها لا ملك المستخدم (بلاغ المالك 05-10): كان «فرص قوية ‎80+‎»
@@ -930,9 +999,13 @@ function setView(id, tileMin){
     }
     $("fScore").value=String(state.minScore);
   }
+  const prevV=VIEWS.find(x=>x.id===state.view);
   state.view=id;
   const v=VIEWS.find(x=>x.id===id);
   if(v&&v.sort) state.sort={...v.sort};
+  /* ملاحظة الناقد 03-11: الخروج من عرض جلسة إلى عرض بلا فرز يعيد فرز الدرجة، فلا يُحمل
+     «التغير ▲» فيصعد الفارغ (−999) إلى رأس «السوق» */
+  else if(prevV&&prevV.session) state.sort={key:"score",dir:-1};
   /* وضوح الفرز (P18): مفتاح فرز بلا عمود ظاهر (كعائد «التوزيعات») لا يُحمل لعرض آخر */
   else if(!COLS.some(c=>c.sortable&&c.key===state.sort.key)) state.sort={key:"score",dir:-1};
   renderViews(); renderBody();
@@ -966,7 +1039,7 @@ function applyFilters(list,opts){
     if(a.div && !((dyOf(s)||0)>2)) return false;
     if(a.pe){ const pe=peOf(s), ref=medPe(s); if(!(pe&&ref&&pe<ref)) return false; }
     if(a.liq && !((s.liquidityGate||{}).passed)) return false;
-    if(!o.ignoreDyToggle && state.dyRatedOnly && state.view==="dividends" && !rated(s)) return false;
+    if(!o.ignoreDyToggle && state.dyRatedOnly && state.view==="yield" && !rated(s)) return false;
     return true;
   });
 }
@@ -1359,7 +1432,7 @@ function divCalendarHtml(){
   });
   return `<div class="divcal">
     <div class="divcal-hd">
-      <span class="t">📅 مفكرة التوزيعات <span style="font-size:11px;color:var(--text3);font-weight:400">(${rows.length} حدثاً)</span></span>
+      <span class="t">📅 مفكرة التوزيعات <span style="font-size:11px;color:var(--text3);font-weight:400">(${rows.length} ${evPhrase(rows.length)})</span></span>
       <span class="stamp">آخر تحديث للمفكرة: <span class="num">${esc(String(stampRaw).slice(0,10))}</span>
         ${age!=null&&age>1?`<span class="age-warn">⚠️ المفكرة بعمر ${age} أيام</span>`:""}</span>
     </div>
@@ -1374,7 +1447,7 @@ function dyNoteHtml(){
   /* ملزمة ختم 03-10: العدّاد ضابط سلامة — يُحسب من كون الموزِّعين **مرتَّباً بالعائد**
      ومتجاهلاً مفتاح «المقيَّمة فقط»، لا من القائمة المعروضة؛ وإلا أعلن رقماً أقل من
      الحقيقة بمجرد إعادة الفرز (8 بدل 10) أو صفراً حين يُفعَّل المفتاح نفسه. */
-  const view=VIEWS.find(v=>v.id==="dividends");
+  const view=VIEWS.find(v=>v.id==="yield");
   const base=sortBy(applyFilters(STOCKS.filter(view.fn),{ignoreDyToggle:true}),"dy",-1);
   const top=base.slice(0,10);
   const unrated=top.filter(s=>!rated(s)).length;
@@ -1386,7 +1459,7 @@ function dyNoteHtml(){
   const byYield=state.sort.key==="dy"&&state.sort.dir===-1;
   const col=COLS.find(c=>c.key===state.sort.key);
   const title=byYield?"مرتبة من الأعلى عائداً"
-    :`عرض التوزيعات — مرتبة حسب «${esc(col?col.label:state.sort.key)}»`;
+    :`الأعلى عائداً — مرتبة حسب «${esc(col?col.label:state.sort.key)}»`;
   return `<div class="dy-note">
     <div class="dy-note-hd">
       <b>${title}</b>
@@ -1401,20 +1474,53 @@ function dyNoteHtml(){
     <div class="dy-note-tail">العائد وحده ليس توصية — انظر الدرجة والتقييم والتوقيت في الجدول نفسه.</div>
   </div>`;
 }
+/* المفكرة لا تتأثر بالبحث ولا بالفلاتر (مراجعة UX): تُعتَّم أدواتها وتُعطَّل بدل أن تبدو فاعلة،
+   وتُخفى شرائحها ولوحتها وزر الجوال — والقيم محفوظة كما هي فتعود فاعلة عند مغادرة المفكرة */
+function setCmdOff(off){
+  const c=$("cmd"); if(!c||c.classList.contains("cal-off")===off) return;
+  c.classList.toggle("cal-off",off); document.body.classList.toggle("cal-view",off);
+  c.querySelectorAll("input,select,button").forEach(el=>{ el.disabled=off; });
+}
+/* ربط فتح الدرج لكل [data-sym] في جسم العرض — يُنادى في كل فرع يرسم صفوفاً (الجدول والمفكرة) */
+function bindSymRows(){
+  $("body").querySelectorAll("[data-sym]").forEach(el=>{
+    el.addEventListener("click",e=>{ if(e.target.closest("[data-tip]"))return; openDrawer(el.dataset.sym); });
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter") openDrawer(el.dataset.sym); });
+  });
+}
 function renderBody(){
   syncSelectStyles();
   const view=VIEWS.find(v=>v.id===state.view)||VIEWS[0];
   let list=applyFilters(STOCKS.filter(view.fn));
   list=sortList(list);
+  setCmdOff(!!view.calendarOnly);
+  if(view.calendarOnly){
+    /* «مفكرة التوزيعات» وحدها (قرار المالك 03-11) — لا جدول ولا بطاقات تحتها */
+    const ne=divEventsCount();
+    /* ملاحظة الناقد: السبب ظاهر على الجوال أيضاً (كان desktop-only فيبقى بحث باهت بلا تفسير) */
+    $("count").innerHTML=`<b class="num">${ne}</b> ${evPhrase(ne)}<span class="cal-why"> · الفلاتر لا تنطبق على المفكرة</span>`;
+    $("body").innerHTML=divCalendarHtml();
+    bindSymRows();   /* ختم الناقد 03-11: صفوف المفكرة تفتح الدرج كما كانت في 153df01 */
+    return;
+  }
   $("count").innerHTML=`<b class="num">${list.length}</b> نتيجة`;
-  const calHtml=state.view==="dividends"?divCalendarHtml():"";
-  if(!list.length&&!calHtml){
+  const calHtml="";
+  if(!list.length){
     /* الحالة الصفرية (P3/P17): لا مسح صامت — الإزالة بزر صريح بقرار المستخدم */
     const hasFilters=activeFilterCount()>0;
     const viewBtn=(hasFilters&&state.view!=="market")
       ?`<button class="cmd-btn" style="margin:0 auto 8px" id="emptyViewBtn">إزالة الفلاتر وعرض كل «${view.label}»</button>`:"";
-    $("body").innerHTML=`<div class="state"><div class="t">${hasFilters?"لا توجد نتائج ضمن الفلاتر الحالية":"لا توجد أسهم في هذا العرض حالياً"}</div>
-      <div class="d">${hasFilters?"الفلاتر النشطة ظاهرة أعلاه — أزل ما يلزم أو:":""}</div>
+    /* عرضا الجلسة (مراجعة UX): يوم أحمر كامل ≠ بيانات غائبة — رسالتان لا رسالة عامة واحدة */
+    let et="لا توجد أسهم في هذا العرض حالياً", ed="";
+    if(!hasFilters&&view.session){
+      const ses=STOCKS.filter(x=>chgOf(x)!=null&&inSession(x)), sd=sessionDate();
+      const up=ses.filter(x=>chgOf(x)>0).length, dn=ses.filter(x=>chgOf(x)<0).length;
+      const at=sd?` (<span class="num">${esc(sd)}</span>)`:"";
+      if(!ses.length){ et=`لا تتوفر تغيّرات الأسهم لآخر جلسة${at} بعد`; ed="تظهر بعد الجلب اليومي عقب الإغلاق."; }
+      else{ et=view.empty+at; ed=`صاعد <b class="num">${up}</b> · هابط <b class="num">${dn}</b> · بلا تغير <b class="num">${ses.length-up-dn}</b> من <b class="num">${ses.length}</b> سهماً تداولت`; }
+    }
+    $("body").innerHTML=`<div class="state"><div class="t">${hasFilters?"لا توجد نتائج ضمن الفلاتر الحالية":et}</div>
+      <div class="d">${hasFilters?"الفلاتر النشطة ظاهرة أعلاه — أزل ما يلزم أو:":ed}</div>
       ${viewBtn}
       ${hasFilters?`<button class="cmd-btn" style="margin:0 auto" onclick="resetFilters()">إعادة تعيين الفلاتر</button>`:""}</div>`;
     const evb=$("emptyViewBtn"); if(evb) evb.addEventListener("click",resetFilters);
@@ -1463,19 +1569,17 @@ function renderBody(){
         ${scoreOf(s)!=null?`<span class="sc-line"><span class="n num" style="color:${scoreColor(scoreOf(s))}">${scoreOf(s)}</span><span class="sbar"><i style="width:${scoreOf(s)}%;background:${scoreColor(scoreOf(s))}"></i></span></span>`:""}
         ${bandHtml(s)}
         ${timingChip(s,false)}
-        ${state.view==="dividends"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:dyBadgeHtml(s)}
+        ${state.view==="yield"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:dyBadgeHtml(s)}
       </div>
     </div>`).join("");
-  const dyNote=state.view==="dividends"?dyNoteHtml():"";
+  const dyNote=state.view==="yield"?dyNoteHtml()
+    :view.session?`<div class="view-note">تغيّر آخر جلسة${sessionDate()?` (<span class="num">${esc(sessionDate())}</span>)`:""} مقابل إغلاق الجلسة السابقة — معلوماتي، لا يدخل تقييم سيف.</div>`:"";
   $("body").innerHTML=calHtml+dyNote+`
     <table class="scr"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>
     <div class="cards">${cards}</div>`;
   const dyT=$("dyRatedOnly");
   if(dyT) dyT.addEventListener("click",()=>{ state.dyRatedOnly=!state.dyRatedOnly; renderBody(); });
-  $("body").querySelectorAll("[data-sym]").forEach(el=>{
-    el.addEventListener("click",e=>{ if(e.target.closest("[data-tip]"))return; openDrawer(el.dataset.sym); });
-    el.addEventListener("keydown",e=>{ if(e.key==="Enter") openDrawer(el.dataset.sym); });
-  });
+  bindSymRows();
   $("body").querySelectorAll("[data-sort]").forEach(b=>b.addEventListener("click",e=>{
     e.stopPropagation();
     const k=b.dataset.sort;
@@ -2335,9 +2439,14 @@ window.addEventListener("resize",measureSticky);
 /* دلالة تمرير العروض (P14) */
 function updateViewsScrollHint(){
   const v=$("views"), wrap=$("viewsWrap");
-  if(v&&wrap) wrap.classList.toggle("can-scroll",v.scrollWidth>v.clientWidth+4);
+  /* حسب الموضع لا الفيض وحده: التلاشي يزول عند بلوغ آخر تبويب فلا يغطي «قائمتي».
+     ‏RTL: ‏scrollLeft يبدأ 0 ويتجه سالباً، فالمتبقي = الفيض − |scrollLeft| */
+  if(v&&wrap) wrap.classList.toggle("can-scroll",v.scrollWidth-v.clientWidth-Math.abs(v.scrollLeft)>4);
 }
 window.addEventListener("resize",updateViewsScrollHint);
+$("views").addEventListener("scroll",updateViewsScrollHint,{passive:true});
+/* القياس الأول يسبق تحميل الخط فيُخطئ العرض (1024: تلاشٍ ظاهر بلا فيض) — يُعاد بعد جاهزية الخطوط */
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(updateViewsScrollHint);
 bind(); measureSticky(); boot();
 </script>
 <script data-goatcounter="https://saif-vc-sa.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
