@@ -587,7 +587,7 @@ footer{padding:24px 20px 40px; font-size:11.5px; color:var(--text3); border-top:
 <div id="staleBanner" style="display:none;margin:12px 20px 0;background:rgba(251,191,74,0.12);border:1px solid rgba(251,191,74,0.42);border-radius:10px;padding:9px 14px;color:var(--amber);font-size:12.5px;line-height:1.7;text-align:center"></div>
 
 <section class="pulse" id="pulse" aria-label="نبض سيف"></section>
-<div class="regime-line" id="regime"></div>
+<div class="regime-line" id="regime" role="region" aria-label="مؤشر السوق"></div>
 
 <div class="views-wrap" id="viewsWrap"><nav class="views" id="views" aria-label="عروض ذكية"></nav></div>
 
@@ -917,22 +917,32 @@ function tasiCloseHtml(rg){
   const r=rg||{}, {pts,pct}=tasiChange(r);
   if(typeof r.indexValue!=="number") return `تاسي <b>—</b>`;
   const dir=(pts!=null?pts:pct)||0, cls=dir>0?"chg-up":dir<0?"chg-dn":"chg-flat";
+  const f2=v=>Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
   const arr=dir>0?"▲":dir<0?"▼":"■";
   /* الرقم وحده في .num (عزل LTR)؛ كلمة «نقطة» خارجه كي لا تنقلب مع الرقم */
-  const ptsTxt=pts!=null?`<span class="num">${fmt(Math.abs(pts),2)}</span> نقطة`:"";
-  const pctTxt=pct!=null?`${pct>0?"+":pct<0?"−":""}${fmt(Math.abs(pct),2)}%`:"";
+  const ptsTxt=pts!=null?`<span class="num">${f2(Math.abs(pts))}</span> نقطة`:"";
+  /* منزلتان ثابتتان (9,876.10 لا 9,876.1)، والإشارة من الاتجاه نفسه فلا «▼ … (0%)»،
+     و«-» كما في الجدول لا «−» */
+  const pctTxt=pct!=null?`${dir>0?"+":dir<0?"-":""}${f2(Math.abs(pct))}%`:"";
   const sr=dir>0?"ارتفع":dir<0?"انخفض":"بلا تغير";
   /* نص قارئ الشاشة قبل الأرقام فيُقرأ «انخفض 6.72 نقطة» جملةً، والسهم مخفي عنه */
   const chg=(ptsTxt||pctTxt)?`<span class="tc ${cls}"><span aria-hidden="true">${arr}</span><span class="sr-only">${sr}</span> ${ptsTxt}${ptsTxt&&pctTxt?" ":""}${pctTxt?`<span class="num">(${pctTxt})</span>`:""}</span>`:"";
-  return `<span class="tasi-close">تاسي أغلق <b class="tv num">${fmt(r.indexValue,2)}</b>${chg}${r.date?`<span class="td num">${esc(r.date)}</span>`:""}</span>`;
+  return `<span class="tasi-close">تاسي أغلق <b class="tv num">${f2(r.indexValue)}</b>${chg}${r.date?`<span class="td num">${esc(r.date)}</span>`:""}</span>`;
 }
-/* آخر جلسة: تاريخ marketRegime، وسهم لم يتداول فيها لا يظهر بتغيّر قديم في «الأعلى ارتفاعاً/انخفاضاً» */
+/* آخر جلسة: تاريخ marketRegime، وسهم لم يتداول فيها لا يظهر بتغيّر قديم في «الأعلى ارتفاعاً/انخفاضاً».
+   ختم الناقد 03-11: dailyChange يأتي من جلب السعر، فتاريخه priceUpdatedAt لا dailyExtra.lastDate —
+   8190 كان شموعه اليوم وسعره وتغيّره من 2026-09-10 فظهر «مرتفعاً اليوم». الشرطان معاً؛
+   و«>=» لا «===» لأن تشغيلة ما بعد منتصف الليل تختم السعر بتاريخ اليوم التالي لجلسته. */
 const sessionDate=()=>((DATA&&DATA.marketRegime)||{}).date||"";
-const inSession=s=>{ const sd=sessionDate(); return !sd||((s.dailyExtra||{}).lastDate===sd); };
+const inSession=s=>{ const sd=sessionDate(); if(!sd) return true;
+  return (s.dailyExtra||{}).lastDate===sd && String(s.priceUpdatedAt||"").slice(0,10)>=sd; };
 /* تمييز العدد (مراجعة UX): «10 أحداث» لا «10 حدثاً» — 3–10 جمعٌ مجرور، و11–99 مفردٌ منصوب */
 const evPhrase=n=>{ const m=n%100; return n===0?"أحداث قادمة":n===1?"حدث قادم":n===2?"حدثان قادمان"
   :(m>=3&&m<=10)?"أحداث قادمة":(m>=11&&m<=99)?"حدثاً قادماً":"حدث قادم"; };
-const divEventsCount=()=>(DATA.upcomingDividends||[]).filter(d=>(d.eligDate&&d.eligDate>=todayStr())||(d.distDate&&d.distDate>=todayStr())).length;
+/* مصدر واحد لعدّ أحداث المفكرة: شرط صفوف divCalendarHtml نفسه (رمز وقيمة موجبة وتاريخ قادم) */
+const divEventOk=d=>!!d.sym&&typeof d.value==="number"&&d.value>0
+  &&((d.eligDate&&d.eligDate>=todayStr())||(d.distDate&&d.distDate>=todayStr()));
+const divEventsCount=()=>(DATA.upcomingDividends||[]).filter(divEventOk).length;
 
 /* ─── Smart Views ───
    §8-و (طلب المالك 03-11): «الأعلى ارتفاعاً» و«الأكثر انخفاضاً» (آخر جلسة) و«الأعلى عائداً»
@@ -983,9 +993,13 @@ function setView(id, tileMin){
     }
     $("fScore").value=String(state.minScore);
   }
+  const prevV=VIEWS.find(x=>x.id===state.view);
   state.view=id;
   const v=VIEWS.find(x=>x.id===id);
   if(v&&v.sort) state.sort={...v.sort};
+  /* ملاحظة الناقد 03-11: الخروج من عرض جلسة إلى عرض بلا فرز يعيد فرز الدرجة، فلا يُحمل
+     «التغير ▲» فيصعد الفارغ (−999) إلى رأس «السوق» */
+  else if(prevV&&prevV.session) state.sort={key:"score",dir:-1};
   /* وضوح الفرز (P18): مفتاح فرز بلا عمود ظاهر (كعائد «التوزيعات») لا يُحمل لعرض آخر */
   else if(!COLS.some(c=>c.sortable&&c.key===state.sort.key)) state.sort={key:"score",dir:-1};
   renderViews(); renderBody();
@@ -1412,7 +1426,7 @@ function divCalendarHtml(){
   });
   return `<div class="divcal">
     <div class="divcal-hd">
-      <span class="t">📅 مفكرة التوزيعات <span style="font-size:11px;color:var(--text3);font-weight:400">(${rows.length} حدثاً)</span></span>
+      <span class="t">📅 مفكرة التوزيعات <span style="font-size:11px;color:var(--text3);font-weight:400">(${rows.length} ${evPhrase(rows.length)})</span></span>
       <span class="stamp">آخر تحديث للمفكرة: <span class="num">${esc(String(stampRaw).slice(0,10))}</span>
         ${age!=null&&age>1?`<span class="age-warn">⚠️ المفكرة بعمر ${age} أيام</span>`:""}</span>
     </div>
@@ -1461,6 +1475,13 @@ function setCmdOff(off){
   c.classList.toggle("cal-off",off); document.body.classList.toggle("cal-view",off);
   c.querySelectorAll("input,select,button").forEach(el=>{ el.disabled=off; });
 }
+/* ربط فتح الدرج لكل [data-sym] في جسم العرض — يُنادى في كل فرع يرسم صفوفاً (الجدول والمفكرة) */
+function bindSymRows(){
+  $("body").querySelectorAll("[data-sym]").forEach(el=>{
+    el.addEventListener("click",e=>{ if(e.target.closest("[data-tip]"))return; openDrawer(el.dataset.sym); });
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter") openDrawer(el.dataset.sym); });
+  });
+}
 function renderBody(){
   syncSelectStyles();
   const view=VIEWS.find(v=>v.id===state.view)||VIEWS[0];
@@ -1470,8 +1491,10 @@ function renderBody(){
   if(view.calendarOnly){
     /* «مفكرة التوزيعات» وحدها (قرار المالك 03-11) — لا جدول ولا بطاقات تحتها */
     const ne=divEventsCount();
-    $("count").innerHTML=`<b class="num">${ne}</b> ${evPhrase(ne)}<span class="desktop-only"> · البحث والفلاتر لا تنطبق على المفكرة</span>`;
+    /* ملاحظة الناقد: السبب ظاهر على الجوال أيضاً (كان desktop-only فيبقى بحث باهت بلا تفسير) */
+    $("count").innerHTML=`<b class="num">${ne}</b> ${evPhrase(ne)}<span class="cal-why"> · الفلاتر لا تنطبق على المفكرة</span>`;
     $("body").innerHTML=divCalendarHtml();
+    bindSymRows();   /* ختم الناقد 03-11: صفوف المفكرة تفتح الدرج كما كانت في 153df01 */
     return;
   }
   $("count").innerHTML=`<b class="num">${list.length}</b> نتيجة`;
@@ -1550,10 +1573,7 @@ function renderBody(){
     <div class="cards">${cards}</div>`;
   const dyT=$("dyRatedOnly");
   if(dyT) dyT.addEventListener("click",()=>{ state.dyRatedOnly=!state.dyRatedOnly; renderBody(); });
-  $("body").querySelectorAll("[data-sym]").forEach(el=>{
-    el.addEventListener("click",e=>{ if(e.target.closest("[data-tip]"))return; openDrawer(el.dataset.sym); });
-    el.addEventListener("keydown",e=>{ if(e.key==="Enter") openDrawer(el.dataset.sym); });
-  });
+  bindSymRows();
   $("body").querySelectorAll("[data-sort]").forEach(b=>b.addEventListener("click",e=>{
     e.stopPropagation();
     const k=b.dataset.sort;

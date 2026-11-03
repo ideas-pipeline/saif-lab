@@ -21,18 +21,21 @@ console.log("سطر تاسي");
 const rg = { indexValue: 9876.13, prevClose: 9882.85, change: -6.72, changePct: -0.07, date: "2026-11-03" };
 let h = F.tasiCloseHtml(rg);
 ok(h.includes("تاسي أغلق") && h.includes('<b class="tv num">9,876.13</b>'), "الإغلاق بخط عريض بمنزلتين");
-ok(h.includes("▼") && h.includes("chg-dn") && h.includes('<span class="num">6.72</span> نقطة') && h.includes("(−0.07%)"),
-   "هبوط: ▼ و«6.72 نقطة» و«(−0.07%)» باللون الأحمر، والرقم معزول عن كلمة «نقطة»");
+ok(h.includes("▼") && h.includes("chg-dn") && h.includes('<span class="num">6.72</span> نقطة') && h.includes("(-0.07%)"),
+   "هبوط: ▼ و«6.72 نقطة» و«(-0.07%)» باللون الأحمر، والرقم معزول عن كلمة «نقطة»");
 ok(h.includes("2026-11-03") && h.includes('class="sr-only">انخفض'), "تاريخ الجلسة، ونص لقارئ الشاشة");
 ok(h.indexOf('class="sr-only">انخفض') < h.indexOf("6.72") && h.indexOf('aria-hidden="true">▼') < h.indexOf("sr-only"),
    "مراجعة UX: قارئ الشاشة يسمع «انخفض 6.72 نقطة» قبل الأرقام لا بعدها");
 ok(!F.tasiCloseHtml({ indexValue: 9876.13 }).includes("sr-only"), "بلا تغيّر معروف ⇒ لا يُعلَن «بلا تغير» زوراً");
 h = F.tasiCloseHtml({ indexValue: 10000, prevClose: 9900, change: 100, changePct: 1.01 });
-ok(h.includes("▲") && h.includes("chg-up") && h.includes("100</span> نقطة") && h.includes("(+1.01%)"), "صعود: ▲ و+");
+ok(h.includes("▲") && h.includes("chg-up") && h.includes("100.00</span> نقطة") && h.includes("(+1.01%)"), "صعود: ▲ و+ ومنزلتان ثابتتان");
+h = F.tasiCloseHtml({ indexValue: 9876.1, change: -0.4, changePct: 0 });
+ok(h.includes("9,876.10") && h.includes("(-0.00%)") && h.includes("▼"),
+   "منزلتان ثابتتان (9,876.10)، وإشارة النسبة من الاتجاه فلا «▼ … (0%)» (ملاحظة الناقد)");
 ok(JSON.stringify(F.tasiChange({ indexValue: 9876.13, prevClose: 9882.85 })) === '{"pts":-6.72,"pct":-0.07}',
    "change غائب ⇒ من indexValue − prevClose (والنسبة كذلك)");
 h = F.tasiCloseHtml({ indexValue: 9876.13, changePct: -0.07 });
-ok(!h.includes("نقطة") && h.includes("(−0.07%)") && h.includes("▼"), "prevClose غائب ⇒ النسبة وحدها");
+ok(!h.includes("نقطة") && h.includes("(-0.07%)") && h.includes("▼"), "prevClose غائب ⇒ النسبة وحدها");
 ok(F.tasiCloseHtml({}) === "تاسي <b>—</b>", "بلا مؤشر ⇒ «—»");
 h = F.tasiCloseHtml({ indexValue: 9876.13, change: 0, changePct: 0 });
 ok(h.includes("■") && h.includes("chg-flat") && h.includes("بلا تغير"), "بلا تغير ⇒ ■ رمادي");
@@ -40,36 +43,51 @@ ok(h.includes("■") && h.includes("chg-flat") && h.includes("بلا تغير"),
 console.log("التبويبات");
 F.setData({ marketRegime: { date: "2026-11-03" }, upcomingDividends: [
   { eligDate: "2026-11-05" }, { distDate: "2026-11-03" }, { eligDate: "2026-10-01", distDate: "2026-10-20" }] });
-const mk = (sym, chg, date = "2026-11-03", extra = {}) => ({ symbol: sym, dailyChange: chg, dailyExtra: { lastDate: date }, ...extra });
+const mk = (sym, chg, date = "2026-11-03", extra = {}) =>
+  ({ symbol: sym, dailyChange: chg, dailyExtra: { lastDate: date }, priceUpdatedAt: date + " 16:20", ...extra });
 const S = [mk("A", 6.3), mk("B", 1.2), mk("C", -9.11), mk("D", -0.5), mk("E", 0), mk("F", null),
-           mk("G", 4.0, "2026-10-30"), mk("H", -3.0, "2026-10-30"), { symbol: "I", dailyChange: 2 }];
+           mk("G", 4.0, "2026-10-30"), mk("H", -3.0, "2026-10-30"), { symbol: "I", dailyChange: 2 },
+           // 8190 الحقيقي (ختم الناقد): الشموع اليوم والسعر وتغيّره من 2026-09-10
+           mk("J", 0.9, "2026-11-03", { priceUpdatedAt: "2026-09-10 16:20" }),
+           mk("K", -2.0, "2026-11-03", { priceUpdatedAt: "2026-09-10 16:20" }),
+           // تشغيلة بعد منتصف الليل: السعر مختوم باليوم التالي لجلسته — مقبول
+           mk("L", 3.0, "2026-11-03", { priceUpdatedAt: "2026-11-04 00:30" })];
 const ids = F.VIEWS.map(v => v.id);
 ok(ids.join() === "market,gainers,losers,top,entry,reversal,yield,dividends,mine",
    "الترتيب (مراجعة UX): السوق ثم حركة الجلسة، ثم عروض سيف، ثم «الأعلى عائداً» ملاصقاً للمفكرة، ثم قائمتي");
-ok(S.filter(V("gainers").fn).map(s => s.symbol).join() === "A,B",
-   "ارتفاعاً: الموجب فقط من آخر جلسة — لا صفر ولا null ولا جلسة قديمة (G) ولا بلا تاريخ (I)");
-ok(S.filter(V("losers").fn).map(s => s.symbol).join() === "C,D", "انخفاضاً: السالب من آخر جلسة فقط (H قديمة خارج)");
+ok(S.filter(V("gainers").fn).map(s => s.symbol).join() === "A,B,L",
+   "ارتفاعاً: الموجب من آخر جلسة — لا صفر ولا null ولا شموع قديمة (G) ولا بلا تاريخ (I) ولا سعر قديم (J=8190)، وتشغيلة منتصف الليل (L) مقبولة");
+ok(S.filter(V("losers").fn).map(s => s.symbol).join() === "C,D", "انخفاضاً: السالب من آخر جلسة فقط (H شموع قديمة وK سعر قديم خارج)");
 ok(JSON.stringify(V("gainers").sort) === '{"key":"chg","dir":-1}' && JSON.stringify(V("losers").sort) === '{"key":"chg","dir":1}',
    "الفرز: ارتفاعاً تنازلي، انخفاضاً تصاعدي (الأشد هبوطاً أولاً)");
 F.setData({});
 ok(F.inSession(mk("X", 1, "2020-01-01")), "بلا تاريخ جلسة في البيانات ⇒ لا يُستبعد أحد");
 ok(V("yield").fn({ _dy: 3.2 }) && !V("yield").fn({ _dy: 0 }) && !V("yield").fn({}) &&
    JSON.stringify(V("yield").sort) === '{"key":"dy","dir":-1}', "الأعلى عائداً: dy>0 مرتب تنازلياً");
-F.setData({ upcomingDividends: [{ eligDate: "2026-11-05" }, { distDate: "2026-11-03" }, { eligDate: "2026-10-01", distDate: "2026-10-20" }] });
+F.setData({ upcomingDividends: [{ sym: "1", value: 1, eligDate: "2026-11-05" }, { sym: "2", value: 0.5, distDate: "2026-11-03" },
+  { sym: "3", value: 1, eligDate: "2026-10-01", distDate: "2026-10-20" },
+  { sym: "", value: 1, eligDate: "2026-11-09" }, { sym: "5", value: 0, eligDate: "2026-11-09" }] });
 ok(V("dividends").calendarOnly === true && V("dividends").count() === 2 && V("dividends").label === "مفكرة التوزيعات"
-   && S.filter(V("dividends").fn).length === 0, "مفكرة التوزيعات: بلا جدول، وعدّادها الأحداث القادمة (2) لا الشركات");
+   && S.filter(V("dividends").fn).length === 0, "مفكرة التوزيعات: بلا جدول، وعدّادها الأحداث القادمة (2) لا الشركات — وبشرط صفوف المفكرة نفسه (بلا رمز أو بقيمة صفرية يُسقط)");
 
 console.log("ربط العرض");
 const rb = uat.slice(uat.indexOf("function renderBody(){"), uat.indexOf("function renderBody(){") + 6000);
-ok(/if\(view\.calendarOnly\)\{[\s\S]{0,300}\$\("body"\)\.innerHTML=divCalendarHtml\(\);\s*return;/.test(rb),
-   "renderBody: المفكرة وحدها ثم return — لا جدول ولا بطاقات");
+ok(/if\(view\.calendarOnly\)\{[\s\S]{0,500}\$\("body"\)\.innerHTML=divCalendarHtml\(\);\s*bindSymRows\(\);[^\n]*\n\s*return;/.test(rb),
+   "renderBody: المفكرة وحدها ثم ربط صفوفها بالدرج ثم return (ختم الناقد: كانت لا تفتح الدرج)");
+ok((rb.match(/bindSymRows\(\);/g) || []).length === 2 && uat.includes("function bindSymRows(){")
+   && /function bindSymRows\(\)\{[\s\S]{0,300}openDrawer\(el\.dataset\.sym\)[\s\S]{0,120}key==="Enter"/.test(uat),
+   "الربط (نقر وEnter) في دالة واحدة تُنادى في فرعي الجدول والمفكرة");
+ok(uat.includes('${rows.length} ${evPhrase(rows.length)}') && !uat.includes("${rows.length} حدثاً"),
+   "رأس المفكرة بتمييز العدد نفسه (لا «10 حدثاً»)");
+ok(/else if\(prevV&&prevV\.session\) state\.sort=\{key:"score",dir:-1\};/.test(uat),
+   "الخروج من عرض جلسة إلى عرض بلا فرز يعيد فرز الدرجة (لا يصعد الفارغ −999 بالتصاعدي)");
 ok(rb.includes('state.view==="yield"?dyNoteHtml()') && rb.includes('state.view==="yield"&&dyOf(s)!=null'),
    "ملاحظة العائد وشارة العائد في البطاقة ⇒ «الأعلى عائداً»");
 ok(uat.includes('state.dyRatedOnly && state.view==="yield"') && uat.includes('const view=VIEWS.find(v=>v.id==="yield");'),
    "«المقيَّمة فقط» وعدّاد الأعلى عشرة ⇒ «الأعلى عائداً»");
 ok(!/state\.view==="dividends"/.test(uat), "لا أثر باقٍ لجدول التوزيعات القديم");
 ok(rb.includes("view.session?") && rb.includes("لا يدخل تقييم سيف"), "ملاحظة الجلسة فوق ارتفاعاً/انخفاضاً");
-ok(uat.includes('$("regime").innerHTML=`${tasiCloseHtml(rg)}') && uat.includes('<div class="regime-line" id="regime"></div>')
+ok(uat.includes('$("regime").innerHTML=`${tasiCloseHtml(rg)}') && uat.includes('<div class="regime-line" id="regime" role="region" aria-label="مؤشر السوق"></div>')
    && !/\$\("pulse"\)\.innerHTML=`[\s\S]{0,2500}regime-line/.test(uat.slice(uat.indexOf("function renderPulse(){"), uat.indexOf("function tasiChange("))),
    "سطر المؤشر يستعمل tasiCloseHtml، وهو شقيق للنبض لا داخله (على الجوال كان آخر الشريط الأفقي خارج الشاشة)");
 ok(/@media\(max-width:767px\)\{[\s\S]{0,1200}\.regime-line\{font-size:11px; padding:4px 14px 6px\}/.test(uat)
