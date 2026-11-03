@@ -103,6 +103,14 @@ a{color:var(--accent); text-decoration:none}
 .p-best .tchip{margin-top:3px}
 .regime-line{grid-column:1/-1; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); padding:2px 2px 0; flex-wrap:wrap}
 .regime-line b{color:var(--text); font-weight:600}
+/* §8-و سطر تاسي (طلب المالك 03-11): الإغلاق والتغير بالنقاط والنسبة بخط عريض بارز.
+   السهم ▲/▼ يحمل الاتجاه فلا يعتمد على اللون وحده */
+.tasi-close{display:inline-flex; align-items:baseline; gap:7px; font-size:15px; color:var(--text)}
+.tasi-close .tv{font-weight:700; font-size:16px}
+.tasi-close .tc{font-weight:700}
+.tasi-close .td{font-size:11px; color:var(--text3); font-weight:400}
+.view-note{font-size:11.5px; color:var(--text3); padding:9px 14px; margin:0 0 10px;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm)}
 /* نقطة الانكسار رُفعت 1023 → 1279 (ختم 04-10): الشبكة السداسية كانت تبدأ من
    1024 فيبقى عمود الاسم عند 83px — وهو الرقم نفسه الذي سُمّي حالةَ العطب. */
 @media(max-width:1279px) and (min-width:768px){ .pulse{grid-template-columns:repeat(3,1fr)} .p-best{grid-column:1/-1} }
@@ -870,7 +878,7 @@ function renderPulse(){
       ${sparkline(d30,86,38,up?"#34D399":"#F87171")}
     </div>`;
   }
-  const divCount=(DATA.upcomingDividends||[]).filter(d=>(d.eligDate&&d.eligDate>=todayStr())||(d.distDate&&d.distDate>=todayStr())).length;
+  const divCount=divEventsCount();
   $("pulse").innerHTML=`
     <div class="p-tile" data-goto="market"><span class="k">الشركات المحللة</span><span class="v num">${STOCKS.length}</span><span class="s">منها ${ratedList.length} مقيّمة</span></div>
     <div class="p-tile" data-goto="top" data-min="80"><span class="k">فرص قوية ‎80+‎</span><span class="v num" style="color:var(--band-strong)">${strong.length}</span><span class="s">جودة عالية</span></div>
@@ -878,8 +886,8 @@ function renderPulse(){
     <div class="p-tile" data-goto="reversal"><span class="k">انعكاس مبكر</span><span class="v num" style="color:var(--amber)">${revs.length}</span><span class="s">تحت المتوسط بإشارات تعافٍ</span></div>
     <div class="p-tile" data-goto="dividends"><span class="k">مفكرة التوزيعات</span><span class="v num" style="color:var(--accent)">${divCount}</span><span class="s">حدثاً قادماً في النافذة</span></div>
     ${bestHtml}
-    <div class="regime-line">${esc(rg.icon||"")} السوق: <b>${esc(rg.regime||"—")}</b> · تاسي <b class="num">${fmt(rg.indexValue,0)}</b>
-      <span class="num ${rg.changePct>=0?"chg-up":"chg-dn"}">${rg.changePct!=null?(rg.changePct>=0?"+":"")+rg.changePct+"%":""}</span>
+    <div class="regime-line">${tasiCloseHtml(rg)}
+      · ${esc(rg.icon||"")} السوق: <b>${esc(rg.regime||"—")}</b>
       · صاعد/هابط <b class="num">${rg.advancing||"—"}/${rg.declining||"—"}</b> · ${esc(rg.advice||"")}</div>`;
   $("pulse").querySelectorAll(".p-tile").forEach(el=>el.addEventListener("click",()=>{
     /* الحدّ يُمرَّر إلى setView فتتولّى الملكية: إسقاط فلتر البلاطة السابقة
@@ -891,18 +899,52 @@ function renderPulse(){
           pb.addEventListener("keydown",e=>{if(e.key==="Enter")openDrawer(pb.dataset.sym);}); }
 }
 
-/* ─── Smart Views ─── */
+/* ─── §8-و سطر تاسي (طلب المالك 03-11): «أغلق X ▼ N نقطة (−p%)» بخط عريض ───
+   المصدر marketRegime (الجلب اليومي بعد الإغلاق): change بالنقاط وchangePct بالنسبة.
+   احتياط: change غائب ⇒ indexValue − prevClose؛ وكلاهما غائب ⇒ النسبة وحدها. عرض فقط. */
+function tasiChange(rg){
+  const r=rg||{};
+  const pts=typeof r.change==="number"?r.change
+    :(typeof r.indexValue==="number"&&typeof r.prevClose==="number"?+(r.indexValue-r.prevClose).toFixed(2):null);
+  const pct=typeof r.changePct==="number"?r.changePct
+    :(pts!=null&&r.prevClose?+(pts/r.prevClose*100).toFixed(2):null);
+  return {pts, pct};
+}
+function tasiCloseHtml(rg){
+  const r=rg||{}, {pts,pct}=tasiChange(r);
+  if(typeof r.indexValue!=="number") return `تاسي <b>—</b>`;
+  const dir=(pts!=null?pts:pct)||0, cls=dir>0?"chg-up":dir<0?"chg-dn":"chg-flat";
+  const arr=dir>0?"▲":dir<0?"▼":"■";
+  /* الرقم وحده في .num (عزل LTR)؛ كلمة «نقطة» خارجه كي لا تنقلب مع الرقم */
+  const ptsTxt=pts!=null?`<span class="num">${fmt(Math.abs(pts),2)}</span> نقطة`:"";
+  const pctTxt=pct!=null?`${pct>0?"+":pct<0?"−":""}${fmt(Math.abs(pct),2)}%`:"";
+  const chg=(ptsTxt||pctTxt)?`<span class="tc ${cls}"><span aria-hidden="true">${arr}</span> ${ptsTxt}${ptsTxt&&pctTxt?" ":""}${pctTxt?`<span class="num">(${pctTxt})</span>`:""}</span>`:"";
+  const sr=dir>0?"ارتفع":dir<0?"انخفض":"بلا تغير";
+  return `<span class="tasi-close">تاسي أغلق <b class="tv num">${fmt(r.indexValue,2)}</b>${chg}<span class="sr-only">${sr}</span>${r.date?`<span class="td num">${esc(r.date)}</span>`:""}</span>`;
+}
+/* آخر جلسة: تاريخ marketRegime، وسهم لم يتداول فيها لا يظهر بتغيّر قديم في «الأعلى ارتفاعاً/انخفاضاً» */
+const sessionDate=()=>((DATA&&DATA.marketRegime)||{}).date||"";
+const inSession=s=>{ const sd=sessionDate(); return !sd||((s.dailyExtra||{}).lastDate===sd); };
+const divEventsCount=()=>(DATA.upcomingDividends||[]).filter(d=>(d.eligDate&&d.eligDate>=todayStr())||(d.distDate&&d.distDate>=todayStr())).length;
+
+/* ─── Smart Views ───
+   §8-و (طلب المالك 03-11): «الأعلى ارتفاعاً» و«الأكثر انخفاضاً» (آخر جلسة) و«الأعلى عائداً»
+   تبويبات بعد «السوق». و«التوزيعات» صار «مفكرة التوزيعات» وحدها بلا جدول (calendarOnly) —
+   جدول الشركات بالعائد انتقل إلى «الأعلى عائداً» مع ملاحظته ومفتاح «المقيَّمة فقط». */
 const VIEWS=[
   {id:"market", label:"السوق", fn:s=>true},
+  {id:"gainers", label:"الأعلى ارتفاعاً", fn:s=>chgOf(s)!=null&&chgOf(s)>0&&inSession(s), sort:{key:"chg",dir:-1}, session:true},
+  {id:"losers", label:"الأكثر انخفاضاً", fn:s=>chgOf(s)!=null&&chgOf(s)<0&&inSession(s), sort:{key:"chg",dir:1}, session:true},
+  {id:"yield", label:"الأعلى عائداً", fn:s=>(dyOf(s)||0)>0, sort:{key:"dy",dir:-1}},
   {id:"top", label:"الأعلى تقييماً", fn:s=>rated(s), sort:{key:"score",dir:-1}},
   {id:"entry", label:"فرص الدخول", fn:s=>rated(s)&&isc(s).total>=65&&timingState(s)==="green"},
   {id:"reversal", label:"انعكاس مبكر", fn:s=>isc(s).viaReversal===true||isc(s).filterReason==="تحت SMA200W لكن إشارات انعكاس"},
-  {id:"dividends", label:"التوزيعات", fn:s=>(dyOf(s)||0)>0, sort:{key:"dy",dir:-1}},
+  {id:"dividends", label:"مفكرة التوزيعات", fn:s=>false, calendarOnly:true, count:()=>divEventsCount()},
   {id:"mine", label:"قائمتي", fn:s=>(DATA.portfolioSymbols||[]).includes(s.symbol)}
 ];
 function renderViews(){
   $("views").innerHTML=VIEWS.map(v=>{
-    const n=STOCKS.filter(v.fn).length;
+    const n=v.count?v.count():STOCKS.filter(v.fn).length;
     return `<button class="view-tab ${state.view===v.id?"on":""}" data-v="${v.id}">${v.label}<span class="c num">${n}</span></button>`;
   }).join("");
   $("views").querySelectorAll(".view-tab").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.v)));
@@ -966,7 +1008,7 @@ function applyFilters(list,opts){
     if(a.div && !((dyOf(s)||0)>2)) return false;
     if(a.pe){ const pe=peOf(s), ref=medPe(s); if(!(pe&&ref&&pe<ref)) return false; }
     if(a.liq && !((s.liquidityGate||{}).passed)) return false;
-    if(!o.ignoreDyToggle && state.dyRatedOnly && state.view==="dividends" && !rated(s)) return false;
+    if(!o.ignoreDyToggle && state.dyRatedOnly && state.view==="yield" && !rated(s)) return false;
     return true;
   });
 }
@@ -1374,7 +1416,7 @@ function dyNoteHtml(){
   /* ملزمة ختم 03-10: العدّاد ضابط سلامة — يُحسب من كون الموزِّعين **مرتَّباً بالعائد**
      ومتجاهلاً مفتاح «المقيَّمة فقط»، لا من القائمة المعروضة؛ وإلا أعلن رقماً أقل من
      الحقيقة بمجرد إعادة الفرز (8 بدل 10) أو صفراً حين يُفعَّل المفتاح نفسه. */
-  const view=VIEWS.find(v=>v.id==="dividends");
+  const view=VIEWS.find(v=>v.id==="yield");
   const base=sortBy(applyFilters(STOCKS.filter(view.fn),{ignoreDyToggle:true}),"dy",-1);
   const top=base.slice(0,10);
   const unrated=top.filter(s=>!rated(s)).length;
@@ -1386,7 +1428,7 @@ function dyNoteHtml(){
   const byYield=state.sort.key==="dy"&&state.sort.dir===-1;
   const col=COLS.find(c=>c.key===state.sort.key);
   const title=byYield?"مرتبة من الأعلى عائداً"
-    :`عرض التوزيعات — مرتبة حسب «${esc(col?col.label:state.sort.key)}»`;
+    :`الأعلى عائداً — مرتبة حسب «${esc(col?col.label:state.sort.key)}»`;
   return `<div class="dy-note">
     <div class="dy-note-hd">
       <b>${title}</b>
@@ -1406,9 +1448,15 @@ function renderBody(){
   const view=VIEWS.find(v=>v.id===state.view)||VIEWS[0];
   let list=applyFilters(STOCKS.filter(view.fn));
   list=sortList(list);
+  if(view.calendarOnly){
+    /* «مفكرة التوزيعات» وحدها (قرار المالك 03-11) — لا جدول ولا بطاقات تحتها */
+    $("count").innerHTML=`<b class="num">${divEventsCount()}</b> حدثاً`;
+    $("body").innerHTML=divCalendarHtml();
+    return;
+  }
   $("count").innerHTML=`<b class="num">${list.length}</b> نتيجة`;
-  const calHtml=state.view==="dividends"?divCalendarHtml():"";
-  if(!list.length&&!calHtml){
+  const calHtml="";
+  if(!list.length){
     /* الحالة الصفرية (P3/P17): لا مسح صامت — الإزالة بزر صريح بقرار المستخدم */
     const hasFilters=activeFilterCount()>0;
     const viewBtn=(hasFilters&&state.view!=="market")
@@ -1463,10 +1511,11 @@ function renderBody(){
         ${scoreOf(s)!=null?`<span class="sc-line"><span class="n num" style="color:${scoreColor(scoreOf(s))}">${scoreOf(s)}</span><span class="sbar"><i style="width:${scoreOf(s)}%;background:${scoreColor(scoreOf(s))}"></i></span></span>`:""}
         ${bandHtml(s)}
         ${timingChip(s,false)}
-        ${state.view==="dividends"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:dyBadgeHtml(s)}
+        ${state.view==="yield"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:dyBadgeHtml(s)}
       </div>
     </div>`).join("");
-  const dyNote=state.view==="dividends"?dyNoteHtml():"";
+  const dyNote=state.view==="yield"?dyNoteHtml()
+    :view.session?`<div class="view-note">تغيّر آخر جلسة${sessionDate()?` (<span class="num">${esc(sessionDate())}</span>)`:""} مقابل إغلاق الجلسة السابقة — معلوماتي، لا يدخل تقييم سيف.</div>`:"";
   $("body").innerHTML=calHtml+dyNote+`
     <table class="scr"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>
     <div class="cards">${cards}</div>`;
