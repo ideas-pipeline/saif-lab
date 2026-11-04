@@ -375,7 +375,7 @@
       <details style="margin-top:4px;font-size:0.82rem;color:var(--muted)">
         <summary style="cursor:pointer;color:var(--accent)">تفاصيل منهجية القياس</summary>
         <p style="margin-top:6px">أساس القياس v2 منذ 2026-07-21: دخول بإغلاق سهمك (معدّل للتقسيمات عند المصدر) + التوزيعات الفعلية بتاريخ الأحقية = عائد كلي دقيق (الاحتياطي adjclose يدمجها ضمنياً)</p>
-        <p style="margin-top:6px"><b>measurement v3 منذ 2026-08-03:</b> الحكم بالعائد الزائد الصافي مقابل TASI السعري للفترة المطابقة لكل توصية — نجاح = (العائد − عائد تاسي − خصم انحياز 3.5% سنوياً تناسبياً بالمدة) &gt; 0. الخصم يصحح انحياز عوائد شبه كلية مقابل مؤشر سعري (وثيقة المعايير §4). المسار اليدوي legacy مفصول أسفل الصفحة وخارج كل الإحصاءات</p>
+        <p style="margin-top:6px"><b>measurement v3 منذ 2026-08-03:</b> الحكم بالعائد الزائد الصافي مقابل TASI السعري للفترة المطابقة لكل توصية — نجاح = (العائد − عائد تاسي − خصم انحياز 3.5% سنوياً تناسبياً بالمدة) &gt; 0. الخصم يصحح انحياز عوائد شبه كلية مقابل مؤشر سعري (وثيقة المعايير §4).</p>
       </details>
       <p style="margin-top:6px"><a href="index.html">↩ العودة للمنصة الرئيسة</a></p>
     </div>
@@ -436,8 +436,6 @@
   <!-- ── Mobile Cards ── -->
   <div class="mobile-cards" id="mobile-cards"></div>
 
-  <!-- ── measurement v3: المسار اليدوي legacy — جدول مستقل خارج عينة الحكم ── -->
-  <div id="legacy-section"></div>
 
   <!-- ── عينة الظل الثانية: قيمة تحت الفلتر — ظل بحثي، ليست توصيات (مواصفة المحلل 07-08) ── -->
   <div id="value-shadow-section"></div>
@@ -1180,231 +1178,6 @@ const WATCHLIST = [
     filterCrossDate: "2026-08-12",
     filterCrossPrice: 15.65,
     currentPrice:  13.29,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "1010",
-    name:          "بنك الرياض",
-    sector:        "البنوك",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    22.32,      // cache | يدوي أصلي: 21.64
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     2.94,
-    tasiRet:       -14.39,
-    periodDays:    601,
-    regimeAtEntry: "",
-    entryDate:     "2025-03-13",
-    track:         "legacy",
-    currentPrice:  19.7,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "4030",
-    name:          "البحري",
-    sector:        "النقل البحري",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    23.2,      // cache | يدوي أصلي: 32.0
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     3.5,
-    tasiRet:       -14.39,
-    periodDays:    601,
-    regimeAtEntry: "",
-    entryDate:     "2025-03-13",
-    track:         "legacy",
-    currentPrice:  35.5,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "2287",
-    name:          "العربية للزراعة",
-    sector:        "الإنتاج الغذائي",
-    type:          "sell",          // "buy" | "sell"
-    entryPrice:    65.0,      // cache | يدوي أصلي: 25.8
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.5,
-    tasiRet:       -14.39,
-    periodDays:    601,
-    regimeAtEntry: "",
-    entryDate:     "2025-03-13",
-    track:         "legacy",
-    currentPrice:  19.57,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "4264",
-    name:          "طيران ناس",
-    sector:        "النقل الجوي",
-    type:          "sell",          // "buy" | "sell"
-    entryPrice:    50.5,      // manual-fallback | يدوي أصلي: 50.5
-    entrySource:   "manual-fallback",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0,
-    tasiRet:       -14.39,
-    periodDays:    601,
-    regimeAtEntry: "",
-    entryDate:     "2025-03-13",
-    track:         "legacy",
-    currentPrice:  40.52,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "2020",
-    name:          "سابك للمغذيات الزراعية",
-    sector:        "المواد الأساسية",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    149.9,      // cache | يدوي أصلي: 145.0
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     3.5,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  114.3,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "1060",
-    name:          "البنك الأول",
-    sector:        "البنوك",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    36.82,      // cache | يدوي أصلي: 37.3
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     2.0,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  31.96,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "1120",
-    name:          "مصرف الراجحي",
-    sector:        "البنوك",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    70.93,      // cache | يدوي أصلي: 106.6
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     3.01,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  61.5,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "1180",
-    name:          "البنك الأهلي السعودي",
-    sector:        "البنوك",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    42.46,      // cache | يدوي أصلي: 41.82
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     2.3,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  37.5,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "4190",
-    name:          "جرير",
-    sector:        "السلع الاستهلاكية",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    14.12,      // cache | يدوي أصلي: 14.12
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.67,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  16.68,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "1303",
-    name:          "الصناعات الكهربائية",
-    sector:        "الصناعية",
-    type:          "buy",          // "buy" | "sell"
-    entryPrice:    16.68,      // cache | يدوي أصلي: 16.7
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.375,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  10.5,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "1323",
-    name:          "الورق المتحدة",
-    sector:        "السلع الاستهلاكية",
-    type:          "sell",          // "buy" | "sell"
-    entryPrice:    24.9,      // cache | يدوي أصلي: 24.47
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.5,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  24.67,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "2300",
-    name:          "صناعة الورق",
-    sector:        "السلع الأساسية",
-    type:          "sell",          // "buy" | "sell"
-    entryPrice:    58.4,      // cache | يدوي أصلي: 56.35
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.5,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  51.25,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "4018",
-    name:          "الموسى الصحية",
-    sector:        "الرعاية الصحية",
-    type:          "sell",          // "buy" | "sell"
-    entryPrice:    135.9,      // cache | يدوي أصلي: 138.2
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.5,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  102.6,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "2083",
-    name:          "مرافق",
-    sector:        "المرافق",
-    type:          "sell",          // "buy" | "sell"
-    entryPrice:    31.94,      // cache | يدوي أصلي: 31.68
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.0,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  43.0,           // ✅ confirmed 2026-11-04
-  },
-  {
-    symbol:        "4019",
-    name:          "المتخصصة الطبية",
-    sector:        "الرعاية الصحية",
-    type:          "sell",          // "buy" | "sell"
-    entryPrice:    18.56,      // cache | يدوي أصلي: 18.54
-    entrySource:   "cache",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
-    divsSince:     0.32,
-    tasiRet:       -10.91,
-    periodDays:    216,
-    regimeAtEntry: "",
-    entryDate:     "2026-04-02",
-    track:         "legacy",
-    currentPrice:  13.07,           // ✅ confirmed 2026-11-04
   },
   {
     symbol:        "1321",
@@ -2677,7 +2450,7 @@ function calcReturn(entry, current, type, divs) {
 /* measurement v3 (2026-08-03): الحكم بالعائد الزائد الصافي مقابل تاسي — يحل محل ret>=0 نهائياً.
    discount = 3.5 × (أيام الفترة ÷ 365) نقطة مئوية (منتصف نطاق وثيقة المعايير 3-4%، تناسبي بالمدة).
    excessNet = (ret − tasiRet) − discount. النجاح والإصابة كلاهما على excessNet.
-   sell (كلها legacy) لا تُحاكم في v3 — عرض اطلاعي فقط. */
+   مدخلات sell لا تُحاكم في v3 (كانت كلها في المسار اليدوي، ولم يعد يُعرض هنا — §8-ز). */
 const DISCOUNT_ANNUAL_PCT = 3.5;
 
 function calcExcess(ret, tasiRet, periodDays) {
@@ -2701,7 +2474,7 @@ function fmt(n, dec = 2) {
 }
 
 /* تعريب القطاعات — الخريطة منقولة من template.html (هوية موحدة، قرار هـ).
-   مدخلات legacy عربية أصلاً فتمر كما هي عبر الاحتياط */
+   القطاع غير المعروف يمر كما هو عبر الاحتياط */
 const SECTOR_AR = {"Financials": "المالية", "Materials": "المواد الأساسية", "Industrials": "الصناعية", "Consumer Discretionary": "السلع الاستهلاكية", "Consumer Staples": "السلع الأساسية", "Healthcare": "الرعاية الصحية", "Real Estate": "العقارية", "Energy": "الطاقة", "Technology": "التقنية", "Communication Services": "الاتصالات", "Utilities": "المرافق", "Unknown": "غير مصنف"};
 const secAr = (s) => SECTOR_AR[s] || s || "—";
 
@@ -2719,7 +2492,6 @@ function returnClass(ret, success) {
 }
 
 function statusBadge(success, r) {
-  if (r && r.legacy)    return `<span class="status-badge status-pending">📒 خارج الحكم (يدوي)</span>`;
   if (r && r.dataFault) return `<span class="status-badge status-pending">⚠️ أُغلق بعطب بيانات — خارج الحكم</span>`;
   if (r && r.status === "closed") {
     // «النقاط دون 50» بدل «نقاط<50»: علامة < تنعكس في RTL وتُربك القراءة (موثق باللقطات)
@@ -2759,7 +2531,8 @@ const rows = WATCHLIST.map(item => {
   // §8-ق: سعر الدخول على أساس السعر الحالي إن عبر المدخل منحة/تجزئة مطبَّقة (entryPriceAdj)
   const ret = calcReturn(item.entryPriceAdj ?? item.entryPrice, px, item.type, item.divsSince);
   const shadow = item.category === "buy_wait";     // الظل يُسجل ولا يُحاكم (وثيقة المعايير §2)
-  const legacy = item.track === "legacy";          // المسار اليدوي — خارج عينة الحكم كلياً (§2)
+  // حارس: المسار اليدوي لم يعد يُضمَّن في الصفحة (قرار المالك 04-11)، ويبقى الاستبعاد إن تسرّب مدخل منه
+  const legacy = item.track === "legacy";
   const vshadow = item.sampleType === "value-shadow";  // ظل القيمة البحثي — جدول مستقل، خارج الحكم
   const early = isEarly(item);
   const ex = calcExcess(ret, item.tasiRet, item.periodDays);   // v3
@@ -2769,7 +2542,6 @@ const rows = WATCHLIST.map(item => {
            excessGross: ex.gross, discount: ex.discount, excessNet: ex.net };
 });
 const autoRows   = rows.filter(r => !r.legacy && !r.vshadow);   // عينة النظام (المطبقة + الظل)
-const legacyRows = rows.filter(r => r.legacy);    // المسار اليدوي — جدول مستقل
 const vsRows     = rows.filter(r => r.vshadow);   // ظل القيمة — جدول بحثي مستقل
 
 /* ══════════════════════════════════════════════════════
@@ -2877,33 +2649,6 @@ function renderSegments() {
   el.innerHTML = html;
 }
 
-/* measurement v3: جدول المسار اليدوي legacy — مفصول، بلا أي إحصاء نجاح */
-function renderLegacy() {
-  const el = document.getElementById("legacy-section");
-  if (!el) return;
-  if (!legacyRows.length) { el.innerHTML = ""; return; }
-  el.innerHTML = `
-    <div style="margin-top:22px;padding-top:10px;border-top:1px dashed #2a3442">
-      <h3 style="font-size:1em;color:#94a3b8">📒 المسار اليدوي — يقيس المحفظة لا النظام، خارج عينة الحكم (${legacyRows.length} مدخلاً)</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>الرمز</th><th>الشركة</th><th>النوع</th><th>سعر الدخول</th><th>السعر الحالي</th><th>العائد %</th><th>تاسي %</th><th>زائد خام</th></tr></thead>
-          <tbody>${legacyRows.map(r => `
-            <tr>
-              <td class="symbol">${r.symbol}</td>
-              <td><div class="company-name">${r.name}</div><div class="sector">${r.sector}</div></td>
-              <td>${r.type === "buy" ? "📈 شراء" : "📉 بيع"}</td>
-              <td class="price">${fmt(r.entryPrice)}</td>
-              <td class="price">${r.currentPrice !== null ? fmt(r.currentPrice) : "—"}</td>
-              <td>${fmtReturn(r.ret)}</td>
-              <td>${r.tasiRet != null ? fmtReturn(r.tasiRet) : "—"}</td>
-              <td>${r.excessGross !== null ? fmtReturn(r.excessGross) : "—"}</td>
-            </tr>`).join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-}
 
 /* ══════════════════════════════════════════════════════
    TABLE
@@ -2985,7 +2730,7 @@ function renderCards(data) {
    FILTERS
    ══════════════════════════════════════════════════════ */
 function applyFilter(filter) {
-  // v3: الفلاتر تعمل على عينة النظام (auto) فقط — legacy في جدوله المستقل والإحصاءات ثابتة
+  // v3: الفلاتر تعمل على عينة النظام (auto) فقط — والإحصاءات ثابتة
   // (قرار د): الافتراضي «المطبقة»؛ الظل بنقرة — 37 صف مراقبة لا تتصدر قائمة التوصيات
   let data = autoRows;
   if (filter === "applied") data = autoRows.filter(r => !r.shadow);
@@ -3049,7 +2794,7 @@ document.getElementById("footer-updated").innerHTML =
 })();
 
 /* ══════════════════════════════════════════════════════
-   INIT — v3: الجدول الرئيسي عينة النظام، legacy مفصول، الإحصاءات ثابتة
+   INIT — v3: الجدول الرئيسي عينة النظام، والإحصاءات ثابتة
    ══════════════════════════════════════════════════════ */
 function renderValueShadow() {
   const el = document.getElementById("value-shadow-section");
@@ -3088,7 +2833,6 @@ function renderValueShadow() {
 renderStats();
 renderSegments();
 applyFilter("applied");   // (قرار د) الافتراضي «المطبقة» — يطابق الزر النشط في الشريط
-renderLegacy();
 renderValueShadow();
 </script>
 </body>

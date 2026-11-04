@@ -181,7 +181,10 @@ now_iso = now_iso[:-2] + ":" + now_iso[-2:]
 # ── 2) بناء كتلة WATCHLIST ──
 lines = ["const WATCHLIST = ["]
 stats = {"sahmk-close": 0, "cache": 0, "manual-fallback": 0, "same-day-close": 0}
-for s in stocks_config:
+# المسار اليدوي (legacy) لا يُعرض في صفحة الدقة (قرار المالك 04-11) — يبقى في config
+# لأنه مصدر portfolioSymbols («قائمتي» و«في محفظتك»)، ويُستبعد هنا من التضمين وحده
+page_stocks = [s for s in stocks_config if s.get("track") != "legacy"]
+for s in page_stocks:
     symbol      = s["symbol"]
     display_sym = symbol          # بلا لاحقة .SR — أثر حقبة Yahoo أزيل (موجة 07-08ب)
     name        = s["name"]
@@ -329,8 +332,8 @@ with open(tmp_html, "w") as f:
     f.write(new_html)
 os.replace(tmp_html, HTML_FILE)
 
-_t_ok = sum(1 for s in stocks_config if tasi_period(s.get("entryDate", config.get("entryDate", "")), s.get("closeDate") if s.get("status") == "closed" else None)[0] is not None)
-print(f"\n✅ Done v3 lab-line — {len(stocks_config)} stocks | sahmk: {stats['sahmk-close']} | cache: {stats['cache']} | fallback: {stats['manual-fallback']} | same-day: {stats['same-day-close']} | tasiRet: {_t_ok}/{len(stocks_config)}")
+_t_ok = sum(1 for s in page_stocks if tasi_period(s.get("entryDate", config.get("entryDate", "")), s.get("closeDate") if s.get("status") == "closed" else None)[0] is not None)
+print(f"\n✅ Done v3 lab-line — {len(page_stocks)} stocks (legacy مستبعد: {len(stocks_config) - len(page_stocks)}) | sahmk: {stats['sahmk-close']} | cache: {stats['cache']} | fallback: {stats['manual-fallback']} | same-day: {stats['same-day-close']} | tasiRet: {_t_ok}/{len(page_stocks)}")
 PYEOF
 
 if [ $? -ne 0 ]; then
