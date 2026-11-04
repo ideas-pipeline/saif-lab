@@ -756,7 +756,7 @@ try:
     P = {k: os.path.join(d, k) for k in ("s2.json", "c2.json", "p.html", "cache.json", "t.json")}
     json.dump({"runType": "close", "lastUpdated": "2026-10-20 16:00", "stocks": [st1120]}, open(P["s2.json"], "w"))
     json.dump({"stocks": [{"symbol": "1120", "name": "ر", "entryPrice": 106.6, "entryDate": "2026-04-02",
-                           "track": "legacy"}]}, open(P["c2.json"], "w"))
+                           "track": "auto"}]}, open(P["c2.json"], "w"))
     open(P["p.html"], "w").write('<script>\nconst WATCHLIST = [\n];\nconst META = {updatedAt: "x"};\n</script>\n')
     json.dump({"data": []}, open(P["t.json"], "w"))
     env = {k: v for k, v in os.environ.items() if not k.startswith("SAHMK")}
@@ -805,7 +805,7 @@ def acc_run(cfg_stocks, cache_obj, st_list):
 today_s = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
 cap1120 = [{"date": "2023-11-27", "eventDate": "2026-04-21", "factor": 0.666667}]
 st_c = [dict(st1120, capActions=cap1120)]
-e_leg = {"symbol": "1120", "name": "ر", "entryPrice": 106.6, "entryDate": "2026-04-02", "track": "legacy"}
+e_leg = {"symbol": "1120", "name": "ر", "entryPrice": 106.6, "entryDate": "2026-04-02", "track": "auto"}
 k_div = "D|1120|2026-04-02|" + today_s
 b = acc_run([e_leg], {"S|1120|2026-04-02": {"close": 70.93, "tradingDay": "2026-04-02", "fetchedAt": "2026-08-01"},
                       k_div: 0}, st_c)
@@ -814,7 +814,7 @@ check("الدقة/الكاش: إغلاق المزوّد 70.93 معدّل أصل�
 b = acc_run([e_leg], {"S|1120|2026-04-02": {"close": 106.6, "tradingDay": "2026-04-02", "fetchedAt": "2026-04-05"},
                       k_div: 0}, st_c)
 check("الدقة/الكاش: إغلاق جُلب قبل الحدث (اسمي 106.6) ⇒ entryPriceAdj 71.0667", "entryPriceAdj: 71.0667," in b[0])
-e_old = {"symbol": "1120", "name": "ر", "entryPrice": 90.0, "entryDate": "2023-10-01", "track": "legacy"}
+e_old = {"symbol": "1120", "name": "ر", "entryPrice": 90.0, "entryDate": "2023-10-01", "track": "auto"}
 b = acc_run([e_old], {"S|1120|2023-10-01": {"close": 90.0, "tradingDay": "2023-10-01", "fetchedAt": "2026-08-01"},
                       "D|1120|2023-10-01|" + today_s: 0}, st_c)
 check("الدقة/الكاش: دخول قبل الوصلة (المزوّد لم يعدّل ما قبلها) ⇒ ×2/3 = 60.0", "entryPriceAdj: 60.0," in b[0])
@@ -823,6 +823,11 @@ b = acc_run([e_cl], {"S|1120|2026-04-02": {"close": 70.93, "tradingDay": "2026-0
                      "D|1120|2026-04-02|2026-04-10": 0}, st_c)
 check("الدقة: أُغلق قبل الحدث بسعر اسمي ودخوله معدّل لدى المزوّد ⇒ ÷2/3 = 106.3949",
       "entryPriceAdj: 106.3949," in b[0])
+# §8-ز (قرار المالك 04-11): المسار اليدوي لا يُضمَّن في صفحة الدقة؛ المدخل الآلي يُضمَّن
+b = acc_run([dict(e_leg, track="legacy", symbol="9999"), e_leg],
+            {"S|1120|2026-04-02": {"close": 70.93, "tradingDay": "2026-04-02", "fetchedAt": "2026-08-01"}, k_div: 0}, st_c)
+check("الدقة: track=legacy مستبعد من WATCHLIST والآلي يبقى (كتلة واحدة، بلا legacy)",
+      len(b) == 1 and 'symbol:        "1120"' in b[0] and 'track:         "legacy"' not in "".join(b))
 
 # meta بعد الإسناد، وeventDate يسبق التاريخ المسنَد ⇒ يُهمل
 man_s = [{"date": "2023-11-26", "eventDate": "2026-04-21", "factor": 2 / 3, "kind": "bonus", "source": "s"}]

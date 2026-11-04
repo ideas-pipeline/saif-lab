@@ -2450,7 +2450,7 @@ function calcReturn(entry, current, type, divs) {
 /* measurement v3 (2026-08-03): الحكم بالعائد الزائد الصافي مقابل تاسي — يحل محل ret>=0 نهائياً.
    discount = 3.5 × (أيام الفترة ÷ 365) نقطة مئوية (منتصف نطاق وثيقة المعايير 3-4%، تناسبي بالمدة).
    excessNet = (ret − tasiRet) − discount. النجاح والإصابة كلاهما على excessNet.
-   sell (كلها legacy) لا تُحاكم في v3 — عرض اطلاعي فقط. */
+   مدخلات sell لا تُحاكم في v3 (كانت كلها في المسار اليدوي، ولم يعد يُعرض هنا — §8-ز). */
 const DISCOUNT_ANNUAL_PCT = 3.5;
 
 function calcExcess(ret, tasiRet, periodDays) {
@@ -2474,7 +2474,7 @@ function fmt(n, dec = 2) {
 }
 
 /* تعريب القطاعات — الخريطة منقولة من template.html (هوية موحدة، قرار هـ).
-   مدخلات legacy عربية أصلاً فتمر كما هي عبر الاحتياط */
+   القطاع غير المعروف يمر كما هو عبر الاحتياط */
 const SECTOR_AR = {"Financials": "المالية", "Materials": "المواد الأساسية", "Industrials": "الصناعية", "Consumer Discretionary": "السلع الاستهلاكية", "Consumer Staples": "السلع الأساسية", "Healthcare": "الرعاية الصحية", "Real Estate": "العقارية", "Energy": "الطاقة", "Technology": "التقنية", "Communication Services": "الاتصالات", "Utilities": "المرافق", "Unknown": "غير مصنف"};
 const secAr = (s) => SECTOR_AR[s] || s || "—";
 
