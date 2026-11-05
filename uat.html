@@ -1812,7 +1812,7 @@ function drawerHtml(s){
     <div class="dr-sec">
       <div class="dr-t">مؤشرات مالية</div>
       <div class="fin-grid">${finCells(s)}</div>
-      ${valUpdOf(s)?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span class="num">${esc(String(valUpdOf(s)).slice(0,16))}</span></div>`:""}
+      ${valUpdOf(s)?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المؤشرات المالية: <span class="num">${esc(valUpdOf(s))}</span></div>`:""}
       ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
       ${provNote(s)}
       ${((fin.periodSuspect||{}).grade==="A")?`<div class="guard-note">قوائم هذه الشركة تبدو لفترة جزئية مع أن المزوّد يسمها سنة كاملة (الإيراد نحو نصف سابقه أو أقل، ويخالفه مصدر مستقل). لذلك لا يُحتسب العائد على حقوق المساهمين والأصول ولا النمو حتى يصحّح المصدر أرقامه.</div>`:""}
@@ -1937,13 +1937,25 @@ function sectorCompareHtml(s){
     <div style="font-size:11.5px;text-align:center;margin-top:8px">${line}</div>
   </div>`;
 }
-/* نضارة التقييم (P2) — مرآة آلية الإنتاج: valuationParts frozen/live + نص VAL_STALE_NOTE الحرفي */
-const VAL_STALE_NOTE="غير محدّث — مصدر البيانات قيد المعالجة";
+/* §8-ح نضارة المؤشرات المالية (سؤال المالك 05-11): كانت تُقرأ من valuationParts وvaluationUpdatedAt —
+   حقلان أحفوريان من خط ما قبل v3 لا يكتبهما سكربت (2026-08-04 لـ246 سهماً)، فظهر «تحديث 08-04»
+   و❄️ «غير محدّث» على P/E وP/B وهي محسوبة يومياً (scoring-engine.py من valuationInputs).
+   المصدر الآن valuationInputs.updatedAt (ختم الجلب اليومي)، و«غير محدّث» حين يتأخر أكثر من
+   VAL_STALE_DAYS عن جلسة السوق أو يغيب. عرض فقط. */
+const VAL_STALE_NOTE="غير محدّث — لم يصل جلب جديد من المزوّد";
+const VAL_STALE_DAYS=7;
 /* احتياط الإنتاج نفسه: الحقلان قد يكونان في الجذر أو تحت valuation */
-const valPartsOf=s=>(s.valuationParts||(s.valuation&&s.valuation.valuationParts))||{};
-const valUpdOf=s=>s.valuationUpdatedAt||(s.valuation&&s.valuation.valuationUpdatedAt)||"";
-const frz=(s,k)=>(valPartsOf(s)[k]==="frozen");
-const frzMark=(s,k)=>frz(s,k)?` <span class="frz" data-tip="${VAL_STALE_NOTE}" tabindex="0" style="cursor:help;font-size:10px">❄️</span>`:"";
+const valUpdOf=s=>String((s.valuationInputs||{}).updatedAt||"").slice(0,10);
+function valStale(s){
+  const u=valUpdOf(s); if(!u) return true;
+  const ref=((DATA&&DATA.marketRegime)||{}).date||String((DATA&&DATA.lastUpdated)||"").slice(0,10);
+  if(!ref) return false;
+  return (new Date(ref)-new Date(u))/86400000>VAL_STALE_DAYS;
+}
+const valStaleNote=s=>valUpdOf(s)?`غير محدّث منذ ${valUpdOf(s)} — لم يصل جلب جديد من المزوّد`:VAL_STALE_NOTE;
+/* k باقٍ في التوقيع (pe/pb/dividendYield): المكوّنات الثلاثة من الجلب نفسه فنضارتها واحدة */
+const frz=(s,k)=>valStale(s);
+const frzMark=(s,k)=>frz(s,k)?` <span class="frz" data-tip="${esc(valStaleNote(s))}" tabindex="0" style="cursor:help;font-size:10px">❄️</span>`:"";
 function finCells(s){
   /* عتبات الألوان حرفياً من الإنتاج (template قسمي الصحة والمخاطر) — عرض فقط */
   const fin=s.financials||{}, dx=s.dailyExtra||{};
