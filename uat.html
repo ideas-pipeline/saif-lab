@@ -1364,13 +1364,14 @@ function d5Cell(s){
   const n=s.dividend5y.n, nTag=n<5?` <span class="d5n" tabindex="0" data-tip="متوسط ${n===2?"سنتين":n+" سنوات"} فقط — بقية الخمس غير متوفرة">(${n})</span>`:"";
   return `${fmt(y,1)}%${nTag}${warn}`;
 }
-function dyCell(s){
+function dyCell(s, colFrozen){
   const y=dyOf(s);
   if(y==null) return "—";
   const f=dyFlags(s);
   const warn=f.length
     ?` <span class="dy-warn" data-tip="${esc(f.join(" · "))}" tabindex="0">⚠️</span>`:"";
-  return `${fmt(y,1)}%${frzMark(s,"dividendYield")}${warn}`;
+  /* ختم الناقد 05-11: حين يتقادم العائد شاملاً يوسم رأس العمود مرة لا 246 صفاً */
+  return `${fmt(y,1)}%${colFrozen?"":frzMark(s,"dividendYield")}${warn}`;
 }
 /* شارة تحذير التوزيع على بطاقة الجوال (قرار المالك 04-10) — تظهر خارج «عرض
    التوزيعات» حصراً، لأن dyCell داخله يحمل ⚠️ بنفسه فيتكرر الوسم. والجدول مخفي
@@ -1522,13 +1523,14 @@ function renderBody(){
   }
   /* نهج الإنتاج: التجميد الشامل يوسم رأس العمود مرة واحدة لا كل صف (ملاحظة الناقد) */
   const frzCol=k=>list.length&&list.filter(s=>frz(s,k)).length>list.length/2;
+  const dyFrozen=!!frzCol("dividendYield");
   /* العمود المرتبط بعرض بعينه يظهر فيه دائماً مهما ضاق المقاس */
   /* زالت آلية alwaysIn بزوال مستهلكها الوحيد (عمود dy) — لا تُترك ماكينة بلا مستخدم */
   const colCls=c=>c.p||"";
   const ths=COLS.map(c=>{
     const sorted=state.sort.key===c.key;
     const arrow=sorted?(state.sort.dir===-1?"▼":"▲"):"▼";
-    const colFrozen=(c.key==="pe"||c.key==="pb")&&frzCol(c.key);
+    const colFrozen=(c.key==="pe"||c.key==="pb")?!!frzCol(c.key):c.key==="dy"?dyFrozen:false;
     const label=c.label+(colFrozen?" ❄️":"");
     const tip=colFrozen?VAL_STALE_NOTE:c.tip;
     const inner=c.sortable
@@ -1549,7 +1551,7 @@ function renderBody(){
       <td class="num col-p2">${peOf(s)!=null?fmt(peOf(s),1):"—"}</td>
       <td class="num col-p3">${pbOf(s)!=null?fmt(pbOf(s),2):"—"}</td>
       <td class="num col-p3">${rs6Of(s)!=null?(rs6Of(s)>0?"+":"")+fmt(rs6Of(s),1)+"%":"—"}</td>
-      <td class="num ${colCls(COL_DY)}">${dyCell(s)}</td>
+      <td class="num ${colCls(COL_DY)}">${dyCell(s,dyFrozen)}</td>
       <td class="num col-p2">${d5Cell(s)}</td>
     </tr>`).join("");
   const cards=list.map(s=>`
@@ -1563,7 +1565,7 @@ function renderBody(){
         ${scoreOf(s)!=null?`<span class="sc-line"><span class="n num" style="color:${scoreColor(scoreOf(s))}">${scoreOf(s)}</span><span class="sbar"><i style="width:${scoreOf(s)}%;background:${scoreColor(scoreOf(s))}"></i></span></span>`:""}
         ${bandHtml(s)}
         ${timingChip(s,false)}
-        ${state.view==="yield"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s)}</span>`:dyBadgeHtml(s)}
+        ${state.view==="yield"&&dyOf(s)!=null?`<span class="badge b-dy num">عائد ${dyCell(s,dyFrozen)}</span>`:dyBadgeHtml(s)}
       </div>
     </div>`).join("");
   const dyNote=state.view==="yield"?dyNoteHtml()
@@ -1812,7 +1814,7 @@ function drawerHtml(s){
     <div class="dr-sec">
       <div class="dr-t">مؤشرات مالية</div>
       <div class="fin-grid">${finCells(s)}</div>
-      ${valUpdOf(s)?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">تحديث المكوّنات الحية: <span class="num">${esc(String(valUpdOf(s)).slice(0,16))}</span></div>`:""}
+      ${valUpdOf(s,"pe")?`<div style="font-size:10.5px;color:var(--text3);text-align:center;margin-top:8px">آخر جلب للأساسيات (أسبوعي): <span class="num">${esc(valUpdOf(s,"pe"))}</span>${valUpdOf(s,"dividendYield")&&valUpdOf(s,"dividendYield")!==valUpdOf(s,"pe")?` · التوزيعات: <span class="num">${esc(valUpdOf(s,"dividendYield"))}</span>`:""} — المكررات محسوبة بسعر اليوم</div>`:""}
       ${isBank?`<div class="fin-note">النقد التشغيلي لدى البنوك يتقلب بنيوياً مع حركة الودائع والقروض — لا يدخل في تقييم البنك (بديله المعتمد: الرافعة الرأسمالية).</div>`:""}
       ${provNote(s)}
       ${((fin.periodSuspect||{}).grade==="A")?`<div class="guard-note">قوائم هذه الشركة تبدو لفترة جزئية مع أن المزوّد يسمها سنة كاملة (الإيراد نحو نصف سابقه أو أقل، ويخالفه مصدر مستقل). لذلك لا يُحتسب العائد على حقوق المساهمين والأصول ولا النمو حتى يصحّح المصدر أرقامه.</div>`:""}
@@ -1937,13 +1939,36 @@ function sectorCompareHtml(s){
     <div style="font-size:11.5px;text-align:center;margin-top:8px">${line}</div>
   </div>`;
 }
-/* نضارة التقييم (P2) — مرآة آلية الإنتاج: valuationParts frozen/live + نص VAL_STALE_NOTE الحرفي */
-const VAL_STALE_NOTE="غير محدّث — مصدر البيانات قيد المعالجة";
-/* احتياط الإنتاج نفسه: الحقلان قد يكونان في الجذر أو تحت valuation */
-const valPartsOf=s=>(s.valuationParts||(s.valuation&&s.valuation.valuationParts))||{};
-const valUpdOf=s=>s.valuationUpdatedAt||(s.valuation&&s.valuation.valuationUpdatedAt)||"";
-const frz=(s,k)=>(valPartsOf(s)[k]==="frozen");
-const frzMark=(s,k)=>frz(s,k)?` <span class="frz" data-tip="${VAL_STALE_NOTE}" tabindex="0" style="cursor:help;font-size:10px">❄️</span>`:"";
+/* §8-ح نضارة المؤشرات المالية (سؤال المالك 05-11): كانت تُقرأ من valuationParts وvaluationUpdatedAt —
+   حقلان أحفوريان من خط ما قبل v3 لا يكتبهما سكربت (2026-08-04 لـ246 سهماً)، فظهر «تحديث 08-04»
+   و❄️ «غير محدّث» على P/E وP/B وهي أرقام اليوم: المكررات تُحسب يومياً بسعر اليوم
+   (scoring-engine.py) على أساسيات **أسبوعية** (fetch_fundamentals، الخميس — المرحلة 2).
+   ختم ما يكتمل من الجلب لكل مكوّن (ختم الناقد 05-11): P/E وP/B ⇐ companyAsOf (/company: EPS
+   والقيمة الدفترية)، والعائد ⇐ divsAsOf (/dividends). لا updatedAt: يُختم باليوم ولو فشل
+   /company و/dividends فيُظهر القديم طازجاً. وأساس EPS/القيمة الدفترية غير المزوّد (fy-derived
+   من /financials) ⇐ أقدم الختمين مع financialsUpdated.
+   «غير محدّث» حين يغيب الختم أو يتأخر عن جلسة السوق أكثر من VAL_STALE_DAYS = 10: دورة الجلب
+   الأسبوعي (7) وهامش 3 أيام، فخميس فائت يُوسَم من الإثنين التالي. عرض فقط. */
+const VAL_STALE_NOTE="غير محدّث — لم يصل جلب جديد من المزوّد";
+const VAL_STALE_DAYS=10;
+const VAL_STAMP={pe:"companyAsOf", pb:"companyAsOf", dividendYield:"divsAsOf"};
+function valUpdOf(s,k){
+  const vi=s.valuationInputs||{}, d=x=>String(x||"").slice(0,10);
+  let u=d(vi[VAL_STAMP[k]||"companyAsOf"]);
+  const basis=k==="pe"?vi.epsBasis:k==="pb"?vi.bookValueBasis:"provider";
+  if(u&&basis&&basis!=="provider"){ const f=d(s.financialsUpdated); u=f&&f<u?f:u; }
+  return u;
+}
+function valStale(s,k){
+  const u=valUpdOf(s,k); if(!/^\d{4}-\d{2}-\d{2}$/.test(u)) return true;   /* غائب أو بصيغة غير الكاتب ⇒ غير محدّث */
+  const ref=((DATA&&DATA.marketRegime)||{}).date||String((DATA&&DATA.lastUpdated)||"").slice(0,10);
+  if(!ref) return false;
+  const age=(new Date(ref)-new Date(u))/86400000;
+  return !(age<=VAL_STALE_DAYS);   /* تاريخ تالف (NaN) ⇒ غير محدّث لا صمت */
+}
+const valStaleNote=(s,k)=>valUpdOf(s,k)?`غير محدّث منذ ${valUpdOf(s,k)} — لم يصل جلب جديد من المزوّد`:VAL_STALE_NOTE;
+const frz=(s,k)=>valStale(s,k);
+const frzMark=(s,k)=>frz(s,k)?` <span class="frz" data-tip="${esc(valStaleNote(s,k))}" tabindex="0" style="cursor:help;font-size:10px">❄️</span>`:"";
 function finCells(s){
   /* عتبات الألوان حرفياً من الإنتاج (template قسمي الصحة والمخاطر) — عرض فقط */
   const fin=s.financials||{}, dx=s.dailyExtra||{};
