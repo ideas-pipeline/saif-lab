@@ -434,8 +434,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -17.87,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -6.34
+   "tasiRet": -7.77,
+   "excessNet": -5.8
   },
   {
    "symbol": "2050",
@@ -495,8 +495,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -19.3,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -10.58
+   "tasiRet": -7.77,
+   "excessNet": -11.09
   },
   {
    "symbol": "3080",
@@ -521,8 +521,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -14.32,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -0.6
+   "tasiRet": -7.77,
+   "excessNet": 0.45
   },
   {
    "symbol": "6010",
@@ -547,8 +547,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -23.29,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -11.36
+   "tasiRet": -7.77,
+   "excessNet": -11.46
   },
   {
    "symbol": "4012",
@@ -573,8 +573,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -18.51,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -6.97
+   "tasiRet": -7.77,
+   "excessNet": -5.97
   },
   {
    "symbol": "3010",
@@ -597,10 +597,10 @@
    "peAtEntry": 10.41,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -22.37,
+   "maePct": -22.82,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -15.25
+   "tasiRet": -7.77,
+   "excessNet": -16.08
   },
   {
    "symbol": "3005",
@@ -625,8 +625,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -30.26,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -23.06
+   "tasiRet": -7.77,
+   "excessNet": -23.44
   },
   {
    "symbol": "3030",
@@ -651,8 +651,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -15.19,
    "status": "open",
-   "tasiRet": -8.13,
-   "excessNet": -8.08
+   "tasiRet": -7.77,
+   "excessNet": -8.07
   },
   {
    "symbol": "4323",
@@ -1138,8 +1138,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -14.56,
    "status": "open",
-   "tasiRet": -8.19,
-   "excessNet": 5.61
+   "tasiRet": -7.82,
+   "excessNet": 4.43
   },
   {
    "symbol": "4260",
@@ -1197,8 +1197,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -7.94,
    "status": "open",
-   "tasiRet": -8.19,
-   "excessNet": 4.11
+   "tasiRet": -7.82,
+   "excessNet": 5.29
   },
   {
    "symbol": "1180",
@@ -1821,10 +1821,10 @@
    "peAtEntry": 6.73,
    "peSectorMedianAtEntry": 19.64,
    "tasiAtEntry": 11032.91,
-   "maePct": -37.91,
+   "maePct": -37.95,
    "status": "open",
-   "tasiRet": -9.93,
-   "excessNet": -28.75
+   "tasiRet": -9.57,
+   "excessNet": -29.16
   },
   {
    "symbol": "3040",
@@ -1963,8 +1963,8 @@
    "tasiAtEntry": 11007.27,
    "maePct": -18.39,
    "status": "open",
-   "tasiRet": -9.72,
-   "excessNet": -0.55
+   "tasiRet": -9.36,
+   "excessNet": -2.1
   },
   {
    "symbol": "6014",
@@ -2219,8 +2219,8 @@
    "tasiAtEntry": 9952.06,
    "maePct": -20.69,
    "status": "open",
-   "tasiRet": -0.15,
-   "excessNet": -20.45
+   "tasiRet": 0.25,
+   "excessNet": -21.28
   },
   {
    "symbol": "1060",
@@ -2520,7 +2520,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.96,
    "status": "open",
-   "maePct": 0.0,
+   "maePct": -0.08,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -2565,7 +2565,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.99,
    "status": "open",
-   "maePct": -4.31
+   "maePct": -4.39
   },
   {
    "symbol": "1180",
@@ -2710,8 +2710,8 @@
    "tasiAtEntry": 10258.22,
    "maePct": -3.95,
    "status": "open",
-   "tasiRet": -3.13,
-   "excessNet": -0.9
+   "tasiRet": -2.74,
+   "excessNet": -1.07
   },
   {
    "symbol": "4008",
@@ -2740,8 +2740,8 @@
    "tasiAtEntry": 10258.22,
    "maePct": -9.74,
    "status": "open",
-   "tasiRet": -3.13,
-   "excessNet": -6.04
+   "tasiRet": -2.74,
+   "excessNet": -3.97
   },
   {
    "symbol": "6015",
@@ -2787,6 +2787,28 @@
    "volTrendAtEntry": 1.1,
    "status": "open",
    "maePct": -2.32
+  },
+  {
+   "symbol": "2150",
+   "name": "الزجاج الوطنية",
+   "sector": "Consumer Discretionary",
+   "type": "buy",
+   "entryPrice": 36.1,
+   "entryDate": "2026-11-24",
+   "track": "auto",
+   "category": "buy_wait",
+   "engineClass": "conditional_buy",
+   "scoreAtEntry": 66,
+   "timingAtEntry": "مقبول",
+   "regimeAtEntry": "هابط",
+   "aboveSmaAtEntry": false,
+   "scoreScaleAtEntry": "criteria-v3",
+   "priceBasisAtEntry": "capadj-v1",
+   "trendBasisAtEntry": "tr-local-v1",
+   "viaReversalAtEntry": true,
+   "volTrendAtEntry": 0.89,
+   "status": "open",
+   "maePct": 0.0
   }
  ]
 }
