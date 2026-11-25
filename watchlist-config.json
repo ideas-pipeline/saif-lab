@@ -434,8 +434,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -17.87,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": -5.8
+   "tasiRet": -8.35,
+   "excessNet": -5.06
   },
   {
    "symbol": "2050",
@@ -495,8 +495,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -19.3,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": -11.09
+   "tasiRet": -8.35,
+   "excessNet": -11.3
   },
   {
    "symbol": "3080",
@@ -521,8 +521,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -14.32,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": 0.45
+   "tasiRet": -8.35,
+   "excessNet": 0.39
   },
   {
    "symbol": "6010",
@@ -547,8 +547,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -23.29,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": -11.46
+   "tasiRet": -8.35,
+   "excessNet": -11.79
   },
   {
    "symbol": "4012",
@@ -573,8 +573,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -18.51,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": -5.97
+   "tasiRet": -8.35,
+   "excessNet": -6.22
   },
   {
    "symbol": "3010",
@@ -599,8 +599,8 @@
    "tasiAtEntry": 10817.01,
    "maePct": -22.82,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": -16.08
+   "tasiRet": -8.35,
+   "excessNet": -15.23
   },
   {
    "symbol": "3005",
@@ -623,10 +623,10 @@
    "peAtEntry": 11.82,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -30.26,
+   "maePct": -30.81,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": -23.44
+   "tasiRet": -8.35,
+   "excessNet": -23.49
   },
   {
    "symbol": "3030",
@@ -649,10 +649,10 @@
    "peAtEntry": 12.18,
    "peSectorMedianAtEntry": 16.58,
    "tasiAtEntry": 10817.01,
-   "maePct": -15.19,
+   "maePct": -15.23,
    "status": "open",
-   "tasiRet": -7.77,
-   "excessNet": -8.07
+   "tasiRet": -8.35,
+   "excessNet": -7.92
   },
   {
    "symbol": "4323",
@@ -1138,8 +1138,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -14.56,
    "status": "open",
-   "tasiRet": -7.82,
-   "excessNet": 4.43
+   "tasiRet": -8.4,
+   "excessNet": 7.25
   },
   {
    "symbol": "4260",
@@ -1197,8 +1197,8 @@
    "tasiAtEntry": 10823.6,
    "maePct": -7.94,
    "status": "open",
-   "tasiRet": -7.82,
-   "excessNet": 5.29
+   "tasiRet": -8.4,
+   "excessNet": 5.47
   },
   {
    "symbol": "1180",
@@ -1821,10 +1821,10 @@
    "peAtEntry": 6.73,
    "peSectorMedianAtEntry": 19.64,
    "tasiAtEntry": 11032.91,
-   "maePct": -37.95,
+   "maePct": -38.23,
    "status": "open",
-   "tasiRet": -9.57,
-   "excessNet": -29.16
+   "tasiRet": -10.14,
+   "excessNet": -28.87
   },
   {
    "symbol": "3040",
@@ -1963,8 +1963,8 @@
    "tasiAtEntry": 11007.27,
    "maePct": -18.39,
    "status": "open",
-   "tasiRet": -9.36,
-   "excessNet": -2.1
+   "tasiRet": -9.93,
+   "excessNet": -2.46
   },
   {
    "symbol": "6014",
@@ -2217,10 +2217,10 @@
    "peAtEntry": 7.34,
    "peSectorMedianAtEntry": 11.67,
    "tasiAtEntry": 9952.06,
-   "maePct": -20.69,
+   "maePct": -22.9,
    "status": "open",
-   "tasiRet": 0.25,
-   "excessNet": -21.28
+   "tasiRet": -0.38,
+   "excessNet": -22.86
   },
   {
    "symbol": "1060",
@@ -2520,7 +2520,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.96,
    "status": "open",
-   "maePct": -0.08,
+   "maePct": -1.23,
    "twinNote": "تخرّج لمطبق بتاريخه"
   },
   {
@@ -2543,7 +2543,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.24,
    "status": "open",
-   "maePct": -2.93
+   "maePct": -3.17
   },
   {
    "symbol": "1120",
@@ -2565,7 +2565,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.99,
    "status": "open",
-   "maePct": -4.39
+   "maePct": -5.48
   },
   {
    "symbol": "1180",
@@ -2587,7 +2587,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.01,
    "status": "open",
-   "maePct": -4.12
+   "maePct": -4.43
   },
   {
    "symbol": "1080",
@@ -2609,7 +2609,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 0.95,
    "status": "open",
-   "maePct": -4.93
+   "maePct": -5.26
   },
   {
    "symbol": "2150",
@@ -2710,8 +2710,8 @@
    "tasiAtEntry": 10258.22,
    "maePct": -3.95,
    "status": "open",
-   "tasiRet": -2.74,
-   "excessNet": -1.07
+   "tasiRet": -3.36,
+   "excessNet": -0.69
   },
   {
    "symbol": "4008",
@@ -2740,8 +2740,8 @@
    "tasiAtEntry": 10258.22,
    "maePct": -9.74,
    "status": "open",
-   "tasiRet": -2.74,
-   "excessNet": -3.97
+   "tasiRet": -3.36,
+   "excessNet": -4.21
   },
   {
    "symbol": "6015",
@@ -2786,7 +2786,7 @@
    "viaReversalAtEntry": false,
    "volTrendAtEntry": 1.1,
    "status": "open",
-   "maePct": -2.32
+   "maePct": -2.4
   },
   {
    "symbol": "2150",
@@ -2808,7 +2808,7 @@
    "viaReversalAtEntry": true,
    "volTrendAtEntry": 0.89,
    "status": "open",
-   "maePct": 0.0
+   "maePct": -0.28
   }
  ]
 }
