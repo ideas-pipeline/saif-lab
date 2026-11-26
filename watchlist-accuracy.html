@@ -462,7 +462,7 @@
    ══════════════════════════════════════════════════════ */
 const CONFIG = {
   entryDate:   "2025-03-13",
-  updatedAt:   "2026-11-26T16:26:04+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
+  updatedAt:   "2026-11-26T16:53:04+03:00",  // ختم توليد الصفحة الآلي (خط المختبر)
 };
 
 /*
@@ -963,6 +963,10 @@ const WATCHLIST = [
     tasiRet:       -8.26,
     periodDays:    109,
     regimeAtEntry: "هابط",
+    status:        "closed",
+    closeDate:     "2026-11-26",
+    closePrice:    11.49,
+    closeReason:   "cheapness_exited",
     entryDate:     "2026-08-09",
     track:         "auto",
     category:      "value-shadow",
@@ -1403,6 +1407,10 @@ const WATCHLIST = [
     tasiRet:       -8.31,
     periodDays:    105,
     regimeAtEntry: "هابط",
+    status:        "closed",
+    closeDate:     "2026-11-26",
+    closePrice:    15.3,
+    closeReason:   "cheapness_exited",
     entryDate:     "2026-08-13",
     track:         "auto",
     category:      "value-shadow",
@@ -2659,6 +2667,10 @@ const WATCHLIST = [
     tasiRet:       -3.26,
     periodDays:    11,
     regimeAtEntry: "هابط",
+    status:        "closed",
+    closeDate:     "2026-11-26",
+    closePrice:    12.37,
+    closeReason:   "cheapness_exited",
     entryDate:     "2026-11-15",
     track:         "auto",
     category:      "value-shadow",
@@ -2765,6 +2777,72 @@ const WATCHLIST = [
     category:      "buy",
     maePct: 0.0,
     currentPrice:  90.2,           // ✅ confirmed 2026-11-26
+  },
+  {
+    symbol:        "2080",
+    name:          "الغاز والتصنيع",
+    sector:        "Utilities",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    59.4,      // same-day-close | يدوي أصلي: 59.4
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
+    entryDate:     "2026-11-26",
+    track:         "auto",
+    category:      "value-shadow",
+    sampleType:    "value-shadow",
+    maePct: 0.0,
+    peAtEntry: 14.49,
+    peSectorMedianAtEntry: 39.13,
+    priceVsSmaPct: -19.37,
+    qualityAtEntry: 25,
+    currentPrice:  59.4,           // ✅ confirmed 2026-11-26
+  },
+  {
+    symbol:        "4004",
+    name:          "دله الصحية",
+    sector:        "Healthcare",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    56.75,      // same-day-close | يدوي أصلي: 56.75
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
+    entryDate:     "2026-11-26",
+    track:         "auto",
+    category:      "value-shadow",
+    sampleType:    "value-shadow",
+    maePct: 0.0,
+    peAtEntry: 8.56,
+    peSectorMedianAtEntry: 16.18,
+    priceVsSmaPct: -49.69,
+    qualityAtEntry: 23,
+    currentPrice:  56.75,           // ✅ confirmed 2026-11-26
+  },
+  {
+    symbol:        "2150",
+    name:          "الزجاج الوطنية",
+    sector:        "Consumer Discretionary",
+    type:          "buy",          // "buy" | "sell"
+    entryPrice:    35.72,      // same-day-close | يدوي أصلي: 35.72
+    entrySource:   "same-day-close",         // manual-fallback → شارة ⚠️ على الصفحة (عرضها شأن الواجهة)
+    divsSince:     0,
+    tasiRet:       0.0,
+    periodDays:    0,
+    regimeAtEntry: "هابط",
+    entryDate:     "2026-11-26",
+    track:         "auto",
+    category:      "value-shadow",
+    sampleType:    "value-shadow",
+    maePct: 0.0,
+    peAtEntry: 9.3,
+    peSectorMedianAtEntry: 16.59,
+    priceVsSmaPct: -6.69,
+    qualityAtEntry: 19,
+    currentPrice:  35.72,           // ✅ confirmed 2026-11-26
   },
 ];
 

@@ -1,48 +1,37 @@
 {
- "at": "2026-11-19",
+ "at": "2026-11-26",
  "counts": {
-  "buy": 9,
-  "filtered": 163,
-  "conditional_buy": 9,
-  "hold": 17,
+  "conditional_buy": 7,
+  "filtered": 168,
+  "hold": 23,
   "sell": 5,
-  "unrated": 45
+  "unrated": 43,
+  "buy_wait": 1,
+  "buy": 1
  },
  "universe": 248,
  "buyFamily": [
+  "4280",
   "4030",
-  "4190",
   "2222",
   "1010",
-  "1030",
-  "4280",
-  "2190",
-  "2150",
-  "4164",
   "6015",
-  "1050",
-  "1060",
-  "7020",
-  "1180",
+  "1030",
+  "2190",
   "2110",
-  "7010",
-  "1120",
-  "2020"
+  "7020"
  ],
- "unrated": 45,
+ "unrated": 43,
  "guardByField": {
-  "revenueGrowth": 14,
-  "returnOnEquity": 5,
-  "returnOnAssets": 2,
-  "ocfLiabilities": 2
+  "revenueGrowth": 2,
+  "returnOnEquity": 3,
+  "pe": 1,
+  "pb": 1
  },
  "reversalMembers": [
-  "2150",
-  "2180",
+  "2083",
   "2282",
   "2381",
-  "4164",
-  "4323",
   "6014"
  ],
  "regimeLog": [
@@ -96,6 +85,10 @@
   },
   {
    "date": "2026-11-19",
+   "regime": "هابط"
+  },
+  {
+   "date": "2026-11-26",
    "regime": "هابط"
   }
  ]
